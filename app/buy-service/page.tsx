@@ -17,15 +17,18 @@ export default function BuyService() {
 
   const buy = async (serviceId: string) => {
     try {
-      const order = await apiRequest(
-        "/api/orders",
+      const res = await apiRequest(
+        "/api/payment/checkout",
         "POST",
         { serviceId },
         true
       );
 
-      localStorage.setItem("orderId", order._id);
-      router.push("/orders");
+      if (res.url) {
+        window.location.href = res.url;
+      } else {
+        alert("Payment initiation failed");
+      }
     } catch (err: any) {
       alert(err.message);
     }
