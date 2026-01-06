@@ -82,6 +82,3 @@ export default function Upload() {
     </div>
   );
 }
-export default function Page() {
-  return <div className="p-8">Page works</div>;
-}
