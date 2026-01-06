@@ -1,18 +1,31 @@
 "use client";
-import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect } from "react";
 
-export default function Success() {
-  const params = useSearchParams();
-  const router = useRouter();
+export const dynamic = "force-dynamic";
 
-  useEffect(() => {
-    const orderId = params.get("orderId");
-    if (orderId) {
-      localStorage.setItem("orderId", orderId);
-      router.push("/upload");
-    }
-  }, []);
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 
-  return <p className="p-8">Redirecting…</p>;
+function PaymentSuccessInner() {
+  const searchParams = useSearchParams();
+  const orderId = searchParams.get("orderId");
+
+  return (
+    <div style={{ padding: "40px" }}>
+      <h1>Payment Successful 🎉</h1>
+      <p>Your payment was completed successfully.</p>
+      {orderId && (
+        <p>
+          <strong>Order ID:</strong> {orderId}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PaymentSuccessInner />
+    </Suspense>
+  );
 }
