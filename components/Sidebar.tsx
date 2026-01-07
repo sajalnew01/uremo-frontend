@@ -5,6 +5,8 @@ const links = [
   { name: "Buy Service", href: "/buy-service" },
   { name: "My Orders", href: "/orders" },
   { name: "Apply to Work", href: "/apply-to-work" },
+  { name: "Admin Panel", href: "/admin" },
+  { name: "Apply-to-Work Admin", href: "/admin/apply-work" },
 ];
 
 export default function Sidebar() {
