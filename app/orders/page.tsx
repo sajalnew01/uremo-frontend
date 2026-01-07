@@ -1,62 +1,127 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Container from "@/components/Container";
+import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
+import Link from "next/link";
 
-export default function Orders() {
-  const [orders, setOrders] = useState<any[]>([]);
+interface Order {
+  _id: string;
+  status: string;
+  serviceId: {
+    name: string;
+  };
+  paymentMethod?: string;
+}
+
+const statusColor = (status: string) => {
+  switch (status) {
+    case "pending":
+      return "bg-gray-600";
+    case "payment_submitted":
+      return "bg-yellow-600";
+    case "approved":
+      return "bg-green-600";
+    case "rejected":
+      return "bg-red-600";
+    default:
+      return "bg-gray-600";
+  }
+};
+
+export default function OrdersPage() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadOrders = async () => {
+    try {
+      const data = await apiRequest("/api/orders", "GET", null, true);
+      setOrders(data);
+    } catch {
+      alert("Failed to load orders");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    apiRequest("/api/orders", "GET", undefined, true).then((res) =>
-      setOrders(res)
-    );
+    loadOrders();
   }, []);
 
   return (
-    <Container>
-      <h1 className="text-2xl font-semibold mb-6">My Orders</h1>
-
-      {orders.length === 0 && <p>No orders yet.</p>}
-
-      <div className="space-y-4">
-        {orders.map((order) => (
-          <div key={order._id} className="border border-zinc-800 p-4 rounded">
-            <p>
-              <strong>Service:</strong> {order.service?.name}
-            </p>
-            <p>
-              <strong>Status:</strong>{" "}
-              <span
-                className={
-                  order.status === "pending"
-                    ? "text-gray-400"
-                    : order.status === "payment_submitted"
-                    ? "text-yellow-500"
-                    : order.status === "approved"
-                    ? "text-green-500"
-                    : "text-red-500"
-                }
-              >
-                {order.status === "pending" && "⏳ Pending payment"}
-                {order.status === "payment_submitted" &&
-                  "🔍 Under verification"}
-                {order.status === "approved" && "✅ Approved"}
-                {order.status === "rejected" && "❌ Rejected"}
-              </span>
-            </p>
-
-            {order.status === "pending" && (
-              <a
-                href="/payment"
-                className="text-blue-500 underline text-sm mt-2 inline-block"
-              >
-                Proceed to payment →
-              </a>
-            )}
-          </div>
-        ))}
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold">My Orders</h1>
+        <p className="text-[#9CA3AF]">Track payments and verification status</p>
       </div>
-    </Container>
+
+      <Card>
+        {loading && <p>Loading orders...</p>}
+
+        {!loading && orders.length === 0 && (
+          <p className="text-sm text-[#9CA3AF]">
+            You haven't placed any orders yet.
+          </p>
+        )}
+
+        {!loading && orders.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left border-b border-[#1F2937]">
+                  <th className="p-3">Service</th>
+                  <th className="p-3">Payment</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3">Action</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {orders.map((o) => (
+                  <tr key={o._id} className="border-b border-[#1F2937]">
+                    <td className="p-3">{o.serviceId?.name || "-"}</td>
+
+                    <td className="p-3 capitalize">
+                      {o.paymentMethod || "Not paid"}
+                    </td>
+
+                    <td className="p-3">
+                      <span
+                        className={`px-2 py-1 rounded text-xs ${statusColor(
+                          o.status
+                        )}`}
+                      >
+                        {o.status.replace("_", " ")}
+                      </span>
+                    </td>
+
+                    <td className="p-3">
+                      {o.status === "pending" && (
+                        <Link href="/payment" className="text-[#3B82F6]">
+                          Proceed to payment →
+                        </Link>
+                      )}
+
+                      {o.status === "payment_submitted" && (
+                        <span className="text-yellow-500">Under review</span>
+                      )}
+
+                      {o.status === "approved" && (
+                        <span className="text-green-500">Processing</span>
+                      )}
+
+                      {o.status === "rejected" && (
+                        <span className="text-red-500">Rejected</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+    </div>
   );
 }
