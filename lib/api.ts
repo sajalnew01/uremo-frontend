@@ -1,20 +1,32 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
 export async function apiRequest(
-  path: string,
-  method: string = "GET",
-  body?: any
+  endpoint: string,
+  method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
+  body?: any,
+  auth: boolean = false
 ) {
-  const token = localStorage.getItem("token");
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
 
-  const res = await fetch(`${API_URL}${path}`, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  if (auth) {
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+    if (!token) {
+      throw new Error("Authentication required");
+    }
+
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}${endpoint}`,
+    {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    }
+  );
 
   const data = await res.json();
 
