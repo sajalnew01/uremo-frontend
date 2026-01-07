@@ -1,19 +1,19 @@
 "use client";
 
-import Container from "@/components/Container";
 import { useState } from "react";
+import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
 
 export default function PaymentPage() {
-  const [method, setMethod] = useState("");
   const [orderId, setOrderId] = useState("");
+  const [method, setMethod] = useState("");
   const [tx, setTx] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
   const submit = async () => {
     if (!orderId || !method || !file) {
-      alert("All fields are required");
+      alert("Order ID, payment method, and proof are required");
       return;
     }
 
@@ -31,80 +31,108 @@ export default function PaymentPage() {
         true,
         true
       );
-      alert("Payment submitted. Verification in progress.");
+      alert("Payment submitted. Manual verification in progress.");
       window.location.href = "/orders";
     } catch (err: any) {
-      alert(err.message);
+      alert(err.message || "Submission failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Container>
-      <h1 className="text-2xl font-bold mb-2">Complete Payment</h1>
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold">Complete Payment</h1>
+        <p className="text-[#9CA3AF]">
+          All payments are manually verified by the UREMO team.
+        </p>
+      </div>
 
-      <p className="text-sm text-gray-400 mb-6">
-        ⚠️ All payments are manually verified by UREMO staff for security.
-      </p>
+      {/* Order ID */}
+      <Card title="Order Information">
+        <input
+          placeholder="Enter your Order ID"
+          className="w-full p-2 bg-transparent border border-[#1F2937] rounded"
+          onChange={(e) => setOrderId(e.target.value)}
+        />
+      </Card>
 
-      <input
-        placeholder="Order ID"
-        className="w-full p-2 mb-4 border"
-        onChange={(e) => setOrderId(e.target.value)}
-      />
+      {/* Payment Methods */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card title="PayPal">
+          <p className="text-sm text-[#9CA3AF] mb-3">Send payment to:</p>
+          <p className="font-semibold mb-4">payments@uremo.online</p>
+          <button
+            onClick={() => setMethod("paypal")}
+            className={`w-full py-2 rounded ${
+              method === "paypal" ? "bg-[#3B82F6]" : "border border-[#1F2937]"
+            }`}
+          >
+            Select PayPal
+          </button>
+        </Card>
 
-      <select
-        className="w-full p-2 mb-4 border"
-        onChange={(e) => setMethod(e.target.value)}
-      >
-        <option value="">Select payment method</option>
-        <option value="paypal">PayPal</option>
-        <option value="binance">Binance</option>
-        <option value="usdt">USDT (Crypto)</option>
-      </select>
+        <Card title="Binance">
+          <p className="text-sm text-[#9CA3AF] mb-3">Binance Pay ID:</p>
+          <p className="font-semibold mb-4">UREMO_BINANCE_ID</p>
+          <button
+            onClick={() => setMethod("binance")}
+            className={`w-full py-2 rounded ${
+              method === "binance" ? "bg-[#3B82F6]" : "border border-[#1F2937]"
+            }`}
+          >
+            Select Binance
+          </button>
+        </Card>
 
-      {method === "paypal" && (
-        <div className="mb-4 p-3 border rounded">
-          <b>PayPal Email</b>
-          <p>payments@uremo.online</p>
-        </div>
-      )}
+        <Card title="USDT (Crypto)">
+          <p className="text-sm text-[#9CA3AF] mb-3">Network: TRC20</p>
+          <p className="font-semibold mb-4 break-all">
+            YOUR_USDT_WALLET_ADDRESS
+          </p>
+          <button
+            onClick={() => setMethod("usdt")}
+            className={`w-full py-2 rounded ${
+              method === "usdt" ? "bg-[#3B82F6]" : "border border-[#1F2937]"
+            }`}
+          >
+            Select USDT
+          </button>
+        </Card>
+      </div>
 
-      {method === "binance" && (
-        <div className="mb-4 p-3 border rounded">
-          <b>Binance Pay ID</b>
-          <p>UREMO_BINANCE_ID</p>
-        </div>
-      )}
+      {/* Proof Upload */}
+      <Card title="Upload Payment Proof">
+        <input
+          type="file"
+          className="mb-3"
+          onChange={(e) => setFile(e.target.files?.[0] || null)}
+        />
 
-      {method === "usdt" && (
-        <div className="mb-4 p-3 border rounded">
-          <b>USDT (TRC20)</b>
-          <p>YOUR_USDT_WALLET_ADDRESS</p>
-        </div>
-      )}
+        <input
+          placeholder="Transaction ID / Reference (optional)"
+          className="w-full p-2 bg-transparent border border-[#1F2937] rounded mb-4"
+          onChange={(e) => setTx(e.target.value)}
+        />
 
-      <input
-        placeholder="Transaction ID / Reference (optional)"
-        className="w-full p-2 mb-4 border"
-        onChange={(e) => setTx(e.target.value)}
-      />
+        <button
+          onClick={submit}
+          disabled={loading}
+          className="px-4 py-2 rounded bg-[#22C55E] text-black"
+        >
+          {loading ? "Submitting..." : "Submit for Verification"}
+        </button>
+      </Card>
 
-      <input
-        type="file"
-        className="mb-4"
-        onChange={(e) => setFile(e.target.files?.[0] || null)}
-      />
-
-      <button onClick={submit} disabled={loading} className="px-4 py-2 border">
-        {loading ? "Submitting..." : "Submit Payment"}
-      </button>
-
-      <p className="text-xs text-gray-500 mt-6">
-        UREMO is an independent service provider. We are not affiliated with any
-        platform. Approval depends on verification and platform rules.
-      </p>
-    </Container>
+      {/* Legal / Trust */}
+      <Card>
+        <p className="text-xs text-[#9CA3AF]">
+          ⚠️ UREMO is an independent service provider. Payments are reviewed
+          manually. We are not affiliated with any third-party platform.
+        </p>
+      </Card>
+    </div>
   );
 }
