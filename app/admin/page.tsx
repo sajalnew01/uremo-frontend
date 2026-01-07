@@ -26,7 +26,7 @@ export default function Admin() {
 
   const updateStatus = async (id: string, status: string) => {
     try {
-      await apiRequest(`/api/admin/orders/${id}`, "PATCH", { status }, true);
+      await apiRequest(`/api/admin/orders/${id}`, "PUT", { status }, true);
       loadOrders();
     } catch (err: any) {
       alert(err.message || "Update failed");
