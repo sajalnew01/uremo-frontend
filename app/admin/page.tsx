@@ -32,15 +32,40 @@ export default function AdminPage() {
             <b>User:</b> {order.user?.email}
           </p>
           <p>
-            <b>Status:</b> {order.status}
+            <b>Service:</b> {order.service?.name || "N/A"}
           </p>
           <p>
-            <b>Payment:</b> {order.paymentMethod}
+            <b>Status:</b>{" "}
+            <span
+              className={
+                order.status === "pending"
+                  ? "text-gray-400"
+                  : order.status === "payment_submitted"
+                  ? "text-yellow-500"
+                  : order.status === "approved"
+                  ? "text-green-500"
+                  : "text-red-500"
+              }
+            >
+              {order.status}
+            </span>
           </p>
+          <p>
+            <b>Payment Method:</b> {order.paymentMethod || "Not submitted"}
+          </p>
+          {order.transactionRef && (
+            <p>
+              <b>Transaction Ref:</b> {order.transactionRef}
+            </p>
+          )}
 
           {order.paymentProof && (
-            <a href={order.paymentProof} target="_blank" className="underline">
-              View Payment Proof
+            <a
+              href={order.paymentProof}
+              target="_blank"
+              className="underline text-blue-500"
+            >
+              View Payment Proof →
             </a>
           )}
         </div>

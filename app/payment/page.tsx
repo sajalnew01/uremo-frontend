@@ -1,16 +1,20 @@
 "use client";
 
+import Container from "@/components/Container";
 import { useState } from "react";
+import { apiRequest } from "@/lib/api";
 
 export default function PaymentPage() {
   const [method, setMethod] = useState("");
   const [orderId, setOrderId] = useState("");
-  const [file, setFile] = useState<File | null>(null);
   const [tx, setTx] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const submit = async () => {
-    if (!file || !method || !orderId) {
-      return alert("All fields required");
+    if (!orderId || !method || !file) {
+      alert("All fields are required");
+      return;
     }
 
     const fd = new FormData();
@@ -18,76 +22,89 @@ export default function PaymentPage() {
     fd.append("paymentMethod", method);
     fd.append("transactionRef", tx);
 
-    await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/upload/payment-proof/${orderId}`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: fd,
-      }
-    );
-
-    alert("Payment submitted. Await verification.");
-    window.location.href = "/orders";
+    try {
+      setLoading(true);
+      await apiRequest(
+        `/api/upload/payment-proof/${orderId}`,
+        "POST",
+        fd,
+        true,
+        true
+      );
+      alert("Payment submitted. Verification in progress.");
+      window.location.href = "/orders";
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="max-w-md mx-auto p-6 space-y-4">
-      <h1 className="text-xl font-semibold">Complete Payment</h1>
+    <Container>
+      <h1 className="text-2xl font-bold mb-2">Complete Payment</h1>
+
+      <p className="text-sm text-gray-400 mb-6">
+        ⚠️ All payments are manually verified by UREMO staff for security.
+      </p>
 
       <input
         placeholder="Order ID"
+        className="w-full p-2 mb-4 border"
         onChange={(e) => setOrderId(e.target.value)}
-        className="w-full p-2 border border-zinc-800 bg-black rounded"
       />
 
       <select
+        className="w-full p-2 mb-4 border"
         onChange={(e) => setMethod(e.target.value)}
-        className="w-full p-2 border border-zinc-800 bg-black rounded"
       >
-        <option value="">Select Payment Method</option>
+        <option value="">Select payment method</option>
         <option value="paypal">PayPal</option>
         <option value="binance">Binance</option>
         <option value="usdt">USDT (Crypto)</option>
       </select>
 
       {method === "paypal" && (
-        <p>
-          Pay to PayPal: <strong>your-paypal@email.com</strong>
-        </p>
+        <div className="mb-4 p-3 border rounded">
+          <b>PayPal Email</b>
+          <p>payments@uremo.online</p>
+        </div>
       )}
 
       {method === "binance" && (
-        <p>
-          Binance Pay ID: <strong>YOUR_BINANCE_ID</strong>
-        </p>
+        <div className="mb-4 p-3 border rounded">
+          <b>Binance Pay ID</b>
+          <p>UREMO_BINANCE_ID</p>
+        </div>
       )}
 
       {method === "usdt" && (
-        <p>
-          USDT (TRC20) Address: <strong>YOUR_USDT_ADDRESS</strong>
-        </p>
+        <div className="mb-4 p-3 border rounded">
+          <b>USDT (TRC20)</b>
+          <p>YOUR_USDT_WALLET_ADDRESS</p>
+        </div>
       )}
 
       <input
-        placeholder="Transaction ID (optional)"
+        placeholder="Transaction ID / Reference (optional)"
+        className="w-full p-2 mb-4 border"
         onChange={(e) => setTx(e.target.value)}
-        className="w-full p-2 border border-zinc-800 bg-black rounded"
       />
 
       <input
         type="file"
+        className="mb-4"
         onChange={(e) => setFile(e.target.files?.[0] || null)}
       />
 
-      <button
-        className="bg-white text-black px-4 py-2 rounded"
-        onClick={submit}
-      >
-        Submit Payment
+      <button onClick={submit} disabled={loading} className="px-4 py-2 border">
+        {loading ? "Submitting..." : "Submit Payment"}
       </button>
-    </div>
+
+      <p className="text-xs text-gray-500 mt-6">
+        UREMO is an independent service provider. We are not affiliated with any
+        platform. Approval depends on verification and platform rules.
+      </p>
+    </Container>
   );
 }
