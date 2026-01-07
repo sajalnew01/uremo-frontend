@@ -6,19 +6,21 @@ import { apiRequest } from "@/lib/api";
 
 export default function Signup() {
   const router = useRouter();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const submit = async () => {
-    if (!email || !password) {
-      alert("Email and password required");
+    if (!name || !email || !password) {
+      alert("Name, email and password required");
       return;
     }
 
     setLoading(true);
     try {
       const res = await apiRequest("/api/auth/signup", "POST", {
+        name,
         email,
         password,
       });
@@ -36,6 +38,15 @@ export default function Signup() {
     <div className="min-h-screen flex items-center justify-center">
       <div className="w-full max-w-sm border rounded p-6">
         <h1 className="text-xl font-semibold mb-4">Create account</h1>
+
+        <input
+          className="w-full border p-2 mb-3"
+          type="text"
+          placeholder="Full Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+        />
 
         <input
           className="w-full border p-2 mb-3"
