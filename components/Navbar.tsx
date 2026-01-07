@@ -12,7 +12,10 @@ export default function Navbar() {
 
   return (
     <header className="h-14 border-b border-zinc-800 flex items-center justify-between px-6 bg-black">
-      <h1 className="font-bold text-lg">UREMO</h1>
+      <div>
+        <h1 className="font-bold text-lg">UREMO</h1>
+        <p className="text-[10px] text-zinc-500">Manual. Secure. Verified.</p>
+      </div>
 
       <button
         onClick={logout}

@@ -16,45 +16,50 @@ export default function Dashboard() {
     <Container>
       <h1 className="text-2xl font-semibold mb-6">Dashboard</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="border border-zinc-800 p-6 rounded-lg hover:border-zinc-700 transition">
-          <h3 className="font-medium text-lg mb-3">Buy Service</h3>
-          <p className="text-sm text-zinc-400 mb-4">
-            Browse and purchase services
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <a
+          href="/buy-service"
+          className="border border-zinc-800 p-8 rounded-lg hover:border-white transition cursor-pointer"
+        >
+          <div className="text-4xl mb-3">🛒</div>
+          <h3 className="font-bold text-xl mb-2">Buy Service</h3>
+          <p className="text-sm text-zinc-400">
+            Browse and purchase verified services
           </p>
-          <a
-            href="/buy-service"
-            className="text-blue-400 hover:text-blue-300 text-sm"
-          >
-            Browse Services →
-          </a>
-        </div>
+        </a>
 
-        <div className="border border-zinc-800 p-6 rounded-lg hover:border-zinc-700 transition">
-          <h3 className="font-medium text-lg mb-3">My Orders</h3>
-          <p className="text-sm text-zinc-400 mb-4">
-            Track your service orders
+        <a
+          href="/orders"
+          className="border border-zinc-800 p-8 rounded-lg hover:border-white transition cursor-pointer"
+        >
+          <div className="text-4xl mb-3">📦</div>
+          <h3 className="font-bold text-xl mb-2">My Orders</h3>
+          <p className="text-sm text-zinc-400">
+            Track your service orders & payments
           </p>
-          <a
-            href="/orders"
-            className="text-blue-400 hover:text-blue-300 text-sm"
-          >
-            View Orders →
-          </a>
-        </div>
+        </a>
 
-        <div className="border border-zinc-800 p-6 rounded-lg hover:border-zinc-700 transition">
-          <h3 className="font-medium text-lg mb-3">Apply to Work</h3>
-          <p className="text-sm text-zinc-400 mb-4">
-            Join as a service provider
+        <a
+          href="/apply-to-work"
+          className="border border-zinc-800 p-8 rounded-lg hover:border-white transition cursor-pointer"
+        >
+          <div className="text-4xl mb-3">💼</div>
+          <h3 className="font-bold text-xl mb-2">Apply to Work</h3>
+          <p className="text-sm text-zinc-400">
+            Join as a verified service provider
           </p>
-          <a
-            href="/apply-to-work"
-            className="text-blue-400 hover:text-blue-300 text-sm"
-          >
-            Apply Now →
-          </a>
-        </div>
+        </a>
+
+        <a
+          href="/payment"
+          className="border border-zinc-800 p-8 rounded-lg hover:border-white transition cursor-pointer"
+        >
+          <div className="text-4xl mb-3">💳</div>
+          <h3 className="font-bold text-xl mb-2">Payments</h3>
+          <p className="text-sm text-zinc-400">
+            Submit payment proof for verification
+          </p>
+        </a>
       </div>
     </Container>
   );
