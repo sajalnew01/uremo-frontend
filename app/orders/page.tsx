@@ -8,7 +8,9 @@ export default function Orders() {
   const [orders, setOrders] = useState<any[]>([]);
 
   useEffect(() => {
-    apiRequest("/api/orders").then((res) => setOrders(res));
+    apiRequest("/api/orders", "GET", undefined, true).then((res) =>
+      setOrders(res)
+    );
   }, []);
 
   return (

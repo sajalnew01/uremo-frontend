@@ -9,14 +9,14 @@ export default function BuyService() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiRequest("/api/services")
+    apiRequest("/api/services", "GET")
       .then((res) => setServices(res))
       .finally(() => setLoading(false));
   }, []);
 
   const buy = async (serviceId: string) => {
     try {
-      await apiRequest("/api/orders", "POST", { serviceId });
+      await apiRequest("/api/orders", "POST", { serviceId }, true);
       alert("Order placed successfully");
     } catch (err: any) {
       alert(err.message);

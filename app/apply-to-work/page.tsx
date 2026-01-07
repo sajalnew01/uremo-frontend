@@ -1,76 +1,65 @@
 "use client";
 
 import { useState } from "react";
+import Container from "@/components/Container";
+import { apiRequest } from "@/lib/api";
 
 export default function ApplyToWork() {
-  const [form, setForm] = useState<any>({});
   const [resume, setResume] = useState<File | null>(null);
+  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [inputKey, setInputKey] = useState(0);
 
   const submit = async () => {
-    if (!resume) return alert("Resume required");
+    if (!resume) {
+      alert("Please upload your resume");
+      return;
+    }
 
-    const fd = new FormData();
-    Object.entries(form).forEach(([k, v]) => fd.append(k, String(v)));
-    fd.append("resume", resume);
+    const formData = new FormData();
+    formData.append("resume", resume);
+    formData.append("message", message);
 
-    setLoading(true);
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/workers/apply`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: fd,
-      });
-
-      alert("Application submitted");
-      setForm({});
+      setLoading(true);
+      await apiRequest("/api/apply-work", "POST", formData, true, true);
+      alert("Application submitted successfully");
+      setMessage("");
       setResume(null);
-    } catch (e: any) {
-      alert(e.message || "Failed to submit");
+      setInputKey((k) => k + 1);
+    } catch (err: any) {
+      alert(err.message || "Submission failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-md mx-auto p-6 space-y-4">
-      <h1 className="text-xl font-semibold">Apply to Work</h1>
+    <Container>
+      <h1 className="text-2xl font-bold mb-4">Apply to Work</h1>
 
       <input
-        placeholder="Full Name"
-        className="w-full p-2 bg-black border border-zinc-800 rounded"
-        onChange={(e) => setForm({ ...form, name: e.target.value })}
-      />
-      <input
-        placeholder="Email"
-        className="w-full p-2 bg-black border border-zinc-800 rounded"
-        onChange={(e) => setForm({ ...form, email: e.target.value })}
-      />
-      <input
-        placeholder="Country"
-        className="w-full p-2 bg-black border border-zinc-800 rounded"
-        onChange={(e) => setForm({ ...form, country: e.target.value })}
-      />
-      <textarea
-        placeholder="Skills"
-        className="w-full p-2 bg-black border border-zinc-800 rounded"
-        onChange={(e) => setForm({ ...form, skills: e.target.value })}
-      />
-      <input
         type="file"
-        accept=".pdf,.doc,.docx"
+        accept=".pdf,.jpg,.png"
         onChange={(e) => setResume(e.target.files?.[0] || null)}
+        key={inputKey}
+        className="mb-4"
+      />
+
+      <textarea
+        placeholder="Why should we hire you? (optional)"
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        className="w-full p-2 mb-4 bg-black border border-gray-700"
       />
 
       <button
         onClick={submit}
         disabled={loading}
-        className="bg-white text-black px-4 py-2 rounded disabled:opacity-50"
+        className="px-4 py-2 border border-white"
       >
-        {loading ? "Submitting..." : "Submit"}
+        {loading ? "Submitting..." : "Submit Application"}
       </button>
-    </div>
+    </Container>
   );
 }

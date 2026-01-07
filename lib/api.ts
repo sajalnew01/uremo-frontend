@@ -2,11 +2,14 @@ export async function apiRequest(
   endpoint: string,
   method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
   body?: any,
-  auth: boolean = false
+  auth: boolean = false,
+  isFormData: boolean = false
 ) {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
+  const headers: Record<string, string> = {};
+
+  if (!isFormData) {
+    headers["Content-Type"] = "application/json";
+  }
 
   if (auth) {
     const token =
@@ -24,7 +27,11 @@ export async function apiRequest(
     {
       method,
       headers,
-      body: body ? JSON.stringify(body) : undefined,
+      body: body
+        ? isFormData
+          ? body
+          : JSON.stringify(body)
+        : undefined,
     }
   );
 
