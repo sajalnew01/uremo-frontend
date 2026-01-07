@@ -1,75 +1,92 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Container from "@/components/Container";
+import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
 
+interface Service {
+  _id: string;
+  name: string;
+  description: string;
+  price: number;
+}
+
 export default function BuyService() {
-  const [services, setServices] = useState<any[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    apiRequest("/api/services", "GET")
-      .then((res) => setServices(res))
-      .finally(() => setLoading(false));
-  }, []);
+  const loadServices = async () => {
+    try {
+      const data = await apiRequest("/api/services", "GET");
+      setServices(data);
+    } catch {
+      alert("Failed to load services");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const buy = async (serviceId: string) => {
     try {
       await apiRequest("/api/orders", "POST", { serviceId }, true);
-      alert("Order placed successfully");
+      alert("Order created. Proceed to payment.");
+      window.location.href = "/orders";
     } catch (err: any) {
       alert(err.message);
     }
   };
 
-  if (loading) return <Container>Loading...</Container>;
+  useEffect(() => {
+    loadServices();
+  }, []);
 
   return (
-    <Container>
-      <h1 className="text-2xl font-semibold mb-6">Buy a Service</h1>
-
-      {/* How It Works Section */}
-      <div className="mb-8 p-6 border border-zinc-800 rounded-lg bg-zinc-900">
-        <h2 className="text-lg font-bold mb-4">How UREMO Works</h2>
-        <ol className="space-y-2 text-sm text-zinc-300">
-          <li>1. Choose a service</li>
-          <li>2. Place an order</li>
-          <li>3. Complete payment (manual & secure)</li>
-          <li>4. Upload proof</li>
-          <li>5. Human verification</li>
-          <li>6. Service delivered</li>
-        </ol>
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold">Buy a Service</h1>
+        <p className="text-[#9CA3AF]">
+          All services are manually verified and delivered by UREMO.
+        </p>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6">
-        {services.map((service) => (
-          <div
-            key={service._id}
-            className="border border-zinc-800 p-6 rounded-lg"
-          >
-            <h2 className="font-semibold mb-2">{service.name}</h2>
-            <p className="text-sm text-zinc-400 mb-4">{service.description}</p>
-            <p className="mb-4 font-bold">₹{service.price}</p>
+      {/* Services */}
+      {loading && <p>Loading services...</p>}
 
-            <button
-              onClick={() => buy(service._id)}
-              className="w-full bg-white text-black py-2 rounded"
-            >
-              Buy Now
-            </button>
-          </div>
+      {!loading && services.length === 0 && (
+        <Card>
+          <p className="text-sm text-[#9CA3AF]">
+            No services available at the moment.
+          </p>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {services.map((service) => (
+          <Card key={service._id} title={service.name}>
+            <p className="text-sm text-[#9CA3AF] mb-4">{service.description}</p>
+
+            <div className="flex items-center justify-between">
+              <span className="text-lg font-semibold">${service.price}</span>
+
+              <button
+                onClick={() => buy(service._id)}
+                className="px-4 py-2 rounded-lg bg-[#3B82F6] text-white text-sm hover:bg-blue-500"
+              >
+                Buy Service
+              </button>
+            </div>
+          </Card>
         ))}
       </div>
 
-      {/* Trust & Legal Text */}
-      <div className="mt-8 p-4 text-xs text-zinc-500 border-t border-zinc-800">
-        <p>
-          ⚠️ UREMO is an independent service provider. We are not affiliated
-          with any platform. All services are manually verified. Approval
-          depends on platform rules and user history.
+      {/* Trust Block */}
+      <Card>
+        <p className="text-sm text-[#9CA3AF]">
+          ⚠️ Payments are not automated. After placing an order, you will
+          complete payment manually and upload proof for human verification.
         </p>
-      </div>
-    </Container>
+      </Card>
+    </div>
   );
 }
