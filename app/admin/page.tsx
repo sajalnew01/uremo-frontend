@@ -8,7 +8,7 @@ export default function Admin() {
 
   const loadOrders = async () => {
     try {
-      const data = await apiRequest("/api/admin/orders", "GET", null, true);
+      const data = await apiRequest("/api/admin/orders");
       setOrders(data);
     } catch (err: any) {
       alert(err.message || "Failed to load orders");
@@ -21,7 +21,7 @@ export default function Admin() {
 
   const updateStatus = async (id: string, status: string) => {
     try {
-      await apiRequest(`/api/admin/orders/${id}`, "PATCH", { status }, true);
+      await apiRequest(`/api/admin/orders/${id}`, "PATCH", { status });
       loadOrders();
     } catch (err: any) {
       alert(err.message || "Update failed");
