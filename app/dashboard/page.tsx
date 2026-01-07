@@ -1,66 +1,71 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Container from "@/components/Container";
+import Card from "@/components/Card";
+import Link from "next/link";
 
 export default function Dashboard() {
-  const router = useRouter();
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) router.push("/login");
-  }, []);
-
   return (
-    <Container>
-      <h1 className="text-2xl font-semibold mb-6">Dashboard</h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <a
-          href="/buy-service"
-          className="border border-zinc-800 p-8 rounded-lg hover:border-white transition cursor-pointer"
-        >
-          <div className="text-4xl mb-3">🛒</div>
-          <h3 className="font-bold text-xl mb-2">Buy Service</h3>
-          <p className="text-sm text-zinc-400">
-            Browse and purchase verified services
-          </p>
-        </a>
-
-        <a
-          href="/orders"
-          className="border border-zinc-800 p-8 rounded-lg hover:border-white transition cursor-pointer"
-        >
-          <div className="text-4xl mb-3">📦</div>
-          <h3 className="font-bold text-xl mb-2">My Orders</h3>
-          <p className="text-sm text-zinc-400">
-            Track your service orders & payments
-          </p>
-        </a>
-
-        <a
-          href="/apply-to-work"
-          className="border border-zinc-800 p-8 rounded-lg hover:border-white transition cursor-pointer"
-        >
-          <div className="text-4xl mb-3">💼</div>
-          <h3 className="font-bold text-xl mb-2">Apply to Work</h3>
-          <p className="text-sm text-zinc-400">
-            Join as a verified service provider
-          </p>
-        </a>
-
-        <a
-          href="/payment"
-          className="border border-zinc-800 p-8 rounded-lg hover:border-white transition cursor-pointer"
-        >
-          <div className="text-4xl mb-3">💳</div>
-          <h3 className="font-bold text-xl mb-2">Payments</h3>
-          <p className="text-sm text-zinc-400">
-            Submit payment proof for verification
-          </p>
-        </a>
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <p className="text-[#9CA3AF]">
+          Manage services, payments, and applications
+        </p>
       </div>
-    </Container>
+
+      {/* Action Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card title="Buy a Service">
+          <p className="text-sm text-[#9CA3AF] mb-4">
+            Access verified digital services with manual security checks.
+          </p>
+          <Link
+            href="/buy-service"
+            className="inline-block text-sm text-[#3B82F6]"
+          >
+            Go →
+          </Link>
+        </Card>
+
+        <Card title="My Orders">
+          <p className="text-sm text-[#9CA3AF] mb-4">
+            Track order status and payment verification.
+          </p>
+          <Link href="/orders" className="inline-block text-sm text-[#3B82F6]">
+            View →
+          </Link>
+        </Card>
+
+        <Card title="Payments">
+          <p className="text-sm text-[#9CA3AF] mb-4">
+            Submit payment proofs for manual verification.
+          </p>
+          <Link href="/payment" className="inline-block text-sm text-[#3B82F6]">
+            Pay →
+          </Link>
+        </Card>
+
+        <Card title="Apply to Work">
+          <p className="text-sm text-[#9CA3AF] mb-4">
+            Apply to work with UREMO and get manually approved.
+          </p>
+          <Link
+            href="/apply-to-work"
+            className="inline-block text-sm text-[#3B82F6]"
+          >
+            Apply →
+          </Link>
+        </Card>
+      </div>
+
+      {/* Trust Block */}
+      <Card>
+        <p className="text-sm text-[#9CA3AF]">
+          ⚠️ UREMO is a human-verified platform. All payments, services, and
+          applications are reviewed manually to ensure security and quality.
+        </p>
+      </Card>
+    </div>
   );
 }
