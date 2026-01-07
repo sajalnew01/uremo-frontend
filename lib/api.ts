@@ -1,23 +1,18 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function apiRequest(
-  endpoint: string,
-  method: string,
-  body?: any,
-  auth = false
+  path: string,
+  method: string = "GET",
+  body?: any
 ) {
-  const headers: any = {
-    "Content-Type": "application/json",
-  };
+  const token = localStorage.getItem("token");
 
-  if (auth) {
-    const token = localStorage.getItem("token");
-    if (token) headers.Authorization = `Bearer ${token}`;
-  }
-
-  const res = await fetch(`${API_URL}${endpoint}`, {
+  const res = await fetch(`${API_URL}${path}`, {
     method,
-    headers,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
     body: body ? JSON.stringify(body) : undefined,
   });
 
