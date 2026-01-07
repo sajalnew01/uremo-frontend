@@ -1,84 +1,80 @@
 "use client";
 
 import { useState } from "react";
+import Container from "@/components/Container";
 
 export default function Upload() {
-  const [paymentProof, setPaymentProof] = useState<File | null>(null);
-  const [senderKyc, setSenderKyc] = useState<File | null>(null);
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [orderId, setOrderId] = useState("");
   const [loading, setLoading] = useState(false);
 
   const submit = async () => {
-    const token = localStorage.getItem("token");
-    const orderId = localStorage.getItem("orderId");
-
-    if (!orderId || !paymentProof || !senderKyc) {
-      alert("All fields required");
+    if (!file || !orderId) {
+      alert("Missing info");
       return;
     }
 
-    const formData = new FormData();
-    formData.append("orderId", orderId);
-    formData.append("email", email);
-    formData.append("phone", phone);
-    formData.append("paymentProof", paymentProof);
-    formData.append("senderKyc", senderKyc);
+    const form = new FormData();
+    form.append("file", file);
+
+    const token = localStorage.getItem("token");
 
     setLoading(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/upload`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/upload/payment-proof/${orderId}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: form,
+        }
+      );
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Upload failed");
 
-      alert("Uploaded successfully. Order under review.");
+      alert("Uploaded successfully");
+      setFile(null);
+      setOrderId("");
     } catch (err: any) {
-      alert(err.message || "Upload error");
+      alert(err.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-xl mx-auto p-8 space-y-4">
-      <h1 className="text-xl font-semibold">Upload Payment & KYC</h1>
+    <Container>
+      <div className="max-w-md mx-auto mt-10 space-y-4">
+        <h1 className="text-xl font-semibold">Upload Payment Proof</h1>
 
-      <input
-        className="w-full border p-2"
-        placeholder="Email"
-        onChange={(e) => setEmail(e.target.value)}
-      />
+        <input
+          placeholder="Order ID"
+          className="w-full p-2 bg-black border border-zinc-800 rounded"
+          value={orderId}
+          onChange={(e) => setOrderId(e.target.value)}
+        />
 
-      <input
-        className="w-full border p-2"
-        placeholder="Phone (with country code)"
-        onChange={(e) => setPhone(e.target.value)}
-      />
+        <div>
+          <label className="block text-sm mb-2">Payment Screenshot</label>
+          <input
+            type="file"
+            accept="image/*"
+            className="w-full"
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
+          />
+        </div>
 
-      <label>Payment Proof</label>
-      <input
-        type="file"
-        onChange={(e) => setPaymentProof(e.target.files?.[0] || null)}
-      />
-
-      <label>Sender Government ID</label>
-      <input
-        type="file"
-        onChange={(e) => setSenderKyc(e.target.files?.[0] || null)}
-      />
-
-      <button
-        onClick={submit}
-        disabled={loading}
-        className="bg-black text-white px-6 py-2 rounded"
-      >
-        {loading ? "Uploading…" : "Submit"}
-      </button>
-    </div>
+        <button
+          onClick={submit}
+          disabled={loading}
+          className="w-full bg-white text-black py-2 rounded disabled:opacity-50"
+        >
+          {loading ? "Uploading..." : "Submit"}
+        </button>
+      </div>
+    </Container>
   );
 }
