@@ -112,8 +112,7 @@ export default function OrdersPage() {
                       )}
 
                       {o.status === "approved" && (
-                        <span className="text-green-500">Completed
-                        <span className="text-green-500">Processing</span>
+                        <span className="text-green-500">Completed</span>
                       )}
 
                       {o.status === "rejected" && (

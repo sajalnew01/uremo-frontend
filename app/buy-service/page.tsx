@@ -23,14 +23,10 @@ export default function BuyService() {
     try {
       const data = await apiRequest("/api/services", "GET");
       setServices(data);
-    } catch {
-      alert("Failed to load services");
+    } catch (err: any) {
+      alert(err.message || "Failed to load services");
     } finally {
       setLoading(false);
-    }
-  };
-
-  corouter.push(`/services/${serviceId}`); alert(err.message);
     }
   };
 
