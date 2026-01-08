@@ -34,6 +34,9 @@ export default function AdminLayout({
           <Link href="/admin/services" className="block text-[#E5E7EB]">
             Services
           </Link>
+          <Link href="/admin/payment-methods" className="block text-[#E5E7EB]">
+            Payment Methods
+          </Link>
         </nav>
       </aside>
 
