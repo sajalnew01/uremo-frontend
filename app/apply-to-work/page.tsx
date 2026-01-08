@@ -1,97 +1,113 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Container from "@/components/Container";
+import { useState } from "react";
+import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
 
-export default function ApplyToWork() {
-  const [resume, setResume] = useState<File | null>(null);
+export default function ApplyToWorkPage() {
+  const [category, setCategory] = useState("");
   const [message, setMessage] = useState("");
-  const [application, setApplication] = useState<any>(null);
+  const [resume, setResume] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const loadMyApplication = async () => {
-    try {
-      const data = await apiRequest("/api/apply-work/me", "GET", null, true);
-      setApplication(data);
-    } catch {}
-  };
-
-  useEffect(() => {
-    loadMyApplication();
-  }, []);
-
   const submit = async () => {
-    if (!resume) return alert("Resume required");
+    if (!category) {
+      alert("Please select a category");
+      return;
+    }
 
-    const fd = new FormData();
-    fd.append("resume", resume);
-    fd.append("message", message);
+    if (!resume) {
+      alert("Resume upload is required");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("category", category);
+    formData.append("message", message);
+    formData.append("resume", resume);
 
     try {
       setLoading(true);
-      await apiRequest("/api/apply-work", "POST", fd, true, true);
-      alert("Application submitted");
-      loadMyApplication();
+      await apiRequest("/api/apply-work", "POST", formData, true, true);
+
+      alert("Application submitted successfully");
+      window.location.href = "/dashboard";
     } catch (err: any) {
-      alert(err.message);
+      alert(err.message || "Submission failed");
     } finally {
       setLoading(false);
     }
   };
 
-  // If already applied → show status
-  if (application) {
-    return (
-      <Container>
-        <h1 className="text-2xl font-bold mb-4">Apply to Work</h1>
-
-        <div className="border p-4 rounded">
-          <p>
-            <b>Status:</b>{" "}
-            <span className="capitalize">{application.status}</span>
-          </p>
-
-          {application.status === "approved" && (
-            <p className="mt-2 text-green-500">
-              ✅ You are approved. Our team will contact you.
-            </p>
-          )}
-
-          {application.status === "rejected" && (
-            <p className="mt-2 text-red-500">❌ Application rejected.</p>
-          )}
-
-          {application.status === "pending" && (
-            <p className="mt-2 text-yellow-500">⏳ Under review.</p>
-          )}
-        </div>
-      </Container>
-    );
-  }
-
-  // First-time apply form
   return (
-    <Container>
-      <h1 className="text-2xl font-bold mb-4">Apply to Work</h1>
+    <div className="space-y-6 max-w-2xl">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold">Apply to Work</h1>
+        <p className="text-[#9CA3AF]">
+          Apply for internal roles. All applications are manually reviewed.
+        </p>
+      </div>
 
-      <input
-        type="file"
-        accept=".pdf,.doc,.docx,.jpg,.png"
-        onChange={(e) => setResume(e.target.files?.[0] || null)}
-        className="mb-4"
-      />
+      {/* Application Form */}
+      <Card title="Application Details">
+        {/* Category */}
+        <div className="mb-4">
+          <label className="text-sm text-[#9CA3AF] block mb-1">Category</label>
+          <select
+            className="w-full p-2 bg-transparent border border-[#1F2937] rounded"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          >
+            <option value="">Select category</option>
+            <option value="kyc_assistant">KYC / Onboarding Assistant</option>
+            <option value="verification_reviewer">Verification Reviewer</option>
+            <option value="operations_support">Operations Support</option>
+          </select>
+        </div>
 
-      <textarea
-        placeholder="Message (optional)"
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        className="w-full p-2 mb-4 border"
-      />
+        {/* Message */}
+        <div className="mb-4">
+          <label className="text-sm text-[#9CA3AF] block mb-1">
+            Message (optional)
+          </label>
+          <textarea
+            className="w-full p-2 bg-transparent border border-[#1F2937] rounded"
+            rows={4}
+            placeholder="Briefly explain why you're suitable"
+            onChange={(e) => setMessage(e.target.value)}
+          />
+        </div>
 
-      <button onClick={submit} disabled={loading} className="px-4 py-2 border">
-        {loading ? "Submitting..." : "Submit Application"}
-      </button>
-    </Container>
+        {/* Resume */}
+        <div className="mb-6">
+          <label className="text-sm text-[#9CA3AF] block mb-1">
+            Resume (PDF preferred)
+          </label>
+          <input
+            type="file"
+            accept=".pdf,.doc,.docx"
+            onChange={(e) => setResume(e.target.files?.[0] || null)}
+          />
+        </div>
+
+        {/* Submit */}
+        <button
+          onClick={submit}
+          disabled={loading}
+          className="px-4 py-2 bg-[#22C55E] text-black rounded disabled:opacity-50"
+        >
+          {loading ? "Submitting..." : "Submit Application"}
+        </button>
+      </Card>
+
+      {/* Trust Note */}
+      <Card>
+        <p className="text-xs text-[#9CA3AF]">
+          ⚠️ Submitting an application does not guarantee approval. UREMO
+          reviews applications manually based on current operational needs.
+        </p>
+      </Card>
+    </div>
   );
 }
