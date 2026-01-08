@@ -2,45 +2,24 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
 
-interface Service {
-  _id: string;
-  title: string;
-  description: string;
-  price: number;
-  category: string;
-  deliveryType?: string;
-  images?: string[];
-}
-
-export default function BuyService() {
+export default function BuyServicePage() {
   const router = useRouter();
-  const [services, setServices] = useState<Service[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [services, setServices] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [loading, setLoading] = useState(true);
 
   const loadServices = async () => {
     try {
       const data = await apiRequest("/api/services", "GET");
       setServices(data);
-    } catch (err: any) {
-      alert(err.message || "Failed to load services");
+    } catch {
+      alert("Failed to load services");
     } finally {
       setLoading(false);
     }
   };
-
-  const categories = [
-    "all",
-    ...Array.from(new Set(services.map((s: any) => s.category))),
-  ];
-
-  const filteredServices =
-    selectedCategory === "all"
-      ? services
-      : services.filter((s: any) => s.category === selectedCategory);
 
   const buyService = async (serviceId: string) => {
     try {
@@ -61,103 +40,103 @@ export default function BuyService() {
     loadServices();
   }, []);
 
+  const categories = [
+    "all",
+    ...Array.from(new Set(services.map((s) => s.category))),
+  ];
+
+  const filtered =
+    selectedCategory === "all"
+      ? services
+      : services.filter((s) => s.category === selectedCategory);
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">Buy a Service</h1>
-        <p className="text-[#9CA3AF]">
-          All services are manually verified and delivered by UREMO.
+    <div className="max-w-7xl mx-auto px-6 py-10">
+      {/* HEADER */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-[#0F172A]">
+          Available Services
+        </h1>
+        <p className="text-[#64748B] mt-2 max-w-2xl">
+          Choose a service based on your requirement. All services are manually
+          reviewed and handled by our operations team.
         </p>
       </div>
 
-      {/* Services */}
-      {loading && <p>Loading services...</p>}
+      {/* CATEGORY FILTER */}
+      <div className="flex gap-2 flex-wrap mb-8">
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            className={`px-4 py-1.5 rounded-full text-sm border transition ${
+              selectedCategory === cat
+                ? "bg-[#2563EB] text-white border-[#2563EB]"
+                : "border-slate-300 text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
 
-      {!loading && services.length === 0 && (
-        <Card>
-          <p className="text-sm text-[#9CA3AF]">
-            No services available at the moment.
-          </p>
-        </Card>
-      )}
+      {/* LOADING */}
+      {loading && <p>Loading services…</p>}
 
-      {/* Category Filter */}
-      {!loading && services.length > 0 && (
-        <div className="flex gap-2 mb-6 flex-wrap">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-4 py-2 rounded border transition ${
-                selectedCategory === cat
-                  ? "bg-[#3B82F6] text-white border-[#3B82F6]"
-                  : "bg-transparent border-[#1F2937] text-[#E5E7EB] hover:border-[#3B82F6]"
-              }`}
-            >
-              {cat.charAt(0).toUpperCase() + cat.slice(1)}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredServices.map((s: Service) => (
+      {/* SERVICES GRID */}
+      <div className="grid md:grid-cols-3 gap-6">
+        {filtered.map((s) => (
           <div
             key={s._id}
-            className="border border-[#1F2937] rounded-lg overflow-hidden bg-[#020617]"
+            className="bg-white border rounded-xl p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition"
           >
-            {/* Image */}
-            <div className="h-40 bg-black">
-              <img
-                src={s.images?.[0] || "/placeholder.png"}
-                alt={s.title}
-                className="w-full h-full object-cover"
-              />
-            </div>
-
-            {/* Content */}
-            <div className="p-4 space-y-2">
-              <div>
-                <p className="text-xs text-[#9CA3AF] uppercase">{s.category}</p>
-                <h3 className="font-semibold text-lg">{s.title}</h3>
-              </div>
-
-              {/* Delivery Type Badge */}
-              <span className="text-xs px-2 py-1 rounded border inline-block mb-1 bg-[#111827] border-[#1F2937]">
+            <div>
+              {/* DELIVERY BADGE */}
+              <span className="inline-block text-xs mb-2 px-2 py-1 rounded border">
                 {s.deliveryType === "instant" && "⚡ Instant"}
                 {s.deliveryType === "manual" && "🕒 Manual Review"}
                 {s.deliveryType === "assisted" && "🤝 Assisted"}
               </span>
 
-              <p className="text-sm text-[#9CA3AF]">{s.description}</p>
+              <h3 className="font-semibold text-lg text-[#0F172A]">
+                {s.title}
+              </h3>
 
-              <div className="flex justify-between items-center pt-2">
-                <div className="space-y-1">
-                  <span className="font-bold text-[#22C55E] block">
-                    ${s.price}
-                  </span>
-                </div>
+              <p className="text-sm text-[#64748B] mt-2 line-clamp-3">
+                {s.description}
+              </p>
+            </div>
 
-                <button
-                  onClick={() => buyService(s._id)}
-                  className="px-3 py-1 bg-[#3B82F6] rounded text-sm hover:bg-blue-500"
-                >
-                  Buy
-                </button>
+            <div className="mt-6 flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Starting at</p>
+                <p className="text-xl font-bold">${s.price}</p>
               </div>
+
+              <button
+                onClick={() => buyService(s._id)}
+                className="bg-[#2563EB] text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition"
+              >
+                Buy Service
+              </button>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Trust Block */}
-      <Card>
-        <p className="text-sm text-[#9CA3AF]">
-          ⚠️ Payments are not automated. After placing an order, you will
-          complete payment manually and upload proof for human verification.
+      {/* EMPTY */}
+      {!loading && filtered.length === 0 && (
+        <p className="text-slate-500 mt-10">
+          No services available in this category.
         </p>
-      </Card>
+      )}
+
+      {/* TRUST */}
+      <div className="mt-16 border-t pt-6 text-sm text-slate-500 max-w-3xl">
+        ⚠️ UREMO is an independent service provider. We are not affiliated with
+        any platform. All services are handled manually and approval depends on
+        platform rules and user history.
+      </div>
     </div>
   );
 }
