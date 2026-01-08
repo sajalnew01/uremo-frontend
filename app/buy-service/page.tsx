@@ -9,6 +9,8 @@ interface Service {
   name: string;
   description: string;
   price: number;
+  shortDescription?: string;
+  images?: string[];
 }
 
 export default function BuyService() {
@@ -26,7 +28,7 @@ export default function BuyService() {
     }
   };
 
-  const buy = async (serviceId: string) => {
+  const buyService = async (serviceId: string) => {
     try {
       await apiRequest("/api/orders", "POST", { serviceId }, true);
       alert("Order created. Proceed to payment.");
@@ -62,21 +64,38 @@ export default function BuyService() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {services.map((service) => (
-          <Card key={service._id} title={service.name}>
-            <p className="text-sm text-[#9CA3AF] mb-4">{service.description}</p>
-
-            <div className="flex items-center justify-between">
-              <span className="text-lg font-semibold">${service.price}</span>
-
-              <button
-                onClick={() => buy(service._id)}
-                className="px-4 py-2 rounded-lg bg-[#3B82F6] text-white text-sm hover:bg-blue-500"
-              >
-                Buy Service
-              </button>
+        {services.map((s: Service) => (
+          <div
+            key={s._id}
+            className="border border-[#1F2937] rounded-lg overflow-hidden bg-[#020617]"
+          >
+            {/* Image */}
+            <div className="h-40 bg-black">
+              <img
+                src={s.images?.[0] || "/placeholder.png"}
+                alt={s.name}
+                className="w-full h-full object-cover"
+              />
             </div>
-          </Card>
+
+            {/* Content */}
+            <div className="p-4 space-y-2">
+              <h3 className="font-semibold text-lg">{s.name}</h3>
+
+              <p className="text-sm text-[#9CA3AF]">{s.shortDescription}</p>
+
+              <div className="flex justify-between items-center pt-2">
+                <span className="font-bold text-[#22C55E]">${s.price}</span>
+
+                <button
+                  onClick={() => buyService(s._id)}
+                  className="px-3 py-1 bg-[#3B82F6] rounded text-sm"
+                >
+                  Buy
+                </button>
+              </div>
+            </div>
+          </div>
         ))}
       </div>
 

@@ -11,6 +11,9 @@ interface Service {
   price: number;
   serviceType: string;
   active: boolean;
+  shortDescription?: string;
+  description?: string;
+  images?: string[];
 }
 
 export default function AdminServicesPage() {
@@ -22,6 +25,10 @@ export default function AdminServicesPage() {
   const [platform, setPlatform] = useState("");
   const [price, setPrice] = useState("");
   const [serviceType, setServiceType] = useState("");
+  const [shortDescription, setShortDescription] = useState("");
+  const [description, setDescription] = useState("");
+  const [images, setImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   const loadServices = async () => {
     const data = await apiRequest("/api/admin/services", "GET", null, true);
@@ -29,31 +36,72 @@ export default function AdminServicesPage() {
   };
 
   const createService = async () => {
-    if (!name || !platform || !price || !serviceType) {
+    if (
+      !name ||
+      !platform ||
+      !price ||
+      !serviceType ||
+      !shortDescription ||
+      !description
+    ) {
       alert("All fields required");
       return;
     }
 
     setLoading(true);
-    await apiRequest(
-      "/api/admin/services",
-      "POST",
-      {
-        name,
-        platform,
-        price: Number(price),
-        serviceType,
-        description: "Admin-created service",
-      },
-      true
-    );
-    setLoading(false);
+    try {
+      await apiRequest(
+        "/api/admin/services",
+        "POST",
+        {
+          name,
+          platform,
+          price: Number(price),
+          serviceType,
+          description,
+          shortDescription,
+          images,
+        },
+        true
+      );
 
-    setName("");
-    setPlatform("");
-    setPrice("");
-    setServiceType("");
-    loadServices();
+      setName("");
+      setPlatform("");
+      setPrice("");
+      setServiceType("");
+      setShortDescription("");
+      setDescription("");
+      setImages([]);
+      loadServices();
+    } catch (err) {
+      console.error(err);
+      alert("Could not create service");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const uploadImages = async (files: FileList | null) => {
+    if (!files) return;
+
+    const fd = new FormData();
+    Array.from(files).forEach((file) => fd.append("images", file));
+
+    setUploading(true);
+    try {
+      const res = await apiRequest(
+        "/api/admin/upload-images",
+        "POST",
+        fd,
+        true,
+        true
+      );
+      setImages(res.urls);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const toggle = async (id: string, active: boolean) => {
@@ -90,6 +138,19 @@ export default function AdminServicesPage() {
             onChange={(e) => setPlatform(e.target.value)}
           />
           <input
+            placeholder="Short description"
+            className="p-2 border border-[#1F2937] bg-transparent rounded md:col-span-2"
+            value={shortDescription}
+            onChange={(e) => setShortDescription(e.target.value)}
+          />
+          <textarea
+            placeholder="Long description"
+            className="p-2 border border-[#1F2937] bg-transparent rounded md:col-span-2"
+            rows={3}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+          <input
             placeholder="Price"
             type="number"
             className="p-2 border border-[#1F2937] bg-transparent rounded"
@@ -109,9 +170,35 @@ export default function AdminServicesPage() {
           </select>
         </div>
 
+        <div className="mt-4">
+          <label className="text-sm text-[#9CA3AF] block mb-1">
+            Service Images
+          </label>
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={(e) => uploadImages(e.target.files)}
+            className="text-sm"
+          />
+          {uploading && (
+            <p className="text-xs text-[#9CA3AF] mt-1">Uploading...</p>
+          )}
+          <div className="flex gap-2 mt-3 flex-wrap">
+            {images.map((url) => (
+              <img
+                key={url}
+                src={url}
+                className="w-20 h-20 object-cover rounded border"
+                alt="Service"
+              />
+            ))}
+          </div>
+        </div>
+
         <button
           onClick={createService}
-          disabled={loading}
+          disabled={loading || uploading}
           className="mt-4 px-4 py-2 bg-[#22C55E] text-black rounded disabled:opacity-50"
         >
           {loading ? "Creating..." : "Create Service"}

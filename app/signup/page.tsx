@@ -40,14 +40,17 @@ export default function Signup() {
       <div className="w-full max-w-sm border rounded p-6">
         <h1 className="text-xl font-semibold mb-4">Create account</h1>
 
-        <input
-          className="w-full border p-2 mb-3"
-          type="text"
-          placeholder="Full Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-        />
+        <div className="mb-4">
+          <label className="text-sm text-[#9CA3AF] block mb-1">Full Name</label>
+          <input
+            type="text"
+            placeholder="Your full name"
+            className="w-full p-2 bg-transparent border border-[#1F2937] rounded"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+        </div>
 
         <input
           className="w-full border p-2 mb-3"
