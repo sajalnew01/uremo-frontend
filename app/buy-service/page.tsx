@@ -7,10 +7,11 @@ import { apiRequest } from "@/lib/api";
 
 interface Service {
   _id: string;
-  name: string;
+  title: string;
   description: string;
   price: number;
-  shortDescription?: string;
+  category: string;
+  deliveryType?: string;
   images?: string[];
 }
 
@@ -18,6 +19,7 @@ export default function BuyService() {
   const router = useRouter();
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
   const loadServices = async () => {
     try {
@@ -29,6 +31,16 @@ export default function BuyService() {
       setLoading(false);
     }
   };
+
+  const categories = [
+    "all",
+    ...Array.from(new Set(services.map((s: any) => s.category))),
+  ];
+
+  const filteredServices =
+    selectedCategory === "all"
+      ? services
+      : services.filter((s: any) => s.category === selectedCategory);
 
   const buyService = async (serviceId: string) => {
     try {
@@ -70,8 +82,27 @@ export default function BuyService() {
         </Card>
       )}
 
+      {/* Category Filter */}
+      {!loading && services.length > 0 && (
+        <div className="flex gap-2 mb-6 flex-wrap">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-4 py-2 rounded border transition ${
+                selectedCategory === cat
+                  ? "bg-[#3B82F6] text-white border-[#3B82F6]"
+                  : "bg-transparent border-[#1F2937] text-[#E5E7EB] hover:border-[#3B82F6]"
+              }`}
+            >
+              {cat.charAt(0).toUpperCase() + cat.slice(1)}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {services.map((s: Service) => (
+        {filteredServices.map((s: Service) => (
           <div
             key={s._id}
             className="border border-[#1F2937] rounded-lg overflow-hidden bg-[#020617]"
@@ -80,23 +111,31 @@ export default function BuyService() {
             <div className="h-40 bg-black">
               <img
                 src={s.images?.[0] || "/placeholder.png"}
-                alt={s.name}
+                alt={s.title}
                 className="w-full h-full object-cover"
               />
             </div>
 
             {/* Content */}
             <div className="p-4 space-y-2">
-              <h3 className="font-semibold text-lg">{s.name}</h3>
+              <div>
+                <p className="text-xs text-[#9CA3AF] uppercase">{s.category}</p>
+                <h3 className="font-semibold text-lg">{s.title}</h3>
+              </div>
 
-              <p className="text-sm text-[#9CA3AF]">{s.shortDescription}</p>
+              <p className="text-sm text-[#9CA3AF]">{s.description}</p>
 
               <div className="flex justify-between items-center pt-2">
-                <span className="font-bold text-[#22C55E]">${s.price}</span>
+                <div className="space-y-1">
+                  <span className="font-bold text-[#22C55E] block">
+                    ${s.price}
+                  </span>
+                  <p className="text-xs text-[#6B7280]">{s.deliveryType}</p>
+                </div>
 
                 <button
                   onClick={() => buyService(s._id)}
-                  className="px-3 py-1 bg-[#3B82F6] rounded text-sm"
+                  className="px-3 py-1 bg-[#3B82F6] rounded text-sm hover:bg-blue-500"
                 >
                   Buy
                 </button>
