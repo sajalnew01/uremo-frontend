@@ -97,7 +97,8 @@ export default function OrdersPage() {
                       </span>
                     </td>
 
-                    <td className="p-3ayment_pending" && (
+                    <td className="p-3">
+                      {o.status === "payment_pending" && (
                         <button
                           onClick={() => router.push(`/payment/${o._id}`)}
                           className="text-[#3B82F6] hover:underline"
