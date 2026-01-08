@@ -1,14 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
+
+interface Application {
+  _id: string;
+  status: "pending" | "approved" | "rejected";
+}
 
 export default function ApplyToWorkPage() {
   const [category, setCategory] = useState("");
   const [message, setMessage] = useState("");
   const [resume, setResume] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [existing, setExisting] = useState<Application | null>(null);
+  const [checking, setChecking] = useState(true);
+
+  const checkExisting = async () => {
+    try {
+      const app = await apiRequest("/api/apply-work/me", "GET", null, true);
+      if (app) {
+        setExisting(app);
+      }
+    } catch (err) {
+      // No existing application
+    } finally {
+      setChecking(false);
+    }
+  };
 
   const submit = async () => {
     if (!category) {
@@ -38,6 +58,67 @@ export default function ApplyToWorkPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    checkExisting();
+  }, []);
+
+  if (checking) {
+    return <div className="p-6">Loading...</div>;
+  }
+
+  if (existing) {
+    const statusColor = {
+      pending: "bg-yellow-600",
+      approved: "bg-green-600",
+      rejected: "bg-red-600",
+    };
+
+    return (
+      <div className="space-y-6 max-w-2xl">
+        <h1 className="text-2xl font-bold">Apply to Work</h1>
+
+        <Card title="Your Application Status">
+          <div className="space-y-3">
+            <p className="text-sm text-[#9CA3AF]">
+              You have already submitted an application.
+            </p>
+
+            <div>
+              <span
+                className={`${
+                  statusColor[existing.status as keyof typeof statusColor]
+                } text-white text-sm px-3 py-1 rounded`}
+              >
+                Status: {existing.status.toUpperCase()}
+              </span>
+            </div>
+
+            {existing.status === "pending" && (
+              <p className="text-xs text-[#9CA3AF]">
+                Your application is under review. We'll notify you once a
+                decision is made.
+              </p>
+            )}
+
+            {existing.status === "approved" && (
+              <p className="text-xs text-green-400">
+                ✅ Congratulations! Your application has been approved. Please
+                check your email for next steps.
+              </p>
+            )}
+
+            {existing.status === "rejected" && (
+              <p className="text-xs text-red-400">
+                Your application was not accepted at this time. Feel free to
+                reapply in the future.
+              </p>
+            )}
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-2xl">
