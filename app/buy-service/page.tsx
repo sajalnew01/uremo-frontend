@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
 
@@ -14,6 +15,7 @@ interface Service {
 }
 
 export default function BuyService() {
+  const router = useRouter();
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -28,13 +30,7 @@ export default function BuyService() {
     }
   };
 
-  const buyService = async (serviceId: string) => {
-    try {
-      await apiRequest("/api/orders", "POST", { serviceId }, true);
-      alert("Order created. Proceed to payment.");
-      window.location.href = "/orders";
-    } catch (err: any) {
-      alert(err.message);
+  corouter.push(`/services/${serviceId}`); alert(err.message);
     }
   };
 
