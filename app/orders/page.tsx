@@ -35,7 +35,7 @@ export default function OrdersPage() {
 
   const loadOrders = async () => {
     try {
-      const data = await apiRequest("/api/orders", "GET", null, true);
+      const data = await apiRequest("/api/orders/my", "GET", null, true);
       setOrders(data);
     } catch {
       alert("Failed to load orders");
