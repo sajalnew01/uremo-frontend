@@ -30,6 +30,21 @@ export default function BuyService() {
     }
   };
 
+  const buyService = async (serviceId: string) => {
+    try {
+      const order = await apiRequest(
+        "/api/orders",
+        "POST",
+        { serviceId },
+        true
+      );
+
+      router.push(`/payment/${order._id}`);
+    } catch (err: any) {
+      alert(err.message || "Failed to create order");
+    }
+  };
+
   useEffect(() => {
     loadServices();
   }, []);
