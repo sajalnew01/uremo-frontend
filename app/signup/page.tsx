@@ -26,6 +26,7 @@ export default function Signup() {
       });
 
       localStorage.setItem("token", res.token);
+      localStorage.setItem("role", res.user?.role || "user");
       router.push("/dashboard");
     } catch (err: any) {
       alert(err.message);
