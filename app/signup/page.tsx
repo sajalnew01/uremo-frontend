@@ -20,8 +20,8 @@ export default function Signup() {
     setLoading(true);
     try {
       const res = await apiRequest("/api/auth/signup", "POST", {
-        name,
-        email,
+        name: name.trim(),
+        email: email.trim(),
         password,
       });
 
@@ -56,6 +56,7 @@ export default function Signup() {
           className="w-full border p-2 mb-3"
           type="email"
           placeholder="Email"
+          value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
 
@@ -63,6 +64,7 @@ export default function Signup() {
           className="w-full border p-2 mb-4"
           type="password"
           placeholder="Password"
+          value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
 
