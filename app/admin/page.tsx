@@ -6,6 +6,7 @@ import { apiRequest } from "@/lib/api";
 
 export default function AdminPage() {
   const [orders, setOrders] = useState<any[]>([]);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const loadOrders = async () => {
     try {
@@ -13,6 +14,18 @@ export default function AdminPage() {
       setOrders(data);
     } catch (err: any) {
       alert(err.message || "Failed to load orders");
+    }
+  };
+
+  const update = async (id: string, status: string) => {
+    try {
+      setUpdatingId(id);
+      await apiRequest(`/api/admin/orders/${id}`, "PUT", { status }, true);
+      loadOrders();
+    } catch (err: any) {
+      alert("Update failed");
+    } finally {
+      setUpdatingId(null);
     }
   };
 
@@ -63,11 +76,29 @@ export default function AdminPage() {
             <a
               href={order.paymentProof}
               target="_blank"
-              className="underline text-blue-500"
+              rel="noopener noreferrer"
+              className="underline text-blue-500 text-sm"
             >
               View Payment Proof →
             </a>
           )}
+
+          <div className="flex gap-2 pt-2">
+            <button
+              disabled={updatingId === order._id}
+              className="px-3 py-1 bg-green-600 rounded text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => update(order._id, "approved")}
+            >
+              {updatingId === order._id ? "..." : "Approve"}
+            </button>
+            <button
+              disabled={updatingId === order._id}
+              className="px-3 py-1 bg-red-600 rounded text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => update(order._id, "rejected")}
+            >
+              {updatingId === order._id ? "..." : "Reject"}
+            </button>
+          </div>
         </div>
       ))}
     </Container>

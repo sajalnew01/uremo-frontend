@@ -17,6 +17,7 @@ interface Application {
 export default function AdminApplyWorkPage() {
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const loadApplications = async () => {
     try {
@@ -31,10 +32,13 @@ export default function AdminApplyWorkPage() {
 
   const updateStatus = async (id: string, status: string) => {
     try {
+      setUpdatingId(id);
       await apiRequest(`/api/apply-work/admin/${id}`, "PUT", { status }, true);
       loadApplications();
     } catch (err: any) {
       alert("Update failed");
+    } finally {
+      setUpdatingId(null);
     }
   };
 
@@ -71,9 +75,10 @@ export default function AdminApplyWorkPage() {
                     <a
                       href={app.resumeUrl}
                       target="_blank"
-                      className="underline"
+                      rel="noopener noreferrer"
+                      className="text-blue-500 text-sm"
                     >
-                      View
+                      View Resume
                     </a>
                   </td>
 
@@ -83,16 +88,18 @@ export default function AdminApplyWorkPage() {
 
                   <td className="p-3 flex gap-2">
                     <button
+                      disabled={updatingId === app._id}
                       onClick={() => updateStatus(app._id, "approved")}
-                      className="px-3 py-1 bg-green-600 rounded"
+                      className="px-3 py-1 bg-green-600 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Approve
+                      {updatingId === app._id ? "..." : "Approve"}
                     </button>
                     <button
+                      disabled={updatingId === app._id}
                       onClick={() => updateStatus(app._id, "rejected")}
-                      className="px-3 py-1 bg-red-600 rounded"
+                      className="px-3 py-1 bg-red-600 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Reject
+                      {updatingId === app._id ? "..." : "Reject"}
                     </button>
                   </td>
                 </tr>
