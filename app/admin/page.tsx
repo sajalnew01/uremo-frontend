@@ -1,103 +1,127 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Container from "@/components/Container";
+import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
 
-export default function AdminPage() {
-  const [orders, setOrders] = useState<any[]>([]);
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
+interface Order {
+  _id: string;
+  status: string;
+  paymentMethod?: string;
+  transactionRef?: string;
+  paymentProof?: string;
+  user?: { email: string };
+  serviceId?: { name: string };
+}
 
-  const loadOrders = async () => {
-    try {
-      const data = await apiRequest("/api/admin/orders", "GET", null, true);
-      setOrders(data);
-    } catch (err: any) {
-      alert(err.message || "Failed to load orders");
-    }
+const statusBadge = (status: string) => {
+  const map: any = {
+    pending: "bg-gray-600",
+    payment_submitted: "bg-yellow-600",
+    approved: "bg-green-600",
+    rejected: "bg-red-600",
+  };
+  return map[status] || "bg-gray-600";
+};
+
+export default function AdminOrders() {
+  const [orders, setOrders] = useState<Order[]>([]);
+
+  const load = async () => {
+    const data = await apiRequest("/api/admin/orders", "GET", null, true);
+    setOrders(data);
   };
 
   const update = async (id: string, status: string) => {
-    try {
-      setUpdatingId(id);
-      await apiRequest(`/api/admin/orders/${id}`, "PUT", { status }, true);
-      loadOrders();
-    } catch (err: any) {
-      alert("Update failed");
-    } finally {
-      setUpdatingId(null);
-    }
+    await apiRequest(`/api/admin/orders/${id}`, "PUT", { status }, true);
+    load();
   };
 
   useEffect(() => {
-    loadOrders();
+    load();
   }, []);
 
   return (
-    <Container>
-      <h1 className="text-xl font-semibold mb-4">Admin Orders</h1>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Admin — Orders</h1>
 
-      {orders.length === 0 && <p>No orders found.</p>}
+      <Card>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[#1F2937] text-left">
+                <th className="p-3">User</th>
+                <th className="p-3">Service</th>
+                <th className="p-3">Payment</th>
+                <th className="p-3">Status</th>
+                <th className="p-3">Actions</th>
+              </tr>
+            </thead>
 
-      {orders.map((order) => (
-        <div key={order._id} className="border p-3 mb-3 rounded space-y-2">
-          <p>
-            <b>User:</b> {order.user?.email}
-          </p>
-          <p>
-            <b>Service:</b> {order.service?.name || "N/A"}
-          </p>
-          <p>
-            <b>Status:</b>{" "}
-            <span
-              className={
-                order.status === "pending"
-                  ? "text-gray-400"
-                  : order.status === "payment_submitted"
-                  ? "text-yellow-500"
-                  : order.status === "approved"
-                  ? "text-green-500"
-                  : "text-red-500"
-              }
-            >
-              {order.status}
-            </span>
-          </p>
-          <p>
-            <b>Payment Method:</b> {order.paymentMethod || "Not submitted"}
-          </p>
-          {order.transactionRef && (
-            <p>
-              <b>Transaction Ref:</b> {order.transactionRef}
+            <tbody>
+              {orders.map((o) => (
+                <tr
+                  key={o._id}
+                  className="border-b border-[#1F2937]"
+                >
+                  <td className="p-3">{o.user?.email}</td>
+                  <td className="p-3">{o.serviceId?.name}</td>
+
+                  <td className="p-3 space-y-1">
+                    <div className="capitalize">
+                      {o.paymentMethod || "—"}
+                    </div>
+                    {o.paymentProof && (
+                      <a
+                        href={o.paymentProof}
+                        target="_blank"
+                        className="text-[#3B82F6] text-xs"
+                      >
+                        View proof
+                      </a>
+                    )}
+                  </td>
+
+                  <td className="p-3">
+                    <span
+                      className={`px-2 py-1 rounded text-xs ${statusBadge(
+                        o.status
+                      )}`}
+                    >
+                      {o.status.replace("_", " ")}
+                    </span>
+                  </td>
+
+                  <td className="p-3 space-x-2">
+                    <button
+                      onClick={() => update(o._id, "approved")}
+                      className="px-3 py-1 bg-green-600 rounded text-xs"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => update(o._id, "rejected")}
+                      className="px-3 py-1 bg-red-600 rounded text-xs"
+                    >
+                      Reject
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {orders.length === 0 && (
+            <p className="text-sm text-[#9CA3AF] mt-4">
+              No orders found.
             </p>
           )}
+        </div>
+      </Card>
+    </div>
+  );
+}
 
-          {order.paymentProof && (
-            <a
-              href={order.paymentProof}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline text-blue-500 text-sm"
-            >
-              View Payment Proof →
-            </a>
-          )}
-
-          <div className="flex gap-2 pt-2">
-            <button
-              disabled={updatingId === order._id}
-              className="px-3 py-1 bg-green-600 rounded text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={() => update(order._id, "approved")}
-            >
-              {updatingId === order._id ? "..." : "Approve"}
-            </button>
-            <button
-              disabled={updatingId === order._id}
-              className="px-3 py-1 bg-red-600 rounded text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={() => update(order._id, "rejected")}
-            >
-              {updatingId === order._id ? "..." : "Reject"}
-            </button>
           </div>
         </div>
       ))}

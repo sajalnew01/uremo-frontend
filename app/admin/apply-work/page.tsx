@@ -1,103 +1,112 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Container from "@/components/Container";
+import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
 
-interface Application {
+interface App {
   _id: string;
+  status: string;
   resumeUrl: string;
   message?: string;
-  status: string;
-  user: {
-    email: string;
-  };
+  user?: { email: string };
 }
 
-export default function AdminApplyWorkPage() {
-  const [apps, setApps] = useState<Application[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
+const badge = (s: string) =>
+  s === "approved"
+    ? "bg-green-600"
+    : s === "rejected"
+    ? "bg-red-600"
+    : "bg-yellow-600";
 
-  const loadApplications = async () => {
-    try {
-      const data = await apiRequest("/api/apply-work/admin", "GET", null, true);
-      setApps(data);
-    } catch (err: any) {
-      alert(err.message || "Failed to load applications");
-    } finally {
-      setLoading(false);
-    }
+export default function AdminApplyWork() {
+  const [apps, setApps] = useState<App[]>([]);
+
+  const load = async () => {
+    const data = await apiRequest(
+      "/api/apply-work/admin",
+      "GET",
+      null,
+      true
+    );
+    setApps(data);
   };
 
-  const updateStatus = async (id: string, status: string) => {
-    try {
-      setUpdatingId(id);
-      await apiRequest(`/api/apply-work/admin/${id}`, "PUT", { status }, true);
-      loadApplications();
-    } catch (err: any) {
-      alert("Update failed");
-    } finally {
-      setUpdatingId(null);
-    }
+  const update = async (id: string, status: string) => {
+    await apiRequest(
+      `/api/apply-work/admin/${id}`,
+      "PUT",
+      { status },
+      true
+    );
+    load();
   };
 
   useEffect(() => {
-    loadApplications();
+    load();
   }, []);
 
   return (
-    <Container>
-      <h1 className="text-2xl font-bold mb-6">Apply-to-Work Applications</h1>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Admin — Applications</h1>
 
-      {loading && <p>Loading...</p>}
+      {apps.map((a) => (
+        <Card key={a._id}>
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="font-semibold">{a.user?.email}</p>
+              <p className="text-sm text-[#9CA3AF] mt-1">
+                {a.message || "No message"}
+              </p>
 
-      {!loading && apps.length === 0 && <p>No applications found.</p>}
+              <a
+                href={a.resumeUrl}
+                target="_blank"
+                className="inline-block mt-2 text-[#3B82F6] text-sm"
+              >
+                View resume
+              </a>
+            </div>
 
-      {!loading && apps.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full border border-gray-700">
-            <thead>
-              <tr className="border-b border-gray-700">
-                <th className="p-3 text-left">User</th>
-                <th className="p-3">Resume</th>
-                <th className="p-3">Message</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {apps.map((app) => (
-                <tr key={app._id} className="border-b border-gray-800">
-                  <td className="p-3">{app.user.email}</td>
+            <div className="text-right space-y-2">
+              <span
+                className={`px-2 py-1 text-xs rounded ${badge(
+                  a.status
+                )}`}
+              >
+                {a.status}
+              </span>
 
-                  <td className="p-3">
-                    <a
-                      href={app.resumeUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-500 text-sm"
-                    >
-                      View Resume
-                    </a>
-                  </td>
+              <div className="space-x-2">
+                <button
+                  onClick={() => update(a._id, "approved")}
+                  className="px-3 py-1 bg-green-600 rounded text-xs"
+                >
+                  Approve
+                </button>
+                <button
+                  onClick={() => update(a._id, "rejected")}
+                  className="px-3 py-1 bg-red-600 rounded text-xs"
+                >
+                  Reject
+                </button>
+              </div>
+            </div>
+          </div>
+        </Card>
+      ))}
 
-                  <td className="p-3">{app.message || "-"}</td>
+      {apps.length === 0 && (
+        <Card>
+          <p className="text-sm text-[#9CA3AF]">
+            No applications yet.
+          </p>
+        </Card>
+      )}
+    </div>
+  );
+}
 
-                  <td className="p-3 capitalize">{app.status}</td>
-
-                  <td className="p-3 flex gap-2">
-                    <button
-                      disabled={updatingId === app._id}
-                      onClick={() => updateStatus(app._id, "approved")}
-                      className="px-3 py-1 bg-green-600 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {updatingId === app._id ? "..." : "Approve"}
-                    </button>
-                    <button
-                      disabled={updatingId === app._id}
-                      onClick={() => updateStatus(app._id, "rejected")}
-                      className="px-3 py-1 bg-red-600 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {updatingId === app._id ? "..." : "Reject"}
                     </button>
