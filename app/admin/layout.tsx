@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function AdminLayout({
@@ -7,6 +9,15 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
+
+  useEffect(() => {
+    const role = localStorage.getItem("role");
+    if (role !== "admin") {
+      router.replace("/dashboard");
+    }
+  }, [router]);
+
   return (
     <div className="flex min-h-screen">
       {/* Sidebar */}
