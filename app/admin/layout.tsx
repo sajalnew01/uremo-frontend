@@ -31,6 +31,9 @@ export default function AdminLayout({
           <Link href="/admin/apply-work" className="block text-[#E5E7EB]">
             Apply to Work
           </Link>
+          <Link href="/admin/services" className="block text-[#E5E7EB]">
+            Services
+          </Link>
         </nav>
       </aside>
 
