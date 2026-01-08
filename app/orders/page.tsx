@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
-import Link from "next/link";
 
 interface Order {
   _id: string;
@@ -30,6 +30,7 @@ const statusColor = (status: string) => {
 };
 
 export default function OrdersPage() {
+  const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -96,11 +97,13 @@ export default function OrdersPage() {
                       </span>
                     </td>
 
-                    <td className="p-3">
-                      {o.status === "pending" && (
-                        <Link href="/payment" className="text-[#3B82F6]">
+                    <td className="p-3ayment_pending" && (
+                        <button
+                          onClick={() => router.push(`/payment/${o._id}`)}
+                          className="text-[#3B82F6] hover:underline"
+                        >
                           Proceed to payment →
-                        </Link>
+                        </button>
                       )}
 
                       {o.status === "payment_submitted" && (
@@ -108,6 +111,7 @@ export default function OrdersPage() {
                       )}
 
                       {o.status === "approved" && (
+                        <span className="text-green-500">Completed
                         <span className="text-green-500">Processing</span>
                       )}
 
