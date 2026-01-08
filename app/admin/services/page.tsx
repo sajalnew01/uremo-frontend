@@ -1,50 +1,55 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
 
-interface Service {
-  _id: string;
-  name: string;
-  platform: string;
-  price: number;
-  serviceType: string;
-  active: boolean;
-  shortDescription?: string;
-  description?: string;
-  images?: string[];
-}
-
 export default function AdminServicesPage() {
-  const [services, setServices] = useState<Service[]>([]);
+  const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // new service form
-  const [name, setName] = useState("");
-  const [platform, setPlatform] = useState("");
-  const [price, setPrice] = useState("");
-  const [serviceType, setServiceType] = useState("");
-  const [shortDescription, setShortDescription] = useState("");
+  // form state
+  const [title, setTitle] = useState("");
+  const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
+  const [requirements, setRequirements] = useState("");
+  const [price, setPrice] = useState("");
+  const [deliveryType, setDeliveryType] = useState("manual");
   const [images, setImages] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);
 
+  // load services
   const loadServices = async () => {
-    const data = await apiRequest("/api/admin/services", "GET", null, true);
-    setServices(data);
+    try {
+      const data = await apiRequest("/api/admin/services", "GET", null, true);
+      setServices(data);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
+  // upload images (cloudinary already wired)
+  const uploadImages = async (files: FileList | null) => {
+    if (!files) return;
+    const formData = new FormData();
+    Array.from(files).forEach((f) => formData.append("images", f));
+
+    try {
+      const res = await apiRequest(
+        "/api/admin/upload-images",
+        "POST",
+        formData,
+        true,
+        true
+      );
+      setImages(res.urls);
+    } catch (err) {
+      alert("Failed to upload images");
+    }
+  };
+
+  // create service
   const createService = async () => {
-    if (
-      !name ||
-      !platform ||
-      !price ||
-      !serviceType ||
-      !shortDescription ||
-      !description
-    ) {
-      alert("All fields required");
+    if (!title || !category || !description || !price) {
+      alert("Missing required fields");
       return;
     }
 
@@ -54,64 +59,55 @@ export default function AdminServicesPage() {
         "/api/admin/services",
         "POST",
         {
-          name,
-          platform,
-          price: Number(price),
-          serviceType,
+          title,
+          category,
           description,
-          shortDescription,
+          requirements,
+          price: Number(price),
+          deliveryType,
           images,
         },
         true
       );
 
-      setName("");
-      setPlatform("");
-      setPrice("");
-      setServiceType("");
-      setShortDescription("");
+      setTitle("");
+      setCategory("");
       setDescription("");
+      setRequirements("");
+      setPrice("");
+      setDeliveryType("manual");
       setImages([]);
+
       loadServices();
-    } catch (err) {
-      console.error(err);
-      alert("Could not create service");
+    } catch (err: any) {
+      alert(err.message || "Failed to create service");
     } finally {
       setLoading(false);
     }
   };
 
-  const uploadImages = async (files: FileList | null) => {
-    if (!files) return;
-
-    const fd = new FormData();
-    Array.from(files).forEach((file) => fd.append("images", file));
-
-    setUploading(true);
+  const toggleActive = async (id: string, active: boolean) => {
     try {
-      const res = await apiRequest(
-        "/api/admin/upload-images",
-        "POST",
-        fd,
-        true,
+      await apiRequest(
+        `/api/admin/services/${id}`,
+        "PUT",
+        { active: !active },
         true
       );
-      setImages(res.urls);
+      loadServices();
     } catch (err) {
-      console.error(err);
-    } finally {
-      setUploading(false);
+      alert("Failed to update service");
     }
   };
 
-  const toggle = async (id: string, active: boolean) => {
-    await apiRequest(
-      `/api/admin/services/${id}`,
-      "PUT",
-      { active: !active },
-      true
-    );
-    loadServices();
+  const deleteService = async (id: string) => {
+    if (!confirm("Delete this service?")) return;
+    try {
+      await apiRequest(`/api/admin/services/${id}`, "DELETE", null, true);
+      loadServices();
+    } catch (err) {
+      alert("Failed to delete service");
+    }
   };
 
   useEffect(() => {
@@ -119,119 +115,125 @@ export default function AdminServicesPage() {
   }, []);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Admin — Services</h1>
+    <div className="space-y-8">
+      <h1 className="text-2xl font-bold">Admin · Services</h1>
 
-      {/* Create Service */}
-      <Card title="Create Service">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input
-            placeholder="Service name"
-            className="p-2 border border-[#1F2937] bg-transparent rounded"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <input
-            placeholder="Platform (Outlier, Handshake...)"
-            className="p-2 border border-[#1F2937] bg-transparent rounded"
-            value={platform}
-            onChange={(e) => setPlatform(e.target.value)}
-          />
-          <input
-            placeholder="Short description"
-            className="p-2 border border-[#1F2937] bg-transparent rounded md:col-span-2"
-            value={shortDescription}
-            onChange={(e) => setShortDescription(e.target.value)}
-          />
-          <textarea
-            placeholder="Long description"
-            className="p-2 border border-[#1F2937] bg-transparent rounded md:col-span-2"
-            rows={3}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-          <input
-            placeholder="Price"
-            type="number"
-            className="p-2 border border-[#1F2937] bg-transparent rounded"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-          />
-          <select
-            className="p-2 border border-[#1F2937] bg-transparent rounded"
-            value={serviceType}
-            onChange={(e) => setServiceType(e.target.value)}
-          >
-            <option value="">Select type</option>
-            <option value="onboarding_assistance">Onboarding Assistance</option>
-            <option value="verification_support">Verification Support</option>
-            <option value="readiness_check">Readiness Check</option>
-            <option value="custom_request">Custom Request</option>
-          </select>
-        </div>
+      {/* CREATE FORM */}
+      <div className="border border-[#1F2937] p-6 rounded-lg bg-[#0F172A] space-y-4">
+        <h2 className="font-semibold text-lg">Create New Service</h2>
 
-        <div className="mt-4">
-          <label className="text-sm text-[#9CA3AF] block mb-1">
-            Service Images
-          </label>
-          <input
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={(e) => uploadImages(e.target.files)}
-            className="text-sm"
-          />
-          {uploading && (
-            <p className="text-xs text-[#9CA3AF] mt-1">Uploading...</p>
-          )}
-          <div className="flex gap-2 mt-3 flex-wrap">
-            {images.map((url) => (
-              <img
-                key={url}
-                src={url}
-                className="w-20 h-20 object-cover rounded border"
-                alt="Service"
-              />
-            ))}
-          </div>
+        <input
+          placeholder="Title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="w-full p-3 border border-[#1F2937] rounded bg-[#020617] text-white"
+        />
+
+        <input
+          placeholder="Category (KYC / Onboarding / Gig)"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          className="w-full p-3 border border-[#1F2937] rounded bg-[#020617] text-white"
+        />
+
+        <textarea
+          placeholder="Description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="w-full p-3 border border-[#1F2937] rounded bg-[#020617] text-white"
+        />
+
+        <textarea
+          placeholder="Requirements (what user must provide)"
+          value={requirements}
+          onChange={(e) => setRequirements(e.target.value)}
+          className="w-full p-3 border border-[#1F2937] rounded bg-[#020617] text-white"
+        />
+
+        <input
+          placeholder="Price"
+          type="number"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          className="w-full p-3 border border-[#1F2937] rounded bg-[#020617] text-white"
+        />
+
+        <select
+          value={deliveryType}
+          onChange={(e) => setDeliveryType(e.target.value)}
+          className="w-full p-3 border border-[#1F2937] rounded bg-[#020617] text-white"
+        >
+          <option value="manual">Manual</option>
+          <option value="assisted">Assisted</option>
+          <option value="instant">Instant</option>
+        </select>
+
+        <input
+          type="file"
+          multiple
+          accept="image/*"
+          onChange={(e) => uploadImages(e.target.files)}
+          className="text-white"
+        />
+
+        <div className="flex gap-2 flex-wrap">
+          {images.map((img) => (
+            <img
+              key={img}
+              src={img}
+              alt="preview"
+              className="w-20 h-20 object-cover rounded border border-[#1F2937]"
+            />
+          ))}
         </div>
 
         <button
           onClick={createService}
-          disabled={loading || uploading}
-          className="mt-4 px-4 py-2 bg-[#22C55E] text-black rounded disabled:opacity-50"
+          disabled={loading}
+          className="w-full bg-[#22C55E] px-4 py-3 rounded text-black font-semibold disabled:opacity-50"
         >
           {loading ? "Creating..." : "Create Service"}
         </button>
-      </Card>
+      </div>
 
-      {/* Service List */}
-      <Card title="Existing Services">
+      {/* SERVICES LIST */}
+      <div className="border border-[#1F2937] rounded-lg overflow-hidden bg-[#0F172A]">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[#1F2937] text-left">
-              <th className="p-2">Name</th>
-              <th className="p-2">Platform</th>
-              <th className="p-2">Type</th>
-              <th className="p-2">Price</th>
-              <th className="p-2">Status</th>
+            <tr className="border-b border-[#1F2937]">
+              <th className="p-4 text-left">Title</th>
+              <th className="p-4 text-left">Category</th>
+              <th className="p-4 text-left">Price</th>
+              <th className="p-4 text-left">Type</th>
+              <th className="p-4 text-left">Status</th>
+              <th className="p-4 text-left">Actions</th>
             </tr>
           </thead>
           <tbody>
             {services.map((s) => (
               <tr key={s._id} className="border-b border-[#1F2937]">
-                <td className="p-2">{s.name}</td>
-                <td className="p-2">{s.platform}</td>
-                <td className="p-2">{s.serviceType}</td>
-                <td className="p-2">${s.price}</td>
-                <td className="p-2">
+                <td className="p-4">{s.title}</td>
+                <td className="p-4">{s.category}</td>
+                <td className="p-4 font-semibold">${s.price}</td>
+                <td className="p-4 text-xs text-[#9CA3AF]">{s.deliveryType}</td>
+                <td className="p-4">
                   <button
-                    onClick={() => toggle(s._id, s.active)}
-                    className={`px-2 py-1 rounded text-xs ${
-                      s.active ? "bg-green-600" : "bg-gray-600"
+                    onClick={() => toggleActive(s._id, s.active)}
+                    className={`px-2 py-1 rounded text-xs font-semibold ${
+                      s.active
+                        ? "bg-green-600 text-white"
+                        : "bg-gray-600 text-white"
                     }`}
                   >
                     {s.active ? "Active" : "Inactive"}
+                  </button>
+                </td>
+                <td className="p-4">
+                  <button
+                    onClick={() => deleteService(s._id)}
+                    className="text-red-500 hover:text-red-400 text-sm"
+                  >
+                    Delete
                   </button>
                 </td>
               </tr>
@@ -240,11 +242,11 @@ export default function AdminServicesPage() {
         </table>
 
         {services.length === 0 && (
-          <p className="text-sm text-[#9CA3AF] mt-3">
-            No services created yet.
-          </p>
+          <div className="p-8 text-center text-[#9CA3AF]">
+            No services yet. Create one above.
+          </div>
         )}
-      </Card>
+      </div>
     </div>
   );
 }
