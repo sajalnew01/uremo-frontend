@@ -7,12 +7,11 @@ import { apiRequest } from "@/lib/api";
 
 interface Service {
   _id: string;
-  name: string;
-  platform: string;
+  title: string;
+  category: string;
   description: string;
-  shortDescription: string;
   price: number;
-  serviceType: string;
+  deliveryType: string;
   images?: string[];
 }
 
@@ -90,8 +89,8 @@ export default function ServiceDetailsPage({
         >
           ← Back to Services
         </button>
-        <h1 className="text-3xl font-bold">{service.name}</h1>
-        <p className="text-[#9CA3AF] mt-1">{service.platform}</p>
+        <h1 className="text-3xl font-bold">{service.title}</h1>
+        <p className="text-[#9CA3AF] mt-1">{service.category}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -102,7 +101,7 @@ export default function ServiceDetailsPage({
             <div className="mb-4">
               <img
                 src={images[selectedImage]}
-                alt={`${service.name} image ${selectedImage + 1}`}
+                alt={`${service.title} image ${selectedImage + 1}`}
                 className="w-full h-80 object-cover rounded"
               />
             </div>
@@ -138,16 +137,43 @@ export default function ServiceDetailsPage({
             </Card>
           </div>
 
+          {/* Delivery Type */}
+          <div className="mt-6">
+            <Card title="Delivery Type">
+              <div className="space-y-3 text-sm">
+                {service.deliveryType === "instant" && (
+                  <p>
+                    ⚡ <strong>Instant Delivery</strong>
+                    <br />
+                    Results are usually available quickly, subject to
+                    verification checks.
+                  </p>
+                )}
+                {service.deliveryType === "manual" && (
+                  <p>
+                    🕒 <strong>Manual Review</strong>
+                    <br />
+                    Our team will verify and update you throughout the process.
+                  </p>
+                )}
+                {service.deliveryType === "assisted" && (
+                  <p>
+                    🤝 <strong>Human-Assisted Onboarding</strong>
+                    <br />
+                    Our team will guide you step-by-step through the entire
+                    process.
+                  </p>
+                )}
+              </div>
+            </Card>
+          </div>
+
           {/* Details */}
           <div className="mt-6">
             <Card title="Service Details">
               <div className="space-y-2 text-sm">
                 <p>
-                  <strong>Platform:</strong> {service.platform}
-                </p>
-                <p>
-                  <strong>Type:</strong>{" "}
-                  {service.serviceType.replace(/_/g, " ")}
+                  <strong>Category:</strong> {service.category}
                 </p>
               </div>
             </Card>

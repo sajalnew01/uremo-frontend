@@ -8,13 +8,25 @@ import { apiRequest } from "@/lib/api";
 interface Order {
   _id: string;
   status: string;
-  paymentMethod?: string;
-  transactionRef?: string;
-  paymentProof?: string;
   serviceId?: {
     name: string;
     price: number;
   };
+  payment?: {
+    methodId?: string;
+    reference?: string;
+    proofUrl?: string;
+    submittedAt?: string;
+  };
+}
+
+interface PaymentMethod {
+  _id: string;
+  type: string;
+  label: string;
+  value: string;
+  instructions: string;
+  active: boolean;
 }
 
 export default function OrderPaymentPage({
@@ -24,21 +36,21 @@ export default function OrderPaymentPage({
 }) {
   const router = useRouter();
   const [order, setOrder] = useState<Order | null>(null);
+  const [methods, setMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [method, setMethod] = useState("");
+  const [methodId, setMethodId] = useState("");
   const [reference, setReference] = useState("");
   const [proof, setProof] = useState<File | null>(null);
 
   const loadOrder = async () => {
     try {
-      const data = await apiRequest(
-        `/api/orders/${params.orderId}`,
-        "GET",
-        null,
-        true
-      );
-      setOrder(data);
+      const [orderData, methodsData] = await Promise.all([
+        apiRequest(`/api/orders/${params.orderId}`, "GET", null, true),
+        apiRequest("/api/payment-methods", "GET", null, false),
+      ]);
+      setOrder(orderData);
+      setMethods(methodsData.methods || methodsData);
     } catch (err) {
       console.error(err);
       alert("Failed to load order");
@@ -49,7 +61,7 @@ export default function OrderPaymentPage({
   };
 
   const handleSubmit = async () => {
-    if (!method || !proof) {
+    if (!methodId || !proof) {
       alert("Payment method and proof are required");
       return;
     }
@@ -74,9 +86,9 @@ export default function OrderPaymentPage({
         `/api/orders/${params.orderId}/payment`,
         "PUT",
         {
-          paymentMethod: method,
-          transactionRef: reference,
-          paymentProof: uploadRes.url,
+          methodId,
+          reference,
+          proofUrl: uploadRes.url,
         },
         true
       );
@@ -151,53 +163,42 @@ export default function OrderPaymentPage({
       </Card>
 
       {/* Payment Methods */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card title="PayPal">
-          <p className="text-sm text-[#9CA3AF] mb-3">Send payment to:</p>
-          <p className="font-semibold text-sm mb-4">payments@uremo.online</p>
-          <button
-            onClick={() => setMethod("paypal")}
-            className={`w-full py-2 rounded text-sm ${
-              method === "paypal"
-                ? "bg-[#3B82F6] text-white"
-                : "border border-[#1F2937]"
-            }`}
-          >
-            {method === "paypal" ? "✓ Selected" : "Select PayPal"}
-          </button>
-        </Card>
-
-        <Card title="Binance">
-          <p className="text-sm text-[#9CA3AF] mb-3">Binance Pay ID:</p>
-          <p className="font-semibold text-sm mb-4">UREMO_BINANCE_ID</p>
-          <button
-            onClick={() => setMethod("binance")}
-            className={`w-full py-2 rounded text-sm ${
-              method === "binance"
-                ? "bg-[#3B82F6] text-white"
-                : "border border-[#1F2937]"
-            }`}
-          >
-            {method === "binance" ? "✓ Selected" : "Select Binance"}
-          </button>
-        </Card>
-
-        <Card title="USDT (Crypto)">
-          <p className="text-sm text-[#9CA3AF] mb-3">Network: TRC20</p>
-          <p className="font-semibold text-xs mb-4 break-all">
-            YOUR_USDT_WALLET_ADDRESS
-          </p>
-          <button
-            onClick={() => setMethod("usdt")}
-            className={`w-full py-2 rounded text-sm ${
-              method === "usdt"
-                ? "bg-[#3B82F6] text-white"
-                : "border border-[#1F2937]"
-            }`}
-          >
-            {method === "usdt" ? "✓ Selected" : "Select USDT"}
-          </button>
-        </Card>
+      <div>
+        <h2 className="text-lg font-semibold mb-3">Select Payment Method</h2>
+        {methods.length === 0 ? (
+          <Card>
+            <p className="text-sm text-[#9CA3AF]">
+              No payment methods available. Please contact support.
+            </p>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {methods.map((m) => (
+              <Card key={m._id}>
+                <div>
+                  <p className="font-semibold text-sm mb-1">{m.label}</p>
+                  <p className="text-xs text-[#9CA3AF] mb-3">{m.type}</p>
+                  <p className="text-xs text-[#9CA3AF] mb-2">
+                    {m.instructions}
+                  </p>
+                  <p className="text-xs font-mono bg-[#111827] p-2 rounded mb-3 break-all">
+                    {m.value}
+                  </p>
+                  <button
+                    onClick={() => setMethodId(m._id)}
+                    className={`w-full py-2 rounded text-sm ${
+                      methodId === m._id
+                        ? "bg-[#3B82F6] text-white"
+                        : "border border-[#1F2937]"
+                    }`}
+                  >
+                    {methodId === m._id ? "✓ Selected" : "Select"}
+                  </button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Proof Upload */}
@@ -235,7 +236,7 @@ export default function OrderPaymentPage({
 
           <button
             onClick={handleSubmit}
-            disabled={submitting || !method || !proof}
+            disabled={submitting || !methodId || !proof}
             className="w-full px-4 py-3 rounded bg-[#22C55E] text-black font-semibold hover:bg-green-500 disabled:opacity-50"
           >
             {submitting ? "Submitting..." : "Submit for Verification"}

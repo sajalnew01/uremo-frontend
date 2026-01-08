@@ -9,17 +9,23 @@ interface Order {
   _id: string;
   status: string;
   serviceId: {
-    name: string;
+    title: string;
   };
   paymentMethod?: string;
 }
 
 const statusColor = (status: string) => {
   switch (status) {
-    case "pending":
-      return "bg-gray-600";
+    case "payment_pending":
+      return "bg-blue-600";
     case "payment_submitted":
       return "bg-yellow-600";
+    case "pending_review":
+      return "bg-yellow-600";
+    case "processing":
+      return "bg-purple-600";
+    case "assistance_required":
+      return "bg-orange-600";
     case "approved":
       return "bg-green-600";
     case "rejected":
@@ -81,7 +87,7 @@ export default function OrdersPage() {
               <tbody>
                 {orders.map((o) => (
                   <tr key={o._id} className="border-b border-[#1F2937]">
-                    <td className="p-3">{o.serviceId?.name || "-"}</td>
+                    <td className="p-3">{o.serviceId?.title || "-"}</td>
 
                     <td className="p-3 capitalize">
                       {o.paymentMethod || "Not paid"}
@@ -93,7 +99,7 @@ export default function OrdersPage() {
                           o.status
                         )}`}
                       >
-                        {o.status.replace("_", " ")}
+                        {o.status.replace(/_/g, " ")}
                       </span>
                     </td>
 
@@ -109,6 +115,20 @@ export default function OrdersPage() {
 
                       {o.status === "payment_submitted" && (
                         <span className="text-yellow-500">Under review</span>
+                      )}
+
+                      {o.status === "pending_review" && (
+                        <span className="text-yellow-500">Pending Review</span>
+                      )}
+
+                      {o.status === "processing" && (
+                        <span className="text-purple-500">Processing</span>
+                      )}
+
+                      {o.status === "assistance_required" && (
+                        <span className="text-orange-500">
+                          Assistance Required
+                        </span>
                       )}
 
                       {o.status === "approved" && (

@@ -123,6 +123,13 @@ export default function BuyService() {
                 <h3 className="font-semibold text-lg">{s.title}</h3>
               </div>
 
+              {/* Delivery Type Badge */}
+              <span className="text-xs px-2 py-1 rounded border inline-block mb-1 bg-[#111827] border-[#1F2937]">
+                {s.deliveryType === "instant" && "⚡ Instant"}
+                {s.deliveryType === "manual" && "🕒 Manual Review"}
+                {s.deliveryType === "assisted" && "🤝 Assisted"}
+              </span>
+
               <p className="text-sm text-[#9CA3AF]">{s.description}</p>
 
               <div className="flex justify-between items-center pt-2">
@@ -130,7 +137,6 @@ export default function BuyService() {
                   <span className="font-bold text-[#22C55E] block">
                     ${s.price}
                   </span>
-                  <p className="text-xs text-[#6B7280]">{s.deliveryType}</p>
                 </div>
 
                 <button

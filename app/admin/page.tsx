@@ -7,11 +7,18 @@ import { apiRequest } from "@/lib/api";
 interface Order {
   _id: string;
   status: string;
-  paymentMethod?: string;
-  transactionRef?: string;
-  paymentProof?: string;
   user?: { email: string };
   serviceId?: { name: string };
+  payment?: {
+    methodId?: {
+      type: string;
+      label: string;
+      value: string;
+    };
+    reference?: string;
+    proofUrl?: string;
+    submittedAt?: string;
+  };
 }
 
 const statusBadge = (status: string) => {
@@ -65,15 +72,34 @@ export default function AdminOrders() {
                   <td className="p-3">{o.serviceId?.name}</td>
 
                   <td className="p-3 space-y-1">
-                    <div className="capitalize">{o.paymentMethod || "—"}</div>
-                    {o.paymentProof && (
-                      <a
-                        href={o.paymentProof}
-                        target="_blank"
-                        className="text-[#3B82F6] text-xs"
-                      >
-                        View proof
-                      </a>
+                    {o.payment?.methodId ? (
+                      <>
+                        <div className="font-semibold text-sm">
+                          {o.payment.methodId.label}
+                        </div>
+                        <div className="text-xs text-[#9CA3AF]">
+                          {o.payment.methodId.type}
+                        </div>
+                        <div className="text-xs font-mono bg-[#111827] p-1 rounded mt-1 break-all">
+                          {o.payment.methodId.value}
+                        </div>
+                        {o.payment.reference && (
+                          <div className="text-xs text-[#9CA3AF] mt-1">
+                            Ref: {o.payment.reference}
+                          </div>
+                        )}
+                        {o.payment.proofUrl && (
+                          <a
+                            href={o.payment.proofUrl}
+                            target="_blank"
+                            className="text-[#3B82F6] text-xs block mt-1"
+                          >
+                            View proof
+                          </a>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-[#9CA3AF]">—</span>
                     )}
                   </td>
 
