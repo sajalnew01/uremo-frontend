@@ -132,21 +132,26 @@ export default function ServiceDetailsPage({
           </Card>
 
           {/* Description */}
-          <Card title="Description" className="mt-6">
-            <p className="text-sm leading-relaxed">{service.description}</p>
-          </Card>
+          <div className="mt-6">
+            <Card title="Description">
+              <p className="text-sm leading-relaxed">{service.description}</p>
+            </Card>
+          </div>
 
           {/* Details */}
-          <Card title="Service Details" className="mt-6">
-            <div className="space-y-2 text-sm">
-              <p>
-                <strong>Platform:</strong> {service.platform}
-              </p>
-              <p>
-                <strong>Type:</strong> {service.serviceType.replace(/_/g, " ")}
-              </p>
-            </div>
-          </Card>
+          <div className="mt-6">
+            <Card title="Service Details">
+              <div className="space-y-2 text-sm">
+                <p>
+                  <strong>Platform:</strong> {service.platform}
+                </p>
+                <p>
+                  <strong>Type:</strong>{" "}
+                  {service.serviceType.replace(/_/g, " ")}
+                </p>
+              </div>
+            </Card>
+          </div>
         </div>
 
         {/* Sidebar - Buy Card */}
