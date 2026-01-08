@@ -60,17 +60,12 @@ export default function AdminOrders() {
 
             <tbody>
               {orders.map((o) => (
-                <tr
-                  key={o._id}
-                  className="border-b border-[#1F2937]"
-                >
+                <tr key={o._id} className="border-b border-[#1F2937]">
                   <td className="p-3">{o.user?.email}</td>
                   <td className="p-3">{o.serviceId?.name}</td>
 
                   <td className="p-3 space-y-1">
-                    <div className="capitalize">
-                      {o.paymentMethod || "—"}
-                    </div>
+                    <div className="capitalize">{o.paymentMethod || "—"}</div>
                     {o.paymentProof && (
                       <a
                         href={o.paymentProof}
@@ -112,19 +107,10 @@ export default function AdminOrders() {
           </table>
 
           {orders.length === 0 && (
-            <p className="text-sm text-[#9CA3AF] mt-4">
-              No orders found.
-            </p>
+            <p className="text-sm text-[#9CA3AF] mt-4">No orders found.</p>
           )}
         </div>
       </Card>
     </div>
-  );
-}
-
-          </div>
-        </div>
-      ))}
-    </Container>
   );
 }
