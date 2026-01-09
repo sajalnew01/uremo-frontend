@@ -22,22 +22,18 @@ export default function BuyServicePage() {
       {services.length === 0 ? (
         <p className="opacity-60">No services available.</p>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid md:grid-cols-2 gap-6">
           {services.map((s: any) => (
-            <div
-              key={s._id}
-              className="border rounded-xl p-5 bg-[#0f172a] text-white"
-            >
-              <h3 className="text-lg font-semibold">{s.title}</h3>
-              <p className="text-sm opacity-70 mt-1">{s.shortDescription}</p>
+            <div key={s._id} className="card">
+              <h3 className="text-xl font-semibold">{s.title}</h3>
+              <p className="text-sm text-slate-400 mt-2">
+                {s.shortDescription}
+              </p>
 
-              <div className="flex justify-between items-center mt-4">
-                <span className="font-bold">${s.price}</span>
-                <Link
-                  href={`/services/${s._id}`}
-                  className="text-blue-400 hover:underline"
-                >
-                  View →
+              <div className="flex justify-between items-center mt-6">
+                <span className="font-bold text-lg">${s.price}</span>
+                <Link href={`/services/${s._id}`} className="btn-primary">
+                  View Service
                 </Link>
               </div>
             </div>

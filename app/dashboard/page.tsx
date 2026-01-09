@@ -1,71 +1,33 @@
-"use client";
-
-import Card from "@/components/Card";
-import Link from "next/link";
-
 export default function Dashboard() {
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-[#9CA3AF]">
-          Manage services, payments, and applications
-        </p>
+    <div className="max-w-6xl mx-auto px-6 py-10">
+      <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
+      <p className="text-slate-400 mb-8">
+        Human-assisted onboarding, verification & manual operations.
+      </p>
+
+      <div className="grid md:grid-cols-3 gap-6">
+        <div className="card">
+          <h3 className="font-semibold text-lg">Buy a Service</h3>
+          <p className="text-sm text-slate-400 mt-2">
+            Access manual onboarding & verification services.
+          </p>
+        </div>
+
+        <div className="card">
+          <h3 className="font-semibold text-lg">My Orders</h3>
+          <p className="text-sm text-slate-400 mt-2">
+            Track payment, verification & completion status.
+          </p>
+        </div>
+
+        <div className="card">
+          <h3 className="font-semibold text-lg">Apply to Work</h3>
+          <p className="text-sm text-slate-400 mt-2">
+            Join UREMO as a manual operations specialist.
+          </p>
+        </div>
       </div>
-
-      {/* Action Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card title="Buy a Service">
-          <p className="text-sm text-[#9CA3AF] mb-4">
-            Access verified digital services with manual security checks.
-          </p>
-          <Link
-            href="/buy-service"
-            className="inline-block text-sm text-[#3B82F6]"
-          >
-            Go →
-          </Link>
-        </Card>
-
-        <Card title="My Orders">
-          <p className="text-sm text-[#9CA3AF] mb-4">
-            Track order status and payment verification.
-          </p>
-          <Link href="/orders" className="inline-block text-sm text-[#3B82F6]">
-            View →
-          </Link>
-        </Card>
-
-        <Card title="Payments">
-          <p className="text-sm text-[#9CA3AF] mb-4">
-            Submit payment proofs for manual verification.
-          </p>
-          <Link href="/payment" className="inline-block text-sm text-[#3B82F6]">
-            Pay →
-          </Link>
-        </Card>
-
-        <Card title="Apply to Work">
-          <p className="text-sm text-[#9CA3AF] mb-4">
-            Apply to work with UREMO and get manually approved.
-          </p>
-          <Link
-            href="/apply-to-work"
-            className="inline-block text-sm text-[#3B82F6]"
-          >
-            Apply →
-          </Link>
-        </Card>
-      </div>
-
-      {/* Trust Block */}
-      <Card>
-        <p className="text-sm text-[#9CA3AF]">
-          ⚠️ UREMO is a human-verified platform. All payments, services, and
-          applications are reviewed manually to ensure security and quality.
-        </p>
-      </Card>
     </div>
   );
 }
