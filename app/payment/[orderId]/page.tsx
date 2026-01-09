@@ -10,6 +10,8 @@ export default function PaymentPage() {
 
   const [order, setOrder] = useState<any>(null);
   const [methods, setMethods] = useState<any[]>([]);
+  const [selectedMethodId, setSelectedMethodId] = useState<string>("");
+  const [reference, setReference] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -19,18 +21,30 @@ export default function PaymentPage() {
   }, [orderId]);
 
   const submitProof = async () => {
+    if (!selectedMethodId) return alert("Please select a payment method");
     if (!file) return alert("Please upload payment proof");
 
     const form = new FormData();
-    form.append("proof", file);
+    form.append("file", file);
 
     setLoading(true);
     try {
-      await apiRequest(
-        `/api/orders/${orderId}/proof`,
+      const uploadRes = await apiRequest(
+        "/api/upload/payment-proof",
         "POST",
         form,
         true,
+        true
+      );
+
+      await apiRequest(
+        `/api/orders/${orderId}/payment`,
+        "PUT",
+        {
+          methodId: selectedMethodId,
+          reference,
+          proofUrl: uploadRes.url,
+        },
         true
       );
       router.push("/orders");
@@ -48,15 +62,33 @@ export default function PaymentPage() {
       <h1 className="text-2xl font-bold">Complete Payment</h1>
 
       <div className="border rounded p-4">
-        <p className="font-semibold">{order.service?.title}</p>
-        <p className="text-slate-600">Amount: ${order.service?.price}</p>
+        <p className="font-semibold">{order.serviceId?.title}</p>
+        <p className="text-slate-600">Amount: ${order.serviceId?.price}</p>
       </div>
 
       <div className="space-y-3">
         <h3 className="font-medium">Payment Methods</h3>
 
+        {methods.length === 0 && (
+          <p className="text-slate-500 text-sm">No payment methods yet.</p>
+        )}
+
         {methods.map((m) => (
-          <div key={m._id} className="border rounded p-3">
+          <div
+            key={m._id}
+            className={`border rounded p-3 cursor-pointer transition ${
+              selectedMethodId === m._id
+                ? "border-blue-500 bg-blue-50/20"
+                : "hover:border-slate-300"
+            }`}
+            onClick={() => setSelectedMethodId(m._id)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ")
+                setSelectedMethodId(m._id);
+            }}
+          >
             <p className="font-semibold">{m.name}</p>
             <p className="text-sm">{m.details}</p>
             {m.instructions && (
@@ -64,6 +96,16 @@ export default function PaymentPage() {
             )}
           </div>
         ))}
+      </div>
+
+      <div>
+        <label className="block mb-2 font-medium">Reference (optional)</label>
+        <input
+          className="w-full border rounded p-2"
+          placeholder="Transaction ID / note you used"
+          value={reference}
+          onChange={(e) => setReference(e.target.value)}
+        />
       </div>
 
       <div>
