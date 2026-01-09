@@ -2,42 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
-
-interface Order {
-  _id: string;
-  status: string;
-  serviceId: {
-    title: string;
-  };
-  paymentMethod?: string;
-}
-
-const statusColor = (status: string) => {
-  switch (status) {
-    case "payment_pending":
-      return "bg-blue-600";
-    case "payment_submitted":
-      return "bg-yellow-600";
-    case "pending_review":
-      return "bg-yellow-600";
-    case "processing":
-      return "bg-purple-600";
-    case "assistance_required":
-      return "bg-orange-600";
-    case "approved":
-      return "bg-green-600";
-    case "rejected":
-      return "bg-red-600";
-    default:
-      return "bg-gray-600";
-  }
-};
 
 export default function OrdersPage() {
   const router = useRouter();
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadOrders = async () => {
@@ -55,97 +24,78 @@ export default function OrdersPage() {
     loadOrders();
   }, []);
 
+  const statusBadge = (status: string) => {
+    const base = "px-3 py-1 rounded-full text-xs font-medium";
+    if (status === "completed") return `${base} bg-green-100 text-green-700`;
+    if (status === "processing") return `${base} bg-blue-100 text-blue-700`;
+    if (status === "pending_review")
+      return `${base} bg-yellow-100 text-yellow-700`;
+    if (status === "assistance_required")
+      return `${base} bg-indigo-100 text-indigo-700`;
+    if (status === "payment_pending")
+      return `${base} bg-orange-100 text-orange-700`;
+    if (status === "rejected") return `${base} bg-red-100 text-red-700`;
+    return `${base} bg-slate-100 text-slate-600`;
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">My Orders</h1>
-        <p className="text-[#9CA3AF]">Track payments and verification status</p>
+    <div className="max-w-6xl mx-auto px-6 py-10">
+      <h1 className="text-2xl font-bold mb-6">My Orders</h1>
+
+      {loading && <p>Loading orders…</p>}
+
+      <div className="space-y-4">
+        {orders.map((o) => (
+          <div key={o._id} className="border rounded-xl p-5 bg-white shadow-sm">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="font-semibold text-lg">
+                  {o.serviceId?.title || "Service"}
+                </h3>
+                <p className="text-sm text-slate-500">Order ID: {o._id}</p>
+              </div>
+
+              <span className={statusBadge(o.status)}>
+                {o.status.replace("_", " ")}
+              </span>
+            </div>
+
+            {/* TIMELINE */}
+            {o.timeline && o.timeline.length > 0 && (
+              <div className="mt-4 border-t pt-3 text-sm">
+                <h4 className="font-medium mb-2">Timeline</h4>
+                {o.timeline.map((t: any, i: number) => (
+                  <div key={i} className="text-slate-600 mb-1">
+                    <span className="text-slate-400">
+                      {new Date(t.createdAt).toLocaleString()}
+                    </span>
+                    {" — "}
+                    {t.message}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* ACTION */}
+            {o.status === "payment_pending" && (
+              <div className="mt-4">
+                <button
+                  onClick={() => router.push(`/payment/${o._id}`)}
+                  className="text-blue-600 hover:underline text-sm"
+                >
+                  Complete Payment
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
       </div>
 
-      <Card>
-        {loading && <p>Loading orders...</p>}
-
-        {!loading && orders.length === 0 && (
-          <p className="text-sm text-[#9CA3AF]">
-            You haven't placed any orders yet.
-          </p>
-        )}
-
-        {!loading && orders.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left border-b border-[#1F2937]">
-                  <th className="p-3">Service</th>
-                  <th className="p-3">Payment</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3">Action</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {orders.map((o) => (
-                  <tr key={o._id} className="border-b border-[#1F2937]">
-                    <td className="p-3">{o.serviceId?.title || "-"}</td>
-
-                    <td className="p-3 capitalize">
-                      {o.paymentMethod || "Not paid"}
-                    </td>
-
-                    <td className="p-3">
-                      <span
-                        className={`px-2 py-1 rounded text-xs ${statusColor(
-                          o.status
-                        )}`}
-                      >
-                        {o.status.replace(/_/g, " ")}
-                      </span>
-                    </td>
-
-                    <td className="p-3">
-                      {o.status === "payment_pending" && (
-                        <button
-                          onClick={() => router.push(`/payment/${o._id}`)}
-                          className="text-[#3B82F6] hover:underline"
-                        >
-                          Proceed to payment →
-                        </button>
-                      )}
-
-                      {o.status === "payment_submitted" && (
-                        <span className="text-yellow-500">Under review</span>
-                      )}
-
-                      {o.status === "pending_review" && (
-                        <span className="text-yellow-500">Pending Review</span>
-                      )}
-
-                      {o.status === "processing" && (
-                        <span className="text-purple-500">Processing</span>
-                      )}
-
-                      {o.status === "assistance_required" && (
-                        <span className="text-orange-500">
-                          Assistance Required
-                        </span>
-                      )}
-
-                      {o.status === "approved" && (
-                        <span className="text-green-500">Completed</span>
-                      )}
-
-                      {o.status === "rejected" && (
-                        <span className="text-red-500">Rejected</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
+      {!loading && orders.length === 0 && (
+        <p className="text-slate-500 mt-6">
+          You haven't placed any orders yet.
+        </p>
+      )}
     </div>
   );
 }

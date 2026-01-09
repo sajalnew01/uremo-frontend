@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
+import StatusBanner from "@/components/StatusBanner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,6 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-black text-white">
+        <StatusBanner />
         <Navbar />
         <div className="flex min-h-[calc(100vh-56px)]">
           <Sidebar />

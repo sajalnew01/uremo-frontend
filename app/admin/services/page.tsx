@@ -78,7 +78,8 @@ export default function AdminServicesPage() {
       setDeliveryType("manual");
       setImages([]);
 
-      loadServices();
+      await loadServices();
+      alert("Service added successfully and is now live.");
     } catch (err: any) {
       alert(err.message || "Failed to create service");
     } finally {
