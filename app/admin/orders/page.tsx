@@ -7,13 +7,14 @@ import { apiRequest } from "@/lib/api";
 interface Order {
   _id: string;
   status: string;
-  user?: { email: string };
+  userId?: { email: string };
   serviceId?: { title: string };
   payment?: {
     methodId?: {
+      name: string;
       type: string;
-      label: string;
-      value: string;
+      details: string;
+      instructions?: string;
     };
     reference?: string;
     proofUrl?: string;
@@ -104,21 +105,26 @@ export default function AdminOrdersPage() {
                 orders.map((o) => (
                   <Fragment key={o._id}>
                     <tr className="border-b border-[#1F2937]">
-                      <td className="p-3">{o.user?.email}</td>
+                      <td className="p-3">{o.userId?.email}</td>
                       <td className="p-3">{o.serviceId?.title}</td>
 
                       <td className="p-3 space-y-1">
                         {o.payment?.methodId ? (
                           <>
                             <div className="font-semibold text-sm">
-                              {o.payment.methodId.label}
+                              {o.payment.methodId.name}
                             </div>
                             <div className="text-xs text-[#9CA3AF]">
                               {o.payment.methodId.type}
                             </div>
                             <div className="text-xs font-mono bg-[#111827] p-1 rounded mt-1 break-all">
-                              {o.payment.methodId.value}
+                              {o.payment.methodId.details}
                             </div>
+                            {o.payment.methodId.instructions && (
+                              <div className="text-xs text-[#9CA3AF] mt-1">
+                                {o.payment.methodId.instructions}
+                              </div>
+                            )}
                             {o.payment.reference && (
                               <div className="text-xs text-[#9CA3AF] mt-1">
                                 Ref: {o.payment.reference}
