@@ -15,7 +15,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="flex justify-between items-center px-6 py-4 border-b border-white/10">
+    <nav className="relative z-50 flex justify-between items-center px-6 py-4 border-b border-white/10">
       <Link href="/" className="text-xl font-bold">
         UREMO
       </Link>
@@ -37,15 +37,28 @@ export default function Navbar() {
             {isAdmin && (
               <>
                 <Link href="/admin">Admin Panel</Link>
-                <Link href="/admin/services" className="text-blue-400">
-                  Admin → Services
-                </Link>
-                <Link href="/admin/orders" className="text-blue-400">
-                  Admin → Orders
-                </Link>
-                <Link href="/admin/payments" className="text-blue-400">
-                  Admin → Payments
-                </Link>
+                <div className="flex gap-4 items-center">
+                  <Link
+                    href="/admin/services"
+                    className="text-blue-400 hover:underline"
+                  >
+                    Admin → Services
+                  </Link>
+
+                  <Link
+                    href="/admin/orders"
+                    className="text-blue-400 hover:underline"
+                  >
+                    Admin → Orders
+                  </Link>
+
+                  <Link
+                    href="/admin/payments"
+                    className="text-blue-400 hover:underline"
+                  >
+                    Admin → Payments
+                  </Link>
+                </div>
               </>
             )}
 
