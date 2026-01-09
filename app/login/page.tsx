@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
+import { notifyAuthChanged } from "@/hooks/useAuth";
 
 export default function Login() {
   const router = useRouter();
@@ -25,6 +26,7 @@ export default function Login() {
 
       localStorage.setItem("token", res.token);
       localStorage.setItem("user", JSON.stringify(res.user));
+      notifyAuthChanged();
       router.push("/dashboard");
     } catch (err: any) {
       alert(err.message);

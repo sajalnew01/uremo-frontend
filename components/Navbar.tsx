@@ -1,17 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { isLoggedIn, isAdmin } from "@/lib/auth";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Navbar() {
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [admin, setAdmin] = useState(false);
+  const { ready, isLoggedIn, isAdmin, logout } = useAuth();
 
-  useEffect(() => {
-    setLoggedIn(isLoggedIn());
-    setAdmin(isAdmin());
-  }, []);
+  if (!ready) {
+    return (
+      <div className="px-6 py-4 border-b border-white/10 text-slate-400">
+        Loading...
+      </div>
+    );
+  }
 
   return (
     <nav className="flex justify-between items-center px-6 py-4 border-b border-white/10">
@@ -19,21 +20,21 @@ export default function Navbar() {
         UREMO
       </Link>
 
-      <div className="flex gap-4">
-        {!loggedIn && (
+      <div className="flex gap-4 items-center">
+        {!isLoggedIn && (
           <>
             <Link href="/login">Login</Link>
             <Link href="/signup">Sign Up</Link>
           </>
         )}
 
-        {loggedIn && (
+        {isLoggedIn && (
           <>
             <Link href="/dashboard">Dashboard</Link>
             <Link href="/buy-service">Services</Link>
             <Link href="/orders">My Orders</Link>
 
-            {admin && (
+            {isAdmin && (
               <>
                 <Link href="/admin">Admin Panel</Link>
                 <Link href="/admin/services" className="text-blue-400">
@@ -48,13 +49,7 @@ export default function Navbar() {
               </>
             )}
 
-            <button
-              onClick={() => {
-                localStorage.clear();
-                window.location.href = "/login";
-              }}
-              className="text-red-400"
-            >
+            <button onClick={logout} className="text-red-400">
               Logout
             </button>
           </>

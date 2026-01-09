@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
+import { notifyAuthChanged } from "@/hooks/useAuth";
 
 export default function Signup() {
   const router = useRouter();
@@ -30,6 +31,7 @@ export default function Signup() {
         "user",
         JSON.stringify(res.user || { role: "user", email })
       );
+      notifyAuthChanged();
       router.push("/dashboard");
     } catch (err: any) {
       alert(err.message);

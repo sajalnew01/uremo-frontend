@@ -30,9 +30,9 @@ export default function RootLayout({
       <body className="bg-black text-white">
         <StatusBanner />
         <Navbar />
-        <div className="flex min-h-[calc(100vh-56px)]">
+        <div className="flex min-h-[calc(100vh-56px)] relative">
           <Sidebar />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 relative z-10">{children}</main>
         </div>
       </body>
     </html>

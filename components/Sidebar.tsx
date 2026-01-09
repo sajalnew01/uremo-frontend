@@ -11,7 +11,7 @@ const links = [
 
 export default function Sidebar() {
   return (
-    <aside className="w-64 border-r border-zinc-800 p-6 hidden md:block">
+    <aside className="w-64 border-r border-zinc-800 p-6 hidden md:block sticky top-0 h-screen z-50 relative">
       <nav className="space-y-4">
         {links.map((link) => (
           <Link
