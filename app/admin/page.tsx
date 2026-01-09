@@ -1,53 +1,56 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Card from "@/components/Card";
-import { apiRequest } from "@/lib/api";
+import Link from "next/link";
 
-interface Order {
-  _id: string;
-  status: string;
-  user?: { email: string };
-  serviceId?: { title: string };
-  payment?: {
-    methodId?: {
-      type: string;
-      label: string;
-      value: string;
-    };
-    reference?: string;
-    proofUrl?: string;
-    submittedAt?: string;
-  };
-  timeline?: Array<{
-    message: string;
-    by: "system" | "admin";
-    createdAt: string;
-  }>;
+export default function AdminDashboard() {
+
+  return (
+    <div className="max-w-6xl mx-auto px-6 py-10">
+      <h1 className="text-3xl font-bold mb-2">Admin Panel</h1>
+      <p className="text-slate-400 mb-8">
+        Manage services, payments, orders, and applications.
+      </p>
+
+      <div className="grid md:grid-cols-4 gap-6">
+        <Link href="/admin/services">
+          <div className="card cursor-pointer hover:border-white/20 transition">
+            <h3 className="font-semibold">Services</h3>
+            <p className="text-sm text-slate-400 mt-2">
+              Add & manage marketplace services
+            </p>
+          </div>
+        </Link>
+
+        <Link href="/admin/orders">
+          <div className="card cursor-pointer hover:border-white/20 transition">
+            <h3 className="font-semibold">Orders</h3>
+            <p className="text-sm text-slate-400 mt-2">
+              Review payments & update status
+            </p>
+          </div>
+        </Link>
+
+        <Link href="/admin/payment-methods">
+          <div className="card cursor-pointer hover:border-white/20 transition">
+            <h3 className="font-semibold">Payment Methods</h3>
+            <p className="text-sm text-slate-400 mt-2">
+              Control PayPal / Crypto details
+            </p>
+          </div>
+        </Link>
+
+        <Link href="/admin/applications">
+          <div className="card cursor-pointer hover:border-white/20 transition">
+            <h3 className="font-semibold">Applications</h3>
+            <p className="text-sm text-slate-400 mt-2">
+              Review work applications
+            </p>
+          </div>
+        </Link>
+      </div>
+    </div>
+  );
 }
-
-const statusBadge = (status: string) => {
-  const map: any = {
-    payment_pending: "bg-blue-600",
-    payment_submitted: "bg-yellow-600",
-    pending_review: "bg-yellow-600",
-    processing: "bg-purple-600",
-    assistance_required: "bg-orange-600",
-    approved: "bg-green-600",
-    rejected: "bg-red-600",
-  };
-  return map[status] || "bg-gray-600";
-};
-
-export default function AdminOrders() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
-  const [noteText, setNoteText] = useState("");
-
-  const load = async () => {
-    const data = await apiRequest("/api/admin/orders", "GET", null, true);
-    setOrders(data);
-  };
 
   const update = async (id: string, status: string) => {
     await apiRequest(`/api/admin/orders/${id}`, "PUT", { status }, true);

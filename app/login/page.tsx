@@ -24,7 +24,7 @@ export default function Login() {
       });
 
       localStorage.setItem("token", res.token);
-      localStorage.setItem("role", res.user.role);
+      localStorage.setItem("user", JSON.stringify(res.user));
       router.push("/dashboard");
     } catch (err: any) {
       alert(err.message);
