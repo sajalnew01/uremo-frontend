@@ -26,7 +26,10 @@ export default function Signup() {
       });
 
       localStorage.setItem("token", res.token);
-      localStorage.setItem("role", res.user?.role || "user");
+      localStorage.setItem(
+        "user",
+        JSON.stringify(res.user || { role: "user", email })
+      );
       router.push("/dashboard");
     } catch (err: any) {
       alert(err.message);
@@ -40,33 +43,38 @@ export default function Signup() {
       <div className="w-full max-w-sm border rounded p-6">
         <h1 className="text-xl font-semibold mb-4">Create account</h1>
 
-        <div className="mb-4">
-          <label className="text-sm text-[#9CA3AF] block mb-1">Full Name</label>
+        <div className="mb-3">
+          <label className="block text-sm font-medium mb-1">Full Name</label>
           <input
             type="text"
-            placeholder="Your full name"
-            className="w-full p-2 bg-transparent border border-[#1F2937] rounded"
+            placeholder="Full Name"
+            className="w-full border p-2 rounded"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            required
           />
         </div>
 
-        <input
-          className="w-full border p-2 mb-3"
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+        <div className="mb-3">
+          <label className="block text-sm font-medium mb-1">Email</label>
+          <input
+            className="w-full border p-2 rounded"
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
 
-        <input
-          className="w-full border p-2 mb-4"
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1">Password</label>
+          <input
+            className="w-full border p-2 rounded"
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
 
         <button
           onClick={submit}
