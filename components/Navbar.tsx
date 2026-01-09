@@ -36,7 +36,7 @@ export default function Navbar() {
                 <Link href="/admin/orders" className="text-blue-400">
                   Admin → Orders
                 </Link>
-                <Link href="/admin/payment-methods" className="text-blue-400">
+                <Link href="/admin/payments" className="text-blue-400">
                   Admin → Payments
                 </Link>
               </>

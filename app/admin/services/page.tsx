@@ -211,42 +211,46 @@ export default function AdminServicesPage() {
             </tr>
           </thead>
           <tbody>
-            {services.map((s) => (
-              <tr key={s._id} className="border-b border-[#1F2937]">
-                <td className="p-4">{s.title}</td>
-                <td className="p-4">{s.category}</td>
-                <td className="p-4 font-semibold">${s.price}</td>
-                <td className="p-4 text-xs text-[#9CA3AF]">{s.deliveryType}</td>
-                <td className="p-4">
-                  <button
-                    onClick={() => toggleActive(s._id, s.active)}
-                    className={`px-2 py-1 rounded text-xs font-semibold ${
-                      s.active
-                        ? "bg-green-600 text-white"
-                        : "bg-gray-600 text-white"
-                    }`}
-                  >
-                    {s.active ? "Active" : "Inactive"}
-                  </button>
-                </td>
-                <td className="p-4">
-                  <button
-                    onClick={() => deleteService(s._id)}
-                    className="text-red-500 hover:text-red-400 text-sm"
-                  >
-                    Delete
-                  </button>
+            {services.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="p-4 text-[#9CA3AF]">
+                  No records yet.
                 </td>
               </tr>
-            ))}
+            ) : (
+              services.map((s) => (
+                <tr key={s._id} className="border-b border-[#1F2937]">
+                  <td className="p-4">{s.title}</td>
+                  <td className="p-4">{s.category}</td>
+                  <td className="p-4 font-semibold">${s.price}</td>
+                  <td className="p-4 text-xs text-[#9CA3AF]">
+                    {s.deliveryType}
+                  </td>
+                  <td className="p-4">
+                    <button
+                      onClick={() => toggleActive(s._id, s.active)}
+                      className={`px-2 py-1 rounded text-xs font-semibold ${
+                        s.active
+                          ? "bg-green-600 text-white"
+                          : "bg-gray-600 text-white"
+                      }`}
+                    >
+                      {s.active ? "Active" : "Inactive"}
+                    </button>
+                  </td>
+                  <td className="p-4">
+                    <button
+                      onClick={() => deleteService(s._id)}
+                      className="text-red-500 hover:text-red-400 text-sm"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
-
-        {services.length === 0 && (
-          <div className="p-8 text-center text-[#9CA3AF]">
-            No services yet. Create one above.
-          </div>
-        )}
       </div>
     </div>
   );

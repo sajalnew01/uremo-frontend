@@ -30,7 +30,7 @@ export default function AdminDashboard() {
           </div>
         </Link>
 
-        <Link href="/admin/payment-methods">
+        <Link href="/admin/payments">
           <div className="card cursor-pointer hover:border-white/20 transition">
             <h3 className="font-semibold">Payment Methods</h3>
             <p className="text-sm text-slate-400 mt-2">
