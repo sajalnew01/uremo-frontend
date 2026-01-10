@@ -5,13 +5,10 @@ export function middleware(req: NextRequest) {
   const role = req.cookies.get("role")?.value;
 
   // Server-side guard for /admin routes: rely on a lightweight role cookie.
-  // - Missing cookie => user isn't logged in (or cookie not set yet): send to login
-  // - role !== admin => logged-in but not admin: send to dashboard
-  if (!role) {
-    return NextResponse.redirect(new URL("/login", req.url));
-  }
-
-  if (role !== "admin") {
+  // IMPORTANT: LocalStorage isn't accessible in middleware, so if the cookie is
+  // missing (fresh login, cleared cookies, or stale browser state), we allow the
+  // request through and let the client-side guard decide.
+  if (role && role !== "admin") {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 

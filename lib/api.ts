@@ -1,13 +1,15 @@
 export async function apiRequest<T = any>(
   endpoint: string,
   method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
-  body?: unknown,
+  body: any = null,
   auth: boolean = false,
   isFormData: boolean = false
 ): Promise<T> {
   const headers: Record<string, string> = {};
 
-  if (!isFormData) {
+  const isBodyAllowed = method !== "GET" && method !== "DELETE";
+
+  if (!isFormData && isBodyAllowed) {
     headers["Content-Type"] = "application/json";
   }
 
@@ -28,12 +30,18 @@ export async function apiRequest<T = any>(
 
   let res: Response;
   try {
-    res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
+    const requestInit: RequestInit = {
       method,
       headers,
       signal: controller.signal,
-      body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
-    });
+    };
+
+    // ✅ Only attach body for POST/PUT (never for GET/DELETE)
+    if (isBodyAllowed && body !== null && body !== undefined) {
+      requestInit.body = isFormData ? (body as BodyInit) : JSON.stringify(body);
+    }
+
+    res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, requestInit);
   } catch (err: unknown) {
     const maybeError = err as { name?: string };
     if (maybeError?.name === "AbortError") {

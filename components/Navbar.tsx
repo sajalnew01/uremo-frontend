@@ -15,7 +15,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="relative z-50 flex justify-between items-center px-6 py-4 border-b border-white/10">
+    <nav className="relative z-[9999] pointer-events-auto flex justify-between items-center px-6 py-4 border-b border-white/10">
       <Link href="/" className="text-xl font-bold">
         UREMO
       </Link>

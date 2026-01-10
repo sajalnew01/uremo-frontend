@@ -15,7 +15,11 @@ export default function AdminLayout({
 
   useEffect(() => {
     if (!ready) return;
-    if (!isLoggedIn || !isAdmin) router.replace("/dashboard");
+    if (!isLoggedIn) {
+      router.replace("/login");
+      return;
+    }
+    if (!isAdmin) router.replace("/dashboard");
   }, [ready, isLoggedIn, isAdmin, router]);
 
   if (!ready) {
