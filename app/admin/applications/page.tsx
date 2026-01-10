@@ -12,6 +12,8 @@ interface Application {
   };
   message?: string;
   resumeUrl: string;
+  resumeOriginalName?: string;
+  resumeMimeType?: string;
   status: "pending" | "approved" | "rejected";
   createdAt: string;
 }
@@ -119,9 +121,10 @@ export default function AdminApplicationsPage() {
                   href={app.resumeUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  download={app.resumeOriginalName}
                   className="text-[#3B82F6] underline text-sm"
                 >
-                  📄 View Resume
+                  📄 Open / Download Resume
                 </a>
               </div>
 

@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
 import StatusBanner from "@/components/StatusBanner";
+import { SidebarProvider } from "@/components/SidebarContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,12 +29,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-black text-white">
-        <StatusBanner />
-        <Navbar />
-        <div className="flex min-h-[calc(100vh-56px)] relative">
-          <Sidebar />
-          <main className="flex-1 relative z-10">{children}</main>
-        </div>
+        <SidebarProvider>
+          <StatusBanner />
+          <Navbar />
+          <div className="flex min-h-[calc(100vh-56px)] relative">
+            <Sidebar />
+            <main className="flex-1 relative z-10">{children}</main>
+          </div>
+        </SidebarProvider>
       </body>
     </html>
   );

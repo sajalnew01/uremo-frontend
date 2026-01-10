@@ -21,6 +21,14 @@ export function useAuth() {
       const t = localStorage.getItem("token");
       const u = localStorage.getItem("user");
       setToken(t);
+      if (!t) {
+        // Prevent stale user objects from making UI think you're logged in.
+        setUser(null);
+        if (u) localStorage.removeItem("user");
+        document.cookie = "role=; Path=/; Max-Age=0; SameSite=Lax";
+        return;
+      }
+
       const parsed = u ? JSON.parse(u) : null;
       setUser(parsed);
 
@@ -68,6 +76,7 @@ export function useAuth() {
     ready,
     token,
     user,
+    isAuthenticated: !!token,
     isLoggedIn: !!token,
     isAdmin: user?.role === "admin",
     logout,
