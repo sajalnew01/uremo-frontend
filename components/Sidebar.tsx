@@ -6,7 +6,7 @@ const links = [
   { name: "My Orders", href: "/orders" },
   { name: "Apply to Work", href: "/apply-to-work" },
   { name: "Admin Panel", href: "/admin" },
-  { name: "Apply-to-Work Admin", href: "/admin/apply-work" },
+  { name: "Apply-to-Work Admin", href: "/admin/applications" },
 ];
 
 export default function Sidebar() {

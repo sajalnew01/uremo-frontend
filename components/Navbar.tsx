@@ -58,6 +58,13 @@ export default function Navbar() {
                   >
                     Admin → Payments
                   </Link>
+
+                  <Link
+                    href="/admin/applications"
+                    className="text-blue-400 hover:underline"
+                  >
+                    Admin → Applications
+                  </Link>
                 </div>
               </>
             )}

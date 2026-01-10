@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function AdminLayout({
   children,
@@ -10,13 +11,20 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const { ready, isLoggedIn, isAdmin } = useAuth();
 
   useEffect(() => {
-    const role = localStorage.getItem("role");
-    if (role !== "admin") {
-      router.replace("/dashboard");
-    }
-  }, [router]);
+    if (!ready) return;
+    if (!isLoggedIn || !isAdmin) router.replace("/dashboard");
+  }, [ready, isLoggedIn, isAdmin, router]);
+
+  if (!ready) {
+    return <div className="p-6 text-slate-400">Loading...</div>;
+  }
+
+  if (!isLoggedIn || !isAdmin) {
+    return <div className="p-6 text-slate-400">Redirecting...</div>;
+  }
 
   return (
     <div className="flex min-h-screen">
@@ -26,16 +34,19 @@ export default function AdminLayout({
 
         <nav className="space-y-3 text-sm">
           <Link href="/admin" className="block text-[#E5E7EB]">
-            Orders
+            Control Desk
           </Link>
-          <Link href="/admin/apply-work" className="block text-[#E5E7EB]">
-            Apply to Work
+          <Link href="/admin/orders" className="block text-[#E5E7EB]">
+            Orders
           </Link>
           <Link href="/admin/services" className="block text-[#E5E7EB]">
             Services
           </Link>
-          <Link href="/admin/payment-methods" className="block text-[#E5E7EB]">
-            Payment Methods
+          <Link href="/admin/payments" className="block text-[#E5E7EB]">
+            Payments
+          </Link>
+          <Link href="/admin/applications" className="block text-[#E5E7EB]">
+            Applications
           </Link>
         </nav>
       </aside>
