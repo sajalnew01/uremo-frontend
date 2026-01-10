@@ -21,7 +21,16 @@ export function useAuth() {
       const t = localStorage.getItem("token");
       const u = localStorage.getItem("user");
       setToken(t);
-      setUser(u ? JSON.parse(u) : null);
+      const parsed = u ? JSON.parse(u) : null;
+      setUser(parsed);
+
+      // Keep middleware role cookie aligned for existing sessions.
+      const role = parsed?.role || null;
+      if (role) {
+        document.cookie = `role=${encodeURIComponent(
+          role
+        )}; Path=/; Max-Age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+      }
     } catch {
       setToken(null);
       setUser(null);
