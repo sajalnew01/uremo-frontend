@@ -31,6 +31,10 @@ export default function Signup() {
         "user",
         JSON.stringify(res.user || { role: "user", email })
       );
+      const role = res?.user?.role || "user";
+      document.cookie = `role=${encodeURIComponent(role)}; Path=/; Max-Age=${
+        60 * 60 * 24 * 7
+      }; SameSite=Lax`;
       notifyAuthChanged();
       router.push("/dashboard");
     } catch (err: any) {

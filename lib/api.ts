@@ -50,6 +50,7 @@ export async function apiRequest<T = unknown>(
   if (typeof window !== "undefined" && (res.status === 401 || res.status === 403)) {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    document.cookie = "role=; Path=/; Max-Age=0; SameSite=Lax";
     window.dispatchEvent(new Event("auth-changed"));
   }
 

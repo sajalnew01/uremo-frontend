@@ -50,6 +50,7 @@ export function useAuth() {
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    document.cookie = "role=; Path=/; Max-Age=0; SameSite=Lax";
     notifyAuthChanged();
     window.location.href = "/login";
   };
