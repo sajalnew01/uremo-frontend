@@ -26,7 +26,12 @@ export default function AdminApplyWork() {
 
   const load = async () => {
     try {
-      const data = await apiRequest("/api/apply-work/admin", "GET", null, true);
+      const data = await apiRequest<App[]>(
+        "/api/apply-work/admin",
+        "GET",
+        null,
+        true
+      );
       setApps(data);
     } catch (err: any) {
       alert(err.message || "Failed to load applications");
