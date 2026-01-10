@@ -1,4 +1,4 @@
-export async function apiRequest<T = unknown>(
+export async function apiRequest<T = any>(
   endpoint: string,
   method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
   body?: unknown,
