@@ -36,7 +36,12 @@ export default function AdminApplicationsPage() {
 
   const loadApplications = async () => {
     try {
-      const data = await apiRequest("/api/apply-work/admin", "GET", null, true);
+      const data = await apiRequest<Application[]>(
+        "/api/apply-work/admin",
+        "GET",
+        null,
+        true
+      );
       setApplications(data);
     } catch (err) {
       console.error(err);
