@@ -5,6 +5,10 @@ export async function apiRequest<T = any>(
   auth: boolean = false,
   isFormData: boolean = false
 ): Promise<T> {
+  const baseUrl = (
+    process.env.NEXT_PUBLIC_API_URL || "https://uremo-backend.onrender.com"
+  ).replace(/\/+$/, "");
+
   const headers: Record<string, string> = {};
 
   const isBodyAllowed = method !== "GET" && method !== "DELETE";
@@ -41,7 +45,7 @@ export async function apiRequest<T = any>(
       requestInit.body = isFormData ? (body as BodyInit) : JSON.stringify(body);
     }
 
-    res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, requestInit);
+    res = await fetch(`${baseUrl}${endpoint}`, requestInit);
   } catch (err: unknown) {
     const maybeError = err as { name?: string };
     if (maybeError?.name === "AbortError") {

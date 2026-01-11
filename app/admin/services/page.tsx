@@ -2,10 +2,22 @@
 
 import { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
+import { useToast } from "@/hooks/useToast";
 
 export default function AdminServicesPage() {
+  const { toast } = useToast();
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const [editing, setEditing] = useState<any | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editCategory, setEditCategory] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editRequirements, setEditRequirements] = useState("");
+  const [editPrice, setEditPrice] = useState("");
+  const [editDeliveryType, setEditDeliveryType] = useState("manual");
+  const [editActive, setEditActive] = useState(true);
+  const [editSaving, setEditSaving] = useState(false);
 
   // form state
   const [title, setTitle] = useState("");
@@ -108,6 +120,56 @@ export default function AdminServicesPage() {
       loadServices();
     } catch (err) {
       alert("Failed to delete service");
+    }
+  };
+
+  const openEdit = (service: any) => {
+    setEditing(service);
+    setEditTitle(service?.title || "");
+    setEditCategory(service?.category || "");
+    setEditDescription(service?.description || "");
+    setEditRequirements(service?.requirements || "");
+    setEditPrice(String(service?.price ?? ""));
+    setEditDeliveryType(service?.deliveryType || "manual");
+    setEditActive(Boolean(service?.active));
+  };
+
+  const closeEdit = () => {
+    setEditing(null);
+  };
+
+  const saveEdit = async () => {
+    if (!editing?._id) return;
+
+    if (!editTitle || !editCategory || !editDescription || !editPrice) {
+      toast("Title, category, description and price required", "error");
+      return;
+    }
+
+    setEditSaving(true);
+    try {
+      await apiRequest(
+        `/api/admin/services/${editing._id}`,
+        "PUT",
+        {
+          title: editTitle,
+          category: editCategory,
+          description: editDescription,
+          requirements: editRequirements,
+          price: Number(editPrice),
+          deliveryType: editDeliveryType,
+          active: editActive,
+        },
+        true
+      );
+
+      toast("Service updated", "success");
+      closeEdit();
+      await loadServices();
+    } catch (err: any) {
+      toast(err?.message || "Failed to update service", "error");
+    } finally {
+      setEditSaving(false);
     }
   };
 
@@ -239,12 +301,20 @@ export default function AdminServicesPage() {
                     </button>
                   </td>
                   <td className="p-4">
-                    <button
-                      onClick={() => deleteService(s._id)}
-                      className="text-red-500 hover:text-red-400 text-sm"
-                    >
-                      Delete
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => openEdit(s)}
+                        className="text-blue-400 hover:text-blue-300 text-sm"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => deleteService(s._id)}
+                        className="text-red-500 hover:text-red-400 text-sm"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -252,6 +322,102 @@ export default function AdminServicesPage() {
           </tbody>
         </table>
       </div>
+
+      {/* EDIT MODAL */}
+      {editing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-2xl rounded-xl border border-white/10 bg-[#0B1220]">
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <div>
+                <p className="text-xs text-[#9CA3AF]">Quick edit</p>
+                <h3 className="text-lg font-semibold text-white">
+                  {editing.title}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={closeEdit}
+                className="text-sm text-[#9CA3AF] hover:text-white"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="p-4 space-y-3">
+              <input
+                placeholder="Title"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                className="w-full p-3 border border-[#1F2937] rounded bg-[#020617] text-white"
+              />
+              <input
+                placeholder="Category"
+                value={editCategory}
+                onChange={(e) => setEditCategory(e.target.value)}
+                className="w-full p-3 border border-[#1F2937] rounded bg-[#020617] text-white"
+              />
+              <textarea
+                placeholder="Description"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                className="w-full p-3 border border-[#1F2937] rounded bg-[#020617] text-white"
+              />
+              <textarea
+                placeholder="Requirements"
+                value={editRequirements}
+                onChange={(e) => setEditRequirements(e.target.value)}
+                className="w-full p-3 border border-[#1F2937] rounded bg-[#020617] text-white"
+              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <input
+                  placeholder="Price"
+                  type="number"
+                  value={editPrice}
+                  onChange={(e) => setEditPrice(e.target.value)}
+                  className="w-full p-3 border border-[#1F2937] rounded bg-[#020617] text-white"
+                />
+                <select
+                  value={editDeliveryType}
+                  onChange={(e) => setEditDeliveryType(e.target.value)}
+                  className="w-full p-3 border border-[#1F2937] rounded bg-[#020617] text-white"
+                >
+                  <option value="manual">Manual</option>
+                  <option value="assisted">Assisted</option>
+                  <option value="instant">Instant</option>
+                </select>
+              </div>
+
+              <label className="flex items-center gap-2 text-sm text-slate-200">
+                <input
+                  type="checkbox"
+                  checked={editActive}
+                  onChange={(e) => setEditActive(e.target.checked)}
+                />
+                Active
+              </label>
+            </div>
+
+            <div className="p-4 border-t border-white/10 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeEdit}
+                className="px-4 py-2 rounded bg-white/5 border border-white/10 text-white hover:bg-white/10"
+                disabled={editSaving}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveEdit}
+                disabled={editSaving}
+                className="px-4 py-2 rounded bg-[#3B82F6] text-white text-sm disabled:opacity-50"
+              >
+                {editSaving ? "Saving..." : "Save changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

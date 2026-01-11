@@ -53,9 +53,6 @@ export default function LandingPage() {
               Get Started
             </motion.button>
           </Link>
-          <Link href="/login">
-            <button className="btn-secondary w-full sm:w-auto">Login</button>
-          </Link>
           <Link href="/buy-service">
             <button className="btn-secondary w-full sm:w-auto">
               Browse Services
@@ -176,9 +173,6 @@ export default function LandingPage() {
             </Link>
             <Link href="/apply-to-work" className="hover:text-white transition">
               Work With Us
-            </Link>
-            <Link href="/login" className="hover:text-white transition">
-              Login
             </Link>
           </div>
         </div>

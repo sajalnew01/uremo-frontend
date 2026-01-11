@@ -17,6 +17,14 @@ export default function Login() {
       return;
     }
 
+    if (process.env.NODE_ENV !== "production") {
+      console.log("login submit", {
+        email,
+        passwordLength: password.length,
+        apiBase: process.env.NEXT_PUBLIC_API_URL || "(fallback: onrender)",
+      });
+    }
+
     setLoading(true);
     try {
       const res = await apiRequest("/api/auth/login", "POST", {

@@ -136,14 +136,26 @@ export default function ApplyToWorkPage() {
         <div className="mb-4">
           <label className="text-sm text-[#9CA3AF] block mb-1">Category</label>
           <select
-            className="w-full p-2 bg-transparent border border-[#1F2937] rounded"
+            className="w-full p-2 border border-[#1F2937] rounded text-white bg-[#0B1220]"
+            style={{ color: "white", background: "#0B1220" }}
             value={category}
             onChange={(e) => setCategory(e.target.value)}
           >
-            <option value="">Select category</option>
-            <option value="kyc_assistant">KYC / Onboarding Assistant</option>
-            <option value="verification_reviewer">Verification Reviewer</option>
-            <option value="operations_support">Operations Support</option>
+            <option value="" className="text-black bg-white">
+              Select category
+            </option>
+            <option value="kyc_assistant" className="text-black bg-white">
+              KYC / Onboarding Assistant
+            </option>
+            <option
+              value="verification_reviewer"
+              className="text-black bg-white"
+            >
+              Verification Reviewer
+            </option>
+            <option value="operations_support" className="text-black bg-white">
+              Operations Support
+            </option>
           </select>
         </div>
 

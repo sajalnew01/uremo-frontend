@@ -37,6 +37,7 @@ export default function OrderDetailsPage({
   const [messages, setMessages] = useState<OrderMessage[]>([]);
   const [messageText, setMessageText] = useState<string>("");
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
 
   const loadOrder = async () => {
@@ -89,6 +90,12 @@ export default function OrderDetailsPage({
   const sendMessage = async () => {
     const text = messageText.trim();
     if (!text) return;
+
+    if (process.env.NODE_ENV !== "production") {
+      console.log("sending", params.id, text);
+    }
+
+    setSendError(null);
     setSending(true);
     try {
       await apiRequest(
@@ -100,7 +107,8 @@ export default function OrderDetailsPage({
       setMessageText("");
       await loadMessages();
     } catch (err: any) {
-      alert(err?.message || "Failed to send message");
+      const msg = err?.message || "Failed to send message";
+      setSendError(msg);
     } finally {
       setSending(false);
     }
@@ -241,7 +249,10 @@ export default function OrderDetailsPage({
             className="flex-1 rounded-lg border border-[#1F2937] bg-[#020617] px-3 py-2 text-sm text-white placeholder:text-[#64748B]"
             placeholder="Type a message..."
             value={messageText}
-            onChange={(e) => setMessageText(e.target.value)}
+            onChange={(e) => {
+              setMessageText(e.target.value);
+              if (sendError) setSendError(null);
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter") sendMessage();
             }}
@@ -256,6 +267,8 @@ export default function OrderDetailsPage({
             {sending ? "Sending..." : "Send"}
           </button>
         </div>
+
+        {sendError && <p className="mt-2 text-xs text-red-400">{sendError}</p>}
 
         <p className="mt-3 text-xs text-[#9CA3AF]">
           Support replies from admin will appear here.
