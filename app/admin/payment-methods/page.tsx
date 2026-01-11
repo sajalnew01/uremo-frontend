@@ -146,49 +146,51 @@ export default function AdminPaymentMethodsPage() {
             No payment methods configured yet.
           </p>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[#1F2937] text-left">
-                <th className="p-2">Type</th>
-                <th className="p-2">Label</th>
-                <th className="p-2">Value</th>
-                <th className="p-2">Status</th>
-                <th className="p-2">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {methods.map((m) => (
-                <tr key={m._id} className="border-b border-[#1F2937]">
-                  <td className="p-2 capitalize">{m.type}</td>
-                  <td className="p-2">{m.label}</td>
-                  <td className="p-2 text-xs text-[#9CA3AF] truncate">
-                    {m.value}
-                  </td>
-                  <td className="p-2">
-                    <span
-                      className={`text-xs px-2 py-1 rounded ${
-                        m.active ? "bg-green-600" : "bg-gray-600"
-                      }`}
-                    >
-                      {m.active ? "Active" : "Inactive"}
-                    </span>
-                  </td>
-                  <td className="p-2">
-                    <button
-                      onClick={() => toggleActive(m._id, m.active)}
-                      className={`text-xs px-2 py-1 rounded ${
-                        m.active
-                          ? "bg-yellow-600 hover:bg-yellow-700"
-                          : "bg-green-600 hover:bg-green-700"
-                      }`}
-                    >
-                      {m.active ? "Disable" : "Enable"}
-                    </button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="min-w-[640px] w-full text-sm">
+              <thead>
+                <tr className="border-b border-[#1F2937] text-left">
+                  <th className="p-2">Type</th>
+                  <th className="p-2">Label</th>
+                  <th className="p-2">Value</th>
+                  <th className="p-2">Status</th>
+                  <th className="p-2">Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {methods.map((m) => (
+                  <tr key={m._id} className="border-b border-[#1F2937]">
+                    <td className="p-2 capitalize">{m.type}</td>
+                    <td className="p-2">{m.label}</td>
+                    <td className="p-2 text-xs text-[#9CA3AF] truncate">
+                      {m.value}
+                    </td>
+                    <td className="p-2">
+                      <span
+                        className={`text-xs px-2 py-1 rounded ${
+                          m.active ? "bg-green-600" : "bg-gray-600"
+                        }`}
+                      >
+                        {m.active ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                    <td className="p-2">
+                      <button
+                        onClick={() => toggleActive(m._id, m.active)}
+                        className={`text-xs px-2 py-1 rounded ${
+                          m.active
+                            ? "bg-yellow-600 hover:bg-yellow-700"
+                            : "bg-green-600 hover:bg-green-700"
+                        }`}
+                      >
+                        {m.active ? "Disable" : "Enable"}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </Card>
 

@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { useSidebar } from "@/components/SidebarContext";
+import { useSidebar } from "@/hooks/useSidebar";
 
 export default function Sidebar() {
   const { isAuthenticated, user } = useAuth();
-  const { isOpen, close } = useSidebar();
+  const { isSidebarOpen, closeSidebar } = useSidebar();
   const pathname = usePathname();
 
   if (!isAuthenticated) return null;
@@ -40,21 +40,24 @@ export default function Sidebar() {
   return (
     <>
       {/* Mobile overlay */}
-      {isOpen && (
+      {isSidebarOpen && (
         <div
           className="fixed inset-0 bg-black/60 md:hidden z-40 pointer-events-auto"
-          onClick={close}
+          onClick={closeSidebar}
           aria-hidden="true"
         />
       )}
 
       {/* Mobile drawer */}
       <aside
-        className={`fixed top-0 left-0 h-full w-72 bg-[#020617]/95 border-r border-white/10 p-5 md:hidden z-50 transform transition-transform duration-200 pointer-events-auto backdrop-blur ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
+        aria-hidden={!isSidebarOpen}
+        className={`fixed top-0 left-0 h-full w-[80vw] max-w-[280px] bg-[#020617]/95 border-r border-white/10 p-5 md:hidden z-50 transform transition-transform duration-200 backdrop-blur ${
+          isSidebarOpen
+            ? "translate-x-0 pointer-events-auto"
+            : "-translate-x-full pointer-events-none"
         }`}
       >
-        <nav className="space-y-3" onClick={close}>
+        <nav className="space-y-3" onClick={closeSidebar}>
           <p className="text-[11px] tracking-widest text-[#9CA3AF]">USER</p>
           {links.map((link) => (
             <Link
@@ -92,8 +95,8 @@ export default function Sidebar() {
       </aside>
 
       {/* Desktop sidebar */}
-      <aside className="w-72 border-r border-white/10 p-5 hidden md:block sticky top-14 h-[calc(100vh-56px)] z-30 relative bg-black/10 backdrop-blur">
-        <nav className="space-y-3">
+      <aside className="hidden md:block fixed left-0 top-14 w-[260px] h-[calc(100vh-56px)] border-r border-white/10 bg-black/10 backdrop-blur z-30">
+        <nav className="space-y-3 p-5 overflow-y-auto h-full">
           <p className="text-[11px] tracking-widest text-[#9CA3AF]">USER</p>
           {links.map((link) => (
             <Link

@@ -261,83 +261,85 @@ export default function AdminServicesPage() {
 
       {/* SERVICES LIST */}
       <div className="border border-[#1F2937] rounded-lg overflow-hidden bg-[#0F172A]">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left sticky top-0 bg-[#0B1220]/90 backdrop-blur border-b border-white/10">
-              <th className="p-4 text-xs tracking-widest text-[#9CA3AF]">
-                Title
-              </th>
-              <th className="p-4 text-xs tracking-widest text-[#9CA3AF]">
-                Category
-              </th>
-              <th className="p-4 text-xs tracking-widest text-[#9CA3AF]">
-                Price
-              </th>
-              <th className="p-4 text-xs tracking-widest text-[#9CA3AF]">
-                Type
-              </th>
-              <th className="p-4 text-xs tracking-widest text-[#9CA3AF]">
-                Status
-              </th>
-              <th className="p-4 text-xs tracking-widest text-[#9CA3AF]">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {services.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="p-4 text-[#9CA3AF]">
-                  No records yet.
-                </td>
+        <div className="overflow-x-auto">
+          <table className="min-w-[760px] w-full text-sm">
+            <thead>
+              <tr className="text-left sticky top-0 bg-[#0B1220]/90 backdrop-blur border-b border-white/10">
+                <th className="p-4 text-xs tracking-widest text-[#9CA3AF]">
+                  Title
+                </th>
+                <th className="p-4 text-xs tracking-widest text-[#9CA3AF]">
+                  Category
+                </th>
+                <th className="p-4 text-xs tracking-widest text-[#9CA3AF]">
+                  Price
+                </th>
+                <th className="p-4 text-xs tracking-widest text-[#9CA3AF]">
+                  Type
+                </th>
+                <th className="p-4 text-xs tracking-widest text-[#9CA3AF]">
+                  Status
+                </th>
+                <th className="p-4 text-xs tracking-widest text-[#9CA3AF]">
+                  Actions
+                </th>
               </tr>
-            ) : (
-              services.map((s, rowIdx) => (
-                <tr
-                  key={s._id}
-                  className={`border-b border-white/10 hover:bg-white/5 transition ${
-                    rowIdx % 2 === 0 ? "bg-white/[0.02]" : "bg-transparent"
-                  }`}
-                >
-                  <td className="p-4">{s.title}</td>
-                  <td className="p-4">{s.category}</td>
-                  <td className="p-4 font-semibold">${s.price}</td>
-                  <td className="p-4 text-xs text-[#9CA3AF]">
-                    {s.deliveryType}
-                  </td>
-                  <td className="p-4">
-                    <button
-                      onClick={() => toggleActive(s._id, s.active)}
-                      className={`px-2 py-1 rounded text-xs font-semibold ${
-                        s.active
-                          ? "bg-green-600 text-white"
-                          : "bg-gray-600 text-white"
-                      }`}
-                    >
-                      {s.active ? "Active" : "Inactive"}
-                    </button>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => openEdit(s)}
-                        className="text-blue-400 hover:text-blue-300 text-sm"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => deleteService(s._id)}
-                        className="text-red-500 hover:text-red-400 text-sm"
-                      >
-                        Delete
-                      </button>
-                    </div>
+            </thead>
+            <tbody>
+              {services.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="p-4 text-[#9CA3AF]">
+                    No records yet.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                services.map((s, rowIdx) => (
+                  <tr
+                    key={s._id}
+                    className={`border-b border-white/10 hover:bg-white/5 transition ${
+                      rowIdx % 2 === 0 ? "bg-white/[0.02]" : "bg-transparent"
+                    }`}
+                  >
+                    <td className="p-4">{s.title}</td>
+                    <td className="p-4">{s.category}</td>
+                    <td className="p-4 font-semibold">${s.price}</td>
+                    <td className="p-4 text-xs text-[#9CA3AF]">
+                      {s.deliveryType}
+                    </td>
+                    <td className="p-4">
+                      <button
+                        onClick={() => toggleActive(s._id, s.active)}
+                        className={`px-2 py-1 rounded text-xs font-semibold ${
+                          s.active
+                            ? "bg-green-600 text-white"
+                            : "bg-gray-600 text-white"
+                        }`}
+                      >
+                        {s.active ? "Active" : "Inactive"}
+                      </button>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => openEdit(s)}
+                          className="text-blue-400 hover:text-blue-300 text-sm"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => deleteService(s._id)}
+                          className="text-red-500 hover:text-red-400 text-sm"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* EDIT MODAL */}

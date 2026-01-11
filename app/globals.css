@@ -98,10 +98,16 @@ p {
   background: linear-gradient(180deg, var(--card) 0%, var(--card-2) 100%);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 1.5rem;
+  padding: 1rem;
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+}
+
+@media (min-width: 768px) {
+  .card {
+    padding: 1.5rem;
+  }
 }
 
 .card:hover {

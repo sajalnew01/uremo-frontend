@@ -151,62 +151,64 @@ export default function AdminPaymentsPage() {
       {/* List */}
       <div className="bg-white p-6 rounded-lg shadow">
         <h2 className="text-xl font-semibold mb-4">Existing Methods</h2>
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="border-b">
-              <th className="text-left p-3">Name</th>
-              <th className="text-left p-3">Type</th>
-              <th className="text-left p-3">Details</th>
-              <th className="text-left p-3">Instructions</th>
-              <th className="text-left p-3">Active</th>
-              <th className="text-left p-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {methods.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="p-3 text-gray-500">
-                  No records yet.
-                </td>
+        <div className="overflow-x-auto">
+          <table className="min-w-[720px] w-full border-collapse">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left p-3">Name</th>
+                <th className="text-left p-3">Type</th>
+                <th className="text-left p-3">Details</th>
+                <th className="text-left p-3">Instructions</th>
+                <th className="text-left p-3">Active</th>
+                <th className="text-left p-3">Actions</th>
               </tr>
-            ) : (
-              methods.map((m) => (
-                <tr key={m._id} className="border-b">
-                  <td className="p-3">{m.name}</td>
-                  <td className="p-3">
-                    <span className="bg-gray-200 px-2 py-1 rounded text-xs">
-                      {m.type}
-                    </span>
-                  </td>
-                  <td className="p-3 font-mono text-sm">{m.details}</td>
-                  <td className="p-3 text-sm text-gray-600">
-                    {m.instructions || "-"}
-                  </td>
-                  <td className="p-3">
-                    <button
-                      onClick={() => toggleActive(m._id, m.active)}
-                      className={`px-3 py-1 rounded text-xs ${
-                        m.active
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-200 text-gray-600"
-                      }`}
-                    >
-                      {m.active ? "Active" : "Inactive"}
-                    </button>
-                  </td>
-                  <td className="p-3">
-                    <button
-                      onClick={() => deleteMethod(m._id)}
-                      className="text-red-600 hover:underline text-sm"
-                    >
-                      Delete
-                    </button>
+            </thead>
+            <tbody>
+              {methods.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="p-3 text-gray-500">
+                    No records yet.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                methods.map((m) => (
+                  <tr key={m._id} className="border-b">
+                    <td className="p-3">{m.name}</td>
+                    <td className="p-3">
+                      <span className="bg-gray-200 px-2 py-1 rounded text-xs">
+                        {m.type}
+                      </span>
+                    </td>
+                    <td className="p-3 font-mono text-sm">{m.details}</td>
+                    <td className="p-3 text-sm text-gray-600">
+                      {m.instructions || "-"}
+                    </td>
+                    <td className="p-3">
+                      <button
+                        onClick={() => toggleActive(m._id, m.active)}
+                        className={`px-3 py-1 rounded text-xs ${
+                          m.active
+                            ? "bg-green-100 text-green-700"
+                            : "bg-gray-200 text-gray-600"
+                        }`}
+                      >
+                        {m.active ? "Active" : "Inactive"}
+                      </button>
+                    </td>
+                    <td className="p-3">
+                      <button
+                        onClick={() => deleteMethod(m._id)}
+                        className="text-red-600 hover:underline text-sm"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

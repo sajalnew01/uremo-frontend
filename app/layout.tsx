@@ -4,7 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
 import StatusBanner from "@/components/StatusBanner";
-import { SidebarProvider } from "@/components/SidebarContext";
+import { SidebarProvider } from "@/components/sidebar/SidebarProvider";
 import { ToastProvider } from "@/hooks/useToast";
 import ToastViewport from "@/components/ToastViewport";
 
@@ -29,12 +29,20 @@ export default function RootLayout({
       <body className={inter.variable}>
         <ToastProvider>
           <SidebarProvider>
-            <StatusBanner />
             <Navbar />
             <ToastViewport />
-            <div className="flex min-h-[calc(100vh-56px)] relative">
+            <div className="pt-14">
+              <div className="md:grid md:grid-cols-[260px_1fr] min-h-[calc(100vh-56px)]">
+                <div className="hidden md:block" />
+                <main className="min-w-0 relative z-10 u-page">
+                  <div className="hidden md:block">
+                    <StatusBanner />
+                  </div>
+                  {children}
+                </main>
+              </div>
+
               <Sidebar />
-              <main className="flex-1 relative z-10 u-page">{children}</main>
             </div>
           </SidebarProvider>
         </ToastProvider>
