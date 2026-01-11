@@ -254,7 +254,10 @@ export default function OrderDetailsPage({
               if (sendError) setSendError(null);
             }}
             onKeyDown={(e) => {
-              if (e.key === "Enter") sendMessage();
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+              }
             }}
             disabled={sending}
           />
