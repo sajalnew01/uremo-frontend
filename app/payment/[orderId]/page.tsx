@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
+import { useToast } from "@/hooks/useToast";
 
 export default function PaymentPage() {
   const { orderId } = useParams();
   const router = useRouter();
+  const { toast } = useToast();
 
   const [order, setOrder] = useState<any>(null);
   const [methods, setMethods] = useState<any[]>([]);
@@ -15,12 +17,28 @@ export default function PaymentPage() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const loadOrder = async () => {
+    const data = await apiRequest(`/api/orders/${orderId}`, "GET", null, true);
+    setOrder(data);
+  };
+
   useEffect(() => {
-    apiRequest(`/api/orders/${orderId}`, "GET", null, true).then(setOrder);
+    loadOrder();
     apiRequest("/api/payments", "GET").then(setMethods);
   }, [orderId]);
 
+  const status: string | undefined = order?.status;
+  const isExpired =
+    status === "payment_pending" &&
+    order?.expiresAt &&
+    new Date(order.expiresAt).getTime() < Date.now();
+
+  const canSubmit =
+    (status === "payment_pending" || status === "rejected") && !isExpired;
+  const isSubmitted = status === "payment_submitted";
+
   const submitProof = async () => {
+    if (!canSubmit) return;
     if (!selectedMethodId) return alert("Please select a payment method");
     if (!file) return alert("Please upload payment proof");
 
@@ -47,9 +65,12 @@ export default function PaymentPage() {
         },
         true
       );
-      router.push("/orders");
+
+      toast("Payment submitted. Await verification.", "success");
+      setFile(null);
+      await loadOrder();
     } catch (e: any) {
-      alert(e.message || "Failed to submit proof");
+      toast(e.message || "Failed to submit proof", "error");
     } finally {
       setLoading(false);
     }
@@ -59,7 +80,51 @@ export default function PaymentPage() {
 
   return (
     <div className="max-w-xl mx-auto px-6 py-10 space-y-6">
-      <h1 className="text-2xl font-bold">Complete Payment</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold">Complete Payment</h1>
+        <button
+          type="button"
+          onClick={() => router.push("/orders")}
+          className="text-sm text-blue-600 hover:underline"
+        >
+          View orders
+        </button>
+      </div>
+
+      {isExpired && (
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-200">
+          <p className="font-semibold">Reservation expired</p>
+          <p className="text-sm opacity-90 mt-1">
+            This order was reserved for 24 hours and has expired. Please buy the
+            service again.
+          </p>
+          <button
+            type="button"
+            onClick={() => router.push("/buy-service")}
+            className="mt-3 inline-flex items-center justify-center rounded-lg bg-red-500/20 px-3 py-2 text-sm hover:bg-red-500/25"
+          >
+            Go to services
+          </button>
+        </div>
+      )}
+
+      {isSubmitted && (
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-emerald-200">
+          <p className="font-semibold">Payment submitted</p>
+          <p className="text-sm opacity-90 mt-1">
+            Payment submitted. Await verification.
+          </p>
+        </div>
+      )}
+
+      {status === "rejected" && (
+        <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 p-4 text-orange-200">
+          <p className="font-semibold">Payment rejected</p>
+          <p className="text-sm opacity-90 mt-1">
+            Your previous proof was rejected. Please submit a new proof.
+          </p>
+        </div>
+      )}
 
       <div className="border rounded p-4">
         <p className="font-semibold">{order.serviceId?.title}</p>
@@ -81,13 +146,16 @@ export default function PaymentPage() {
                 ? "border-blue-500 bg-blue-50/20"
                 : "hover:border-slate-300"
             }`}
-            onClick={() => setSelectedMethodId(m._id)}
+            onClick={() => {
+              if (canSubmit) setSelectedMethodId(m._id);
+            }}
             role="button"
             tabIndex={0}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ")
-                setSelectedMethodId(m._id);
+                if (canSubmit) setSelectedMethodId(m._id);
             }}
+            aria-disabled={!canSubmit}
           >
             <p className="font-semibold">{m.name}</p>
             <p className="text-sm">{m.details}</p>
@@ -105,6 +173,7 @@ export default function PaymentPage() {
           placeholder="Transaction ID / note you used"
           value={reference}
           onChange={(e) => setReference(e.target.value)}
+          disabled={!canSubmit}
         />
       </div>
 
@@ -112,16 +181,17 @@ export default function PaymentPage() {
         <label className="block mb-2 font-medium">Upload Payment Proof</label>
         <input
           type="file"
+          disabled={!canSubmit}
           onChange={(e) => setFile(e.target.files?.[0] || null)}
         />
       </div>
 
       <button
         onClick={submitProof}
-        disabled={loading}
+        disabled={loading || !canSubmit}
         className="bg-blue-600 text-white px-4 py-2 rounded"
       >
-        Submit Proof
+        {status === "rejected" ? "Resubmit proof" : "Submit proof"}
       </button>
 
       <p className="text-xs text-slate-500">

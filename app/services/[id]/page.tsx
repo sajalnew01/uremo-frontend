@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
+import { useToast } from "@/hooks/useToast";
 
 export default function ServiceDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
+  const { toast } = useToast();
   const [service, setService] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -19,13 +21,17 @@ export default function ServiceDetailsPage() {
 
   const buyService = async () => {
     try {
-      const order = await apiRequest(
+      const res = await apiRequest(
         "/api/orders",
         "POST",
         { serviceId: service._id },
         true
       );
-      router.push(`/payment/${order._id}`);
+      const orderId = res?.orderId;
+      if (!orderId) throw new Error("Failed to create order");
+
+      toast("Order reserved. Complete payment to confirm.", "success");
+      router.push(`/payment/${orderId}`);
     } catch (e: any) {
       alert(e.message || "Login required");
     }
