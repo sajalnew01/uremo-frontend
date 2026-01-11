@@ -189,28 +189,28 @@ export default function AdminServicesPage() {
           placeholder="Title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full p-3 border border-[#1F2937] rounded bg-[#020617] text-white"
+          className="u-input"
         />
 
         <input
           placeholder="Category (KYC / Onboarding / Gig)"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="w-full p-3 border border-[#1F2937] rounded bg-[#020617] text-white"
+          className="u-input"
         />
 
         <textarea
           placeholder="Description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full p-3 border border-[#1F2937] rounded bg-[#020617] text-white"
+          className="u-textarea"
         />
 
         <textarea
           placeholder="Requirements (what user must provide)"
           value={requirements}
           onChange={(e) => setRequirements(e.target.value)}
-          className="w-full p-3 border border-[#1F2937] rounded bg-[#020617] text-white"
+          className="u-textarea"
         />
 
         <input
@@ -218,13 +218,13 @@ export default function AdminServicesPage() {
           type="number"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
-          className="w-full p-3 border border-[#1F2937] rounded bg-[#020617] text-white"
+          className="u-input"
         />
 
         <select
           value={deliveryType}
           onChange={(e) => setDeliveryType(e.target.value)}
-          className="w-full p-3 border border-[#1F2937] rounded bg-[#020617] text-white"
+          className="u-select"
         >
           <option value="manual">Manual</option>
           <option value="assisted">Assisted</option>
@@ -253,7 +253,7 @@ export default function AdminServicesPage() {
         <button
           onClick={createService}
           disabled={loading}
-          className="w-full bg-[#22C55E] px-4 py-3 rounded text-black font-semibold disabled:opacity-50"
+          className="w-full btn-primary disabled:opacity-50"
         >
           {loading ? "Creating..." : "Create Service"}
         </button>
@@ -263,13 +263,25 @@ export default function AdminServicesPage() {
       <div className="border border-[#1F2937] rounded-lg overflow-hidden bg-[#0F172A]">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[#1F2937]">
-              <th className="p-4 text-left">Title</th>
-              <th className="p-4 text-left">Category</th>
-              <th className="p-4 text-left">Price</th>
-              <th className="p-4 text-left">Type</th>
-              <th className="p-4 text-left">Status</th>
-              <th className="p-4 text-left">Actions</th>
+            <tr className="text-left sticky top-0 bg-[#0B1220]/90 backdrop-blur border-b border-white/10">
+              <th className="p-4 text-xs tracking-widest text-[#9CA3AF]">
+                Title
+              </th>
+              <th className="p-4 text-xs tracking-widest text-[#9CA3AF]">
+                Category
+              </th>
+              <th className="p-4 text-xs tracking-widest text-[#9CA3AF]">
+                Price
+              </th>
+              <th className="p-4 text-xs tracking-widest text-[#9CA3AF]">
+                Type
+              </th>
+              <th className="p-4 text-xs tracking-widest text-[#9CA3AF]">
+                Status
+              </th>
+              <th className="p-4 text-xs tracking-widest text-[#9CA3AF]">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -280,8 +292,13 @@ export default function AdminServicesPage() {
                 </td>
               </tr>
             ) : (
-              services.map((s) => (
-                <tr key={s._id} className="border-b border-[#1F2937]">
+              services.map((s, rowIdx) => (
+                <tr
+                  key={s._id}
+                  className={`border-b border-white/10 hover:bg-white/5 transition ${
+                    rowIdx % 2 === 0 ? "bg-white/[0.02]" : "bg-transparent"
+                  }`}
+                >
                   <td className="p-4">{s.title}</td>
                   <td className="p-4">{s.category}</td>
                   <td className="p-4 font-semibold">${s.price}</td>
@@ -326,7 +343,7 @@ export default function AdminServicesPage() {
       {/* EDIT MODAL */}
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-2xl rounded-xl border border-white/10 bg-[#0B1220]">
+          <div className="w-full max-w-2xl rounded-xl border border-white/10 bg-[#0B1220] u-modal">
             <div className="flex items-center justify-between p-4 border-b border-white/10">
               <div>
                 <p className="text-xs text-[#9CA3AF]">Quick edit</p>
@@ -348,25 +365,25 @@ export default function AdminServicesPage() {
                 placeholder="Title"
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
-                className="w-full p-3 border border-[#1F2937] rounded bg-[#020617] text-white"
+                className="u-input"
               />
               <input
                 placeholder="Category"
                 value={editCategory}
                 onChange={(e) => setEditCategory(e.target.value)}
-                className="w-full p-3 border border-[#1F2937] rounded bg-[#020617] text-white"
+                className="u-input"
               />
               <textarea
                 placeholder="Description"
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
-                className="w-full p-3 border border-[#1F2937] rounded bg-[#020617] text-white"
+                className="u-textarea"
               />
               <textarea
                 placeholder="Requirements"
                 value={editRequirements}
                 onChange={(e) => setEditRequirements(e.target.value)}
-                className="w-full p-3 border border-[#1F2937] rounded bg-[#020617] text-white"
+                className="u-textarea"
               />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <input
@@ -374,12 +391,12 @@ export default function AdminServicesPage() {
                   type="number"
                   value={editPrice}
                   onChange={(e) => setEditPrice(e.target.value)}
-                  className="w-full p-3 border border-[#1F2937] rounded bg-[#020617] text-white"
+                  className="u-input"
                 />
                 <select
                   value={editDeliveryType}
                   onChange={(e) => setEditDeliveryType(e.target.value)}
-                  className="w-full p-3 border border-[#1F2937] rounded bg-[#020617] text-white"
+                  className="u-select"
                 >
                   <option value="manual">Manual</option>
                   <option value="assisted">Assisted</option>

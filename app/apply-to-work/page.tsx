@@ -177,18 +177,24 @@ export default function ApplyToWorkPage() {
           <label className="text-sm text-[#9CA3AF] block mb-1">
             Resume (PDF preferred)
           </label>
-          <input
-            type="file"
-            accept=".pdf,.doc,.docx"
-            onChange={(e) => setResume(e.target.files?.[0] || null)}
-          />
+          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx"
+              onChange={(e) => setResume(e.target.files?.[0] || null)}
+              className="text-sm text-slate-200"
+            />
+            <p className="mt-2 text-xs text-[#9CA3AF]">
+              Upload your resume to help us evaluate your application faster.
+            </p>
+          </div>
         </div>
 
         {/* Submit */}
         <button
           onClick={submit}
           disabled={loading}
-          className="px-4 py-2 bg-[#22C55E] text-black rounded disabled:opacity-50"
+          className="btn-primary disabled:opacity-50"
         >
           {loading ? "Submitting..." : "Submit Application"}
         </button>

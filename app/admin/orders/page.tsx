@@ -85,12 +85,22 @@ export default function AdminOrdersPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1F2937] text-left">
-                <th className="p-3">User</th>
-                <th className="p-3">Service</th>
-                <th className="p-3">Payment</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Actions</th>
+              <tr className="text-left sticky top-0 bg-[#0B1220]/90 backdrop-blur border-b border-white/10">
+                <th className="p-3 text-xs tracking-widest text-[#9CA3AF]">
+                  User
+                </th>
+                <th className="p-3 text-xs tracking-widest text-[#9CA3AF]">
+                  Service
+                </th>
+                <th className="p-3 text-xs tracking-widest text-[#9CA3AF]">
+                  Payment
+                </th>
+                <th className="p-3 text-xs tracking-widest text-[#9CA3AF]">
+                  Status
+                </th>
+                <th className="p-3 text-xs tracking-widest text-[#9CA3AF]">
+                  Actions
+                </th>
               </tr>
             </thead>
 
@@ -102,9 +112,13 @@ export default function AdminOrdersPage() {
                   </td>
                 </tr>
               ) : (
-                orders.map((o) => (
+                orders.map((o, rowIdx) => (
                   <Fragment key={o._id}>
-                    <tr className="border-b border-[#1F2937]">
+                    <tr
+                      className={`border-b border-white/10 hover:bg-white/5 transition ${
+                        rowIdx % 2 === 0 ? "bg-white/[0.02]" : "bg-transparent"
+                      }`}
+                    >
                       <td className="p-3">{o.userId?.email}</td>
                       <td className="p-3">{o.serviceId?.title}</td>
 
@@ -164,13 +178,13 @@ export default function AdminOrdersPage() {
                                 selectedOrderId === o._id ? null : o._id
                               )
                             }
-                            className="px-3 py-1 bg-blue-600 rounded text-xs"
+                            className="btn-secondary px-3 py-1 text-xs"
                           >
                             {selectedOrderId === o._id ? "Hide" : "View"}
                           </button>
 
                           <select
-                            className="px-2 py-1 text-xs rounded bg-[#020617] border border-[#1F2937]"
+                            className="px-2 py-1 text-xs rounded bg-[#020617] border border-white/10 text-white"
                             value={o.status}
                             onChange={(e) =>
                               updateStatus(o._id, e.target.value)
@@ -191,7 +205,7 @@ export default function AdminOrdersPage() {
                     </tr>
 
                     {selectedOrderId === o._id && (
-                      <tr className="border-b border-[#1F2937]">
+                      <tr className="border-b border-white/10">
                         <td colSpan={5} className="p-4">
                           <div className="space-y-3">
                             <div>
@@ -229,12 +243,12 @@ export default function AdminOrdersPage() {
                                 placeholder="Type a note..."
                                 value={noteText}
                                 onChange={(e) => setNoteText(e.target.value)}
-                                className="w-full p-2 border border-[#1F2937] rounded bg-[#020617] text-white text-sm"
+                                className="u-textarea text-sm"
                                 rows={2}
                               />
                               <button
                                 onClick={() => addNote(o._id)}
-                                className="mt-2 px-3 py-1 bg-green-600 rounded text-xs"
+                                className="mt-2 btn-primary px-3 py-1 text-xs"
                               >
                                 Add Note
                               </button>

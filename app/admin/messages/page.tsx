@@ -67,7 +67,10 @@ export default function AdminInboxPage() {
         ) : (
           <div className="divide-y divide-white/10">
             {items.map((it) => (
-              <div key={it.orderId} className="py-4 flex gap-4 items-start">
+              <div
+                key={it.orderId}
+                className="py-4 flex gap-4 items-start hover:bg-white/[0.03] -mx-6 px-6 transition"
+              >
                 <div className="flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-semibold text-white">{it.userEmail}</p>
@@ -82,9 +85,11 @@ export default function AdminInboxPage() {
                   <p className="text-sm text-[#9CA3AF] mt-1">
                     {it.serviceTitle}
                   </p>
-                  <p className="text-sm text-slate-200 mt-2 line-clamp-2">
-                    {it.lastMessage}
-                  </p>
+                  <div className="mt-3 inline-flex max-w-[46rem] rounded-2xl border border-white/10 bg-white/5 px-4 py-2">
+                    <p className="text-sm text-slate-200 line-clamp-2">
+                      {it.lastMessage}
+                    </p>
+                  </div>
                   <p className="text-xs text-[#9CA3AF] mt-2">
                     {new Date(it.lastAt).toLocaleString()}
                   </p>

@@ -37,6 +37,10 @@ export default function PaymentPage() {
     (status === "payment_pending" || status === "rejected") && !isExpired;
   const isSubmitted = status === "payment_submitted";
 
+  const step = isSubmitted ? 3 : 2;
+  const hasMethod = Boolean(selectedMethodId);
+  const hasProof = Boolean(file);
+
   const submitProof = async () => {
     if (!canSubmit) return;
     if (!selectedMethodId) return alert("Please select a payment method");
@@ -79,16 +83,69 @@ export default function PaymentPage() {
   if (!order) return <p className="p-6">Loading…</p>;
 
   return (
-    <div className="max-w-xl mx-auto px-6 py-10 space-y-6">
+    <div className="u-container max-w-3xl space-y-6">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold">Complete Payment</h1>
+        <h1 className="text-3xl font-bold">Payment</h1>
         <button
           type="button"
           onClick={() => router.push("/orders")}
-          className="text-sm text-blue-600 hover:underline"
+          className="text-sm text-[#9CA3AF] hover:text-white transition"
         >
           View orders
         </button>
+      </div>
+
+      {/* Wizard */}
+      <div className="card">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          {[1, 2, 3].map((n) => {
+            const done = (isSubmitted && n <= 3) || (!isSubmitted && n < step);
+            const active = n === step;
+            return (
+              <div key={n} className="flex items-center gap-3">
+                <div
+                  className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold border ${
+                    done
+                      ? "bg-emerald-500/15 border-emerald-500/25 text-emerald-200"
+                      : active
+                      ? "bg-blue-500/15 border-blue-500/25 text-blue-200"
+                      : "bg-white/5 border-white/10 text-[#9CA3AF]"
+                  }`}
+                >
+                  {n}
+                </div>
+                <div className="text-sm">
+                  <p className="text-white font-medium">
+                    {n === 1
+                      ? "Select method"
+                      : n === 2
+                      ? "Upload proof"
+                      : "Submitted"}
+                  </p>
+                  <p className="text-xs text-[#9CA3AF]">
+                    {n === 1
+                      ? "Choose where you paid"
+                      : n === 2
+                      ? "Attach receipt/screenshot"
+                      : "Await verification"}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-4 h-px bg-white/10" />
+
+        <div className="mt-4 flex items-center justify-between text-sm">
+          <p className="text-slate-300">
+            <span className="text-[#9CA3AF]">Service:</span>{" "}
+            {order.serviceId?.title}
+          </p>
+          <p className="text-emerald-300 font-semibold">
+            ${order.serviceId?.price}
+          </p>
+        </div>
       </div>
 
       {isExpired && (
@@ -141,10 +198,10 @@ export default function PaymentPage() {
         {methods.map((m) => (
           <div
             key={m._id}
-            className={`border rounded p-3 cursor-pointer transition ${
+            className={`rounded-xl border p-4 cursor-pointer transition ${
               selectedMethodId === m._id
-                ? "border-blue-500 bg-blue-50/20"
-                : "hover:border-slate-300"
+                ? "border-blue-500/40 bg-blue-500/10"
+                : "border-white/10 hover:border-white/20 bg-white/5"
             }`}
             onClick={() => {
               if (canSubmit) setSelectedMethodId(m._id);
@@ -158,9 +215,9 @@ export default function PaymentPage() {
             aria-disabled={!canSubmit}
           >
             <p className="font-semibold">{m.name}</p>
-            <p className="text-sm">{m.details}</p>
+            <p className="text-sm text-slate-200 mt-1">{m.details}</p>
             {m.instructions && (
-              <p className="text-xs text-slate-500 mt-1">{m.instructions}</p>
+              <p className="text-xs text-[#9CA3AF] mt-2">{m.instructions}</p>
             )}
           </div>
         ))}
@@ -169,7 +226,7 @@ export default function PaymentPage() {
       <div>
         <label className="block mb-2 font-medium">Reference (optional)</label>
         <input
-          className="w-full border rounded p-2"
+          className="u-input"
           placeholder="Transaction ID / note you used"
           value={reference}
           onChange={(e) => setReference(e.target.value)}
@@ -179,22 +236,40 @@ export default function PaymentPage() {
 
       <div>
         <label className="block mb-2 font-medium">Upload Payment Proof</label>
-        <input
-          type="file"
-          disabled={!canSubmit}
-          onChange={(e) => setFile(e.target.files?.[0] || null)}
-        />
+        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+          <input
+            type="file"
+            disabled={!canSubmit}
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
+            className="text-sm text-slate-200"
+          />
+          <p className="mt-2 text-xs text-[#9CA3AF]">
+            Tip: include amount + receiver details in the screenshot.
+          </p>
+        </div>
       </div>
 
       <button
         onClick={submitProof}
         disabled={loading || !canSubmit}
-        className="bg-blue-600 text-white px-4 py-2 rounded"
+        className="btn-primary disabled:opacity-50 w-full"
       >
-        {status === "rejected" ? "Resubmit proof" : "Submit proof"}
+        {isSubmitted
+          ? "Submitted"
+          : status === "rejected"
+          ? "Resubmit proof"
+          : "Submit proof"}
       </button>
 
-      <p className="text-xs text-slate-500">
+      {!isSubmitted && canSubmit && (
+        <p className="text-xs text-[#9CA3AF]">
+          Status: {hasMethod ? "method selected" : "select a method"}
+          {" · "}
+          {hasProof ? "proof attached" : "attach proof"}
+        </p>
+      )}
+
+      <p className="text-xs text-[#9CA3AF]">
         Payments are verified manually. Fake or reused proofs will result in
         rejection.
       </p>

@@ -34,7 +34,7 @@ export default function RootLayout({
             <ToastViewport />
             <div className="flex min-h-[calc(100vh-56px)] relative">
               <Sidebar />
-              <main className="flex-1 relative z-10">{children}</main>
+              <main className="flex-1 relative z-10 u-page">{children}</main>
             </div>
           </SidebarProvider>
         </ToastProvider>

@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useSidebar } from "@/components/SidebarContext";
 
 export default function Navbar() {
   const { ready, user, isAuthenticated, logout } = useAuth();
   const { toggle } = useSidebar();
+  const pathname = usePathname();
 
   if (!ready) {
     return (
@@ -17,7 +19,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="relative z-[9999] pointer-events-auto flex justify-between items-center px-4 md:px-6 py-4 border-b border-white/10">
+    <nav className="relative z-[9999] pointer-events-auto h-14 flex justify-between items-center px-4 md:px-6 border-b border-white/10 bg-black/10 backdrop-blur">
       <div className="flex items-center gap-3 min-w-0">
         {isAuthenticated && (
           <button
@@ -34,57 +36,39 @@ export default function Navbar() {
           UREMO
         </Link>
       </div>
-      <div className="flex gap-3 md:gap-4 items-center flex-wrap justify-end">
-        {!isAuthenticated && (
+      <div className="flex gap-2 md:gap-3 items-center justify-end">
+        {!isAuthenticated && pathname === "/" && (
           <>
-            <Link href="/login" className="hover:text-white/80 transition">
-              Login
+            <Link href="/signup" className="btn-primary">
+              Get Started
             </Link>
-            <Link href="/signup" className="hover:text-white/80 transition">
-              Sign Up
-            </Link>
-            <Link
-              href="/buy-service"
-              className="hover:text-white/80 transition"
-            >
-              Services
+            <Link href="/buy-service" className="btn-secondary">
+              Browse Services
             </Link>
           </>
         )}
 
+        {!isAuthenticated && pathname !== "/" && (
+          <div className="flex items-center gap-3 text-sm text-slate-200">
+            <Link href="/signup" className="hover:text-white/90 transition">
+              Sign up
+            </Link>
+            <Link href="/login" className="hover:text-white/90 transition">
+              Login
+            </Link>
+          </div>
+        )}
+
         {isAuthenticated && (
           <>
-            <Link href="/dashboard" className="hover:text-white/80 transition">
-              Dashboard
-            </Link>
-            <Link
-              href="/buy-service"
-              className="hover:text-white/80 transition"
-            >
-              Services
-            </Link>
-            <Link href="/orders" className="hover:text-white/80 transition">
-              My Orders
-            </Link>
-            <Link
-              href="/apply-to-work"
-              className="hover:text-white/80 transition"
-            >
-              Apply to Work
-            </Link>
-
             {user?.role === "admin" && (
-              <Link
-                href="/admin"
-                className="text-blue-400 hover:text-blue-300 transition font-medium"
-              >
+              <Link href="/admin" className="btn-secondary">
                 Admin Panel
               </Link>
             )}
-
             <button
               onClick={logout}
-              className="text-red-400 hover:text-red-300 transition"
+              className="btn-secondary border-red-500/30 text-red-200 hover:border-red-500/50"
             >
               Logout
             </button>

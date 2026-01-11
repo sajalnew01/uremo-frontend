@@ -1,23 +1,41 @@
 @import "tailwindcss";
 
 :root {
-  --bg-from: #05070F;
-  --bg-to: #070B18;
-  --card-bg: rgba(255, 255, 255, 0.05);
-  --card-border: rgba(255, 255, 255, 0.1);
-  --card-border-hover: rgba(255, 255, 255, 0.2);
-  --text-primary: #FFFFFF;
-  --text-muted: #9CA3AF;
-  --accent-blue: #4F8CFF;
-  --accent-blue-hover: #3D7AE6;
+  /* FIX PACK 02: Global tokens */
+  --bg: #05070f;
+  --bg2: #060a16;
+  --bg3: #070d1d;
+
+  --card: rgba(255, 255, 255, 0.055);
+  --card-2: rgba(255, 255, 255, 0.035);
+  --border: rgba(255, 255, 255, 0.12);
+  --border-hover: rgba(255, 255, 255, 0.22);
+
+  --text: #ffffff;
+  --muted: #9ca3af;
+
+  --primary: #4f8cff;
+  --primary-hover: #3d7ae6;
+  --danger: #ef4444;
+
+  --radius-lg: 1rem;
+  --radius-md: 0.8rem;
+
+  --container: 76rem; /* ~1216px */
+  --px: 1.25rem;
+  --py: 1.5rem;
 }
 
 body {
-  background: linear-gradient(180deg, var(--bg-from) 0%, var(--bg-to) 100%);
+  background:
+    radial-gradient(1200px 800px at 20% -10%, rgba(79, 140, 255, 0.16), transparent 60%),
+    radial-gradient(900px 700px at 95% 10%, rgba(34, 197, 94, 0.10), transparent 55%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg2) 45%, var(--bg3) 100%);
   background-attachment: fixed;
-  color: var(--text-primary);
+  color: var(--text);
   font-family: var(--font-sans), system-ui, sans-serif;
   min-height: 100vh;
+  letter-spacing: -0.01em;
 }
 
 h1 {
@@ -34,44 +52,129 @@ p {
   line-height: 1.6;
 }
 
+/* Layout utilities */
+.u-container {
+  max-width: var(--container);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--px);
+  padding-right: var(--px);
+  padding-top: var(--py);
+  padding-bottom: var(--py);
+}
+
+/* Subtle premium motion */
+@keyframes u-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes u-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.u-page {
+  animation: u-fade-up 240ms ease-out both;
+}
+
+.u-modal {
+  animation: u-slide-up 220ms ease-out both;
+}
+
 .card {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 1rem;
+  background: linear-gradient(180deg, var(--card) 0%, var(--card-2) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   padding: 1.5rem;
-  transition: all 0.2s ease;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .card:hover {
-  border-color: var(--card-border-hover);
+  border-color: var(--border-hover);
   transform: translateY(-2px);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
+}
+
+.muted {
+  color: var(--muted);
 }
 
 .btn-primary {
-  background: var(--accent-blue);
+  background: var(--primary);
   color: white;
   padding: 0.75rem 1.5rem;
   border-radius: 0.75rem;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: transform 120ms ease, background 160ms ease, box-shadow 160ms ease;
 }
 
 .btn-primary:hover {
-  background: var(--accent-blue-hover);
-  box-shadow: 0 0 20px rgba(79, 140, 255, 0.4);
+  background: var(--primary-hover);
+  box-shadow: 0 0 28px rgba(79, 140, 255, 0.26);
+}
+
+.btn-primary:active {
+  transform: translateY(1px) scale(0.99);
 }
 
 .btn-secondary {
   background: transparent;
-  border: 1px solid var(--card-border);
-  color: var(--text-primary);
+  border: 1px solid var(--border);
+  color: var(--text);
   padding: 0.75rem 1.5rem;
   border-radius: 0.75rem;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: transform 120ms ease, border-color 160ms ease, background 160ms ease;
 }
 
 .btn-secondary:hover {
-  border-color: var(--card-border-hover);
-  background: var(--card-bg);
+  border-color: var(--border-hover);
+  background: var(--card);
+}
+
+.btn-secondary:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+.u-input,
+.u-textarea,
+.u-select {
+  width: 100%;
+  background: rgba(2, 6, 23, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  color: var(--text);
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.u-input:focus,
+.u-textarea:focus,
+.u-select:focus {
+  border-color: rgba(79, 140, 255, 0.45);
+  box-shadow: 0 0 0 4px rgba(79, 140, 255, 0.12);
+}
+
+.u-pill {
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  font-size: 12px;
 }

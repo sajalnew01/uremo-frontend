@@ -30,10 +30,10 @@ export default function Dashboard() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="max-w-6xl mx-auto px-4 sm:px-6 py-10"
+      className="u-container"
     >
-      <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-      <p className="text-slate-400 mb-8">
+      <h1 className="text-4xl font-bold mb-2">Dashboard</h1>
+      <p className="text-slate-300 mb-8">
         Human-assisted onboarding, verification & manual operations.
       </p>
 
@@ -44,12 +44,13 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: i * 0.1 }}
-              whileHover={{ y: -4, scale: 1.02 }}
+              whileHover={{ y: -4, scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
               className="card cursor-pointer pointer-events-auto"
             >
               <div className="text-4xl mb-3">{card.icon}</div>
               <h3 className="font-semibold text-lg mb-2">{card.title}</h3>
-              <p className="text-sm text-slate-400">{card.desc}</p>
+              <p className="text-sm text-slate-300">{card.desc}</p>
             </motion.div>
           </Link>
         ))}

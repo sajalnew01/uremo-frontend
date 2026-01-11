@@ -12,31 +12,67 @@ export default function BuyServicePage() {
   }, []);
 
   return (
-    <div className="px-6 py-10">
-      <h1 className="text-2xl font-bold mb-2">Available Services</h1>
-      <p className="text-slate-500 mb-6">
+    <div className="u-container">
+      <h1 className="text-3xl font-bold mb-2">Available Services</h1>
+      <p className="text-slate-400 mb-8">
         All services below are manually reviewed and fulfilled by the UREMO
         team.
       </p>
 
       {services.length === 0 ? (
-        <p className="opacity-60">No services available.</p>
+        <p className="opacity-70 text-slate-300">No services available.</p>
       ) : (
         <div className="grid md:grid-cols-2 gap-6">
           {services.map((s: any) => (
-            <div key={s._id} className="card">
-              <h3 className="text-xl font-semibold">{s.title}</h3>
-              <p className="text-sm text-slate-400 mt-2">
-                {s.shortDescription}
-              </p>
+            <Link key={s._id} href={`/services/${s._id}`} className="block">
+              <div className="card cursor-pointer">
+                {Array.isArray(s.images) && s.images[0] && (
+                  <div className="mb-4 overflow-hidden rounded-xl border border-white/10">
+                    <img
+                      src={s.images[0]}
+                      alt={s.title}
+                      className="h-44 w-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                )}
 
-              <div className="flex justify-between items-center mt-6">
-                <span className="font-bold text-lg">${s.price}</span>
-                <Link href={`/services/${s._id}`} className="btn-primary">
-                  View Service
-                </Link>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <h3 className="text-xl font-semibold text-white truncate">
+                      {s.title}
+                    </h3>
+                    <div className="mt-2 flex items-center gap-2 flex-wrap">
+                      {s.category && (
+                        <span className="u-pill text-slate-200">
+                          {s.category}
+                        </span>
+                      )}
+                      {s.deliveryType && (
+                        <span className="u-pill text-slate-200">
+                          {String(s.deliveryType).replace(/_/g, " ")}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <p className="text-2xl font-bold text-emerald-300">
+                      ${s.price}
+                    </p>
+                    <p className="text-xs text-[#9CA3AF]">USD</p>
+                  </div>
+                </div>
+
+                <p className="text-sm text-slate-300 mt-4 line-clamp-3">
+                  {s.shortDescription || s.description}
+                </p>
+
+                <div className="mt-6 flex justify-end">
+                  <span className="btn-primary">View service</span>
+                </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}

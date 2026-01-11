@@ -35,29 +35,86 @@ export default function LandingPage() {
         transition={{ duration: 0.6 }}
         className="max-w-6xl mx-auto px-4 sm:px-6 py-20 md:py-32 text-center"
       >
-        <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent">
-          Manual. Secure. Verified.
+        <h1 className="text-5xl md:text-7xl font-bold mb-5 bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent">
+          Manual operations,
+          <span className="block">done professionally.</span>
         </h1>
-        <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto mb-10">
-          Human-assisted onboarding, verification, and manual operations for
-          platforms that require real expertise.
+        <p className="text-base md:text-xl text-slate-300 max-w-2xl mx-auto mb-10">
+          UREMO is a human-assisted operations desk for onboarding,
+          verification, and account support—built for speed, accuracy, and
+          trust.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <Link href="/signup">
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
               className="btn-primary w-full sm:w-auto"
             >
               Get Started
             </motion.button>
           </Link>
           <Link href="/buy-service">
-            <button className="btn-secondary w-full sm:w-auto">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="btn-secondary w-full sm:w-auto"
+            >
               Browse Services
-            </button>
+            </motion.button>
           </Link>
+        </div>
+
+        <div className="mt-12 grid gap-4 sm:grid-cols-3 text-left">
+          {[
+            {
+              title: "Manual verification",
+              desc: "Real operators review submissions—no low-quality automation.",
+            },
+            {
+              title: "Secure payments",
+              desc: "Proof-based payments with verification and clear status tracking.",
+            },
+            {
+              title: "Operations desk",
+              desc: "Order-linked messaging and timelines for fast resolution.",
+            },
+          ].map((f) => (
+            <div key={f.title} className="card">
+              <h3 className="font-semibold text-lg">{f.title}</h3>
+              <p className="text-sm text-slate-400 mt-2">{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </motion.section>
+
+      {/* Supported services band */}
+      <motion.section
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        transition={{ duration: 0.6 }}
+        viewport={{ once: true }}
+        className="max-w-6xl mx-auto px-4 sm:px-6 pb-10"
+      >
+        <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-6">
+          <p className="text-xs tracking-widest text-[#9CA3AF]">
+            SUPPORTED SERVICES
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2 justify-center">
+            {[
+              "Outlier onboarding",
+              "Handshake",
+              "Airtm",
+              "Binance",
+              "Crypto accounts",
+              "KYC assistance",
+            ].map((tag) => (
+              <span key={tag} className="u-pill text-slate-200">
+                {tag}
+              </span>
+            ))}
+          </div>
         </div>
       </motion.section>
 
@@ -103,6 +160,31 @@ export default function LandingPage() {
               <p className="text-sm text-slate-400">{item.desc}</p>
             </motion.div>
           ))}
+        </div>
+      </motion.section>
+
+      {/* CTA */}
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        viewport={{ once: true }}
+        className="max-w-6xl mx-auto px-4 sm:px-6 py-16"
+      >
+        <div className="card text-center">
+          <h2 className="text-2xl md:text-3xl font-bold">Ready to start?</h2>
+          <p className="text-slate-300 mt-3 max-w-2xl mx-auto">
+            Create an account, reserve a service, and complete payment to begin
+            manual verification.
+          </p>
+          <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+            <Link href="/signup" className="btn-primary">
+              Sign up
+            </Link>
+            <Link href="/buy-service" className="btn-secondary">
+              Browse services
+            </Link>
+          </div>
         </div>
       </motion.section>
 
