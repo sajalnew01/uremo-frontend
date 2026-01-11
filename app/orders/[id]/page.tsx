@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 
@@ -11,12 +11,20 @@ interface Order {
     title: string;
     price: number;
   };
-  timeline: Array<{
-    message: string;
-    by: "system" | "admin";
-    createdAt: string;
+  createdAt?: string;
+  expiresAt?: string | null;
+  statusLog?: Array<{
+    text: string;
+    at: string;
   }>;
 }
+
+type OrderMessage = {
+  _id: string;
+  senderRole: "user" | "admin";
+  message: string;
+  createdAt: string;
+};
 
 export default function OrderDetailsPage({
   params,
@@ -26,6 +34,10 @@ export default function OrderDetailsPage({
   const router = useRouter();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [messages, setMessages] = useState<OrderMessage[]>([]);
+  const [messageText, setMessageText] = useState<string>("");
+  const [sending, setSending] = useState(false);
+  const endRef = useRef<HTMLDivElement | null>(null);
 
   const loadOrder = async () => {
     try {
@@ -44,9 +56,55 @@ export default function OrderDetailsPage({
     }
   };
 
+  const loadMessages = async () => {
+    try {
+      const data = await apiRequest(
+        `/api/orders/${params.id}/messages`,
+        "GET",
+        null,
+        true
+      );
+      setMessages(Array.isArray(data) ? data : []);
+    } catch {
+      // Non-blocking
+    }
+  };
+
   useEffect(() => {
     loadOrder();
+    loadMessages();
   }, [params.id]);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
+
+  const isPendingPayment = order?.status === "payment_pending";
+  const expiresText = useMemo(() => {
+    if (!isPendingPayment || !order?.expiresAt) return null;
+    const expiresAt = new Date(order.expiresAt);
+    return `Expires: ${expiresAt.toLocaleString()}`;
+  }, [isPendingPayment, order?.expiresAt]);
+
+  const sendMessage = async () => {
+    const text = messageText.trim();
+    if (!text) return;
+    setSending(true);
+    try {
+      await apiRequest(
+        `/api/orders/${params.id}/messages`,
+        "POST",
+        { message: text },
+        true
+      );
+      setMessageText("");
+      await loadMessages();
+    } catch (err: any) {
+      alert(err?.message || "Failed to send message");
+    } finally {
+      setSending(false);
+    }
+  };
 
   if (loading) {
     return <div className="p-6">Loading order...</div>;
@@ -57,7 +115,7 @@ export default function OrderDetailsPage({
   }
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6 max-w-3xl">
       <div>
         <button
           onClick={() => router.push("/orders")}
@@ -93,36 +151,115 @@ export default function OrderDetailsPage({
             <span className="inline-block px-3 py-1 rounded bg-[#1F2937] text-sm">
               {order.status.replace(/_/g, " ")}
             </span>
+            {expiresText && (
+              <p className="text-xs text-[#9CA3AF] mt-2">{expiresText}</p>
+            )}
           </div>
+
+          {isPendingPayment && (
+            <div>
+              <button
+                onClick={() => router.push(`/payment/${order._id}`)}
+                className="inline-flex items-center justify-center px-4 py-2 rounded bg-[#3B82F6] text-white text-sm hover:bg-blue-500 transition"
+              >
+                Complete payment
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Timeline */}
       <div className="border border-[#1F2937] rounded-lg p-6 bg-[#0F172A]">
-        <h3 className="font-semibold text-lg mb-4">Order Timeline</h3>
+        <h3 className="font-semibold text-lg mb-4">Timeline</h3>
 
         <div className="space-y-3">
-          {order.timeline && order.timeline.length > 0 ? (
-            order.timeline.map((entry, idx) => (
+          {order.statusLog && order.statusLog.length > 0 ? (
+            order.statusLog.map((entry, idx) => (
               <div
                 key={idx}
                 className="text-sm border-l-2 border-[#1F2937] pl-3 pb-3"
               >
                 <div className="flex justify-between items-start">
                   <p className="text-[#9CA3AF]">
-                    {new Date(entry.createdAt).toLocaleString()}
+                    {new Date(entry.at).toLocaleString()}
                   </p>
-                  <span className="text-xs px-2 py-1 rounded bg-[#111827]">
-                    {entry.by === "admin" ? "🔒 Admin" : "⚙️ System"}
-                  </span>
                 </div>
-                <p className="mt-1 text-[#E5E7EB]">{entry.message}</p>
+                <p className="mt-1 text-[#E5E7EB]">{entry.text}</p>
               </div>
             ))
           ) : (
             <p className="text-[#9CA3AF] text-sm">No timeline events yet.</p>
           )}
         </div>
+      </div>
+
+      {/* Chat */}
+      <div className="border border-[#1F2937] rounded-lg p-6 bg-[#0F172A]">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-lg">Order Chat</h3>
+          <button
+            type="button"
+            onClick={loadMessages}
+            className="text-xs text-[#9CA3AF] hover:text-white transition"
+          >
+            Refresh
+          </button>
+        </div>
+
+        <div className="mt-4 h-[360px] overflow-y-auto rounded-lg border border-[#1F2937] bg-[#020617] p-4 space-y-3">
+          {messages.length === 0 ? (
+            <p className="text-sm text-[#9CA3AF]">No messages yet.</p>
+          ) : (
+            messages.map((m) => (
+              <div
+                key={m._id}
+                className={`flex ${
+                  m.senderRole === "user" ? "justify-end" : "justify-start"
+                }`}
+              >
+                <div
+                  className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm border ${
+                    m.senderRole === "user"
+                      ? "bg-blue-600/20 border-blue-500/30 text-white"
+                      : "bg-white/5 border-white/10 text-slate-200"
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap">{m.message}</p>
+                  <p className="mt-1 text-[11px] text-[#9CA3AF]">
+                    {new Date(m.createdAt).toLocaleString()} — {m.senderRole}
+                  </p>
+                </div>
+              </div>
+            ))
+          )}
+          <div ref={endRef} />
+        </div>
+
+        <div className="mt-4 flex gap-2">
+          <input
+            className="flex-1 rounded-lg border border-[#1F2937] bg-[#020617] px-3 py-2 text-sm text-white placeholder:text-[#64748B]"
+            placeholder="Type a message..."
+            value={messageText}
+            onChange={(e) => setMessageText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") sendMessage();
+            }}
+            disabled={sending}
+          />
+          <button
+            type="button"
+            onClick={sendMessage}
+            disabled={sending || !messageText.trim()}
+            className="px-4 py-2 rounded-lg bg-[#3B82F6] text-white text-sm disabled:opacity-50"
+          >
+            {sending ? "Sending..." : "Send"}
+          </button>
+        </div>
+
+        <p className="mt-3 text-xs text-[#9CA3AF]">
+          Support replies from admin will appear here.
+        </p>
       </div>
     </div>
   );

@@ -73,6 +73,11 @@ export default function OrdersPage() {
 
       {o.status === "payment_pending" && (
         <div className="mt-4">
+          {o.expiresAt && (
+            <p className="text-xs text-slate-500 mb-2">
+              Expires: {new Date(o.expiresAt).toLocaleString()}
+            </p>
+          )}
           <button
             onClick={() => router.push(`/payment/${o._id}`)}
             className="text-blue-600 hover:underline text-sm"
@@ -81,6 +86,26 @@ export default function OrdersPage() {
           </button>
         </div>
       )}
+
+      {o.status === "rejected" && (
+        <div className="mt-4">
+          <button
+            onClick={() => router.push(`/payment/${o._id}`)}
+            className="text-blue-600 hover:underline text-sm"
+          >
+            Resubmit proof
+          </button>
+        </div>
+      )}
+
+      <div className="mt-4">
+        <button
+          onClick={() => router.push(`/orders/${o._id}`)}
+          className="text-slate-700 hover:underline text-sm"
+        >
+          View details
+        </button>
+      </div>
     </div>
   );
 
