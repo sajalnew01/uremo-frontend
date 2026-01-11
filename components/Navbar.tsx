@@ -37,50 +37,55 @@ export default function Navbar() {
       <div className="flex gap-3 md:gap-4 items-center flex-wrap justify-end">
         {!isAuthenticated && (
           <>
-            <Link href="/login">Login</Link>
-            <Link href="/signup">Sign Up</Link>
-            <Link href="/buy-service">Services</Link>
+            <Link href="/login" className="hover:text-white/80 transition">
+              Login
+            </Link>
+            <Link href="/signup" className="hover:text-white/80 transition">
+              Sign Up
+            </Link>
+            <Link
+              href="/buy-service"
+              className="hover:text-white/80 transition"
+            >
+              Services
+            </Link>
           </>
         )}
 
         {isAuthenticated && (
           <>
-            <Link href="/dashboard">Dashboard</Link>
-            <Link href="/buy-service">Buy Service</Link>
-            <Link href="/orders">My Orders</Link>
-            <Link href="/apply-to-work">Apply to Work</Link>
+            <Link href="/dashboard" className="hover:text-white/80 transition">
+              Dashboard
+            </Link>
+            <Link
+              href="/buy-service"
+              className="hover:text-white/80 transition"
+            >
+              Services
+            </Link>
+            <Link href="/orders" className="hover:text-white/80 transition">
+              My Orders
+            </Link>
+            <Link
+              href="/apply-to-work"
+              className="hover:text-white/80 transition"
+            >
+              Apply to Work
+            </Link>
 
             {user?.role === "admin" && (
-              <>
-                <Link href="/admin">Admin</Link>
-                <Link
-                  href="/admin/services"
-                  className="text-blue-400 hover:underline"
-                >
-                  Services
-                </Link>
-                <Link
-                  href="/admin/orders"
-                  className="text-blue-400 hover:underline"
-                >
-                  Orders
-                </Link>
-                <Link
-                  href="/admin/payments"
-                  className="text-blue-400 hover:underline"
-                >
-                  Payments
-                </Link>
-                <Link
-                  href="/admin/applications"
-                  className="text-blue-400 hover:underline"
-                >
-                  Applications
-                </Link>
-              </>
+              <Link
+                href="/admin"
+                className="text-blue-400 hover:text-blue-300 transition font-medium"
+              >
+                Admin Panel
+              </Link>
             )}
 
-            <button onClick={logout} className="text-red-400">
+            <button
+              onClick={logout}
+              className="text-red-400 hover:text-red-300 transition"
+            >
               Logout
             </button>
           </>

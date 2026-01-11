@@ -1,41 +1,59 @@
+"use client";
+
 import Link from "next/link";
+import { motion } from "framer-motion";
 
 export default function Dashboard() {
+  const cards = [
+    {
+      title: "Buy a Service",
+      desc: "Access manual onboarding & verification services.",
+      href: "/buy-service",
+      icon: "🛒",
+    },
+    {
+      title: "My Orders",
+      desc: "Track payment, verification & completion status.",
+      href: "/orders",
+      icon: "📦",
+    },
+    {
+      title: "Apply to Work",
+      desc: "Join UREMO as a manual operations specialist.",
+      href: "/apply-to-work",
+      icon: "💼",
+    },
+  ];
+
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="max-w-6xl mx-auto px-4 sm:px-6 py-10"
+    >
       <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
       <p className="text-slate-400 mb-8">
         Human-assisted onboarding, verification & manual operations.
       </p>
 
       <div className="grid md:grid-cols-3 gap-6">
-        <Link href="/buy-service" className="block">
-          <div className="card cursor-pointer hover:border-white/20 transition pointer-events-auto">
-            <h3 className="font-semibold text-lg">Buy a Service</h3>
-            <p className="text-sm text-slate-400 mt-2">
-              Access manual onboarding & verification services.
-            </p>
-          </div>
-        </Link>
-
-        <Link href="/orders" className="block">
-          <div className="card cursor-pointer hover:border-white/20 transition pointer-events-auto">
-            <h3 className="font-semibold text-lg">My Orders</h3>
-            <p className="text-sm text-slate-400 mt-2">
-              Track payment, verification & completion status.
-            </p>
-          </div>
-        </Link>
-
-        <Link href="/apply-to-work" className="block">
-          <div className="card cursor-pointer hover:border-white/20 transition pointer-events-auto">
-            <h3 className="font-semibold text-lg">Apply to Work</h3>
-            <p className="text-sm text-slate-400 mt-2">
-              Join UREMO as a manual operations specialist.
-            </p>
-          </div>
-        </Link>
+        {cards.map((card, i) => (
+          <Link key={card.href} href={card.href} className="block">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: i * 0.1 }}
+              whileHover={{ y: -4, scale: 1.02 }}
+              className="card cursor-pointer pointer-events-auto"
+            >
+              <div className="text-4xl mb-3">{card.icon}</div>
+              <h3 className="font-semibold text-lg mb-2">{card.title}</h3>
+              <p className="text-sm text-slate-400">{card.desc}</p>
+            </motion.div>
+          </Link>
+        ))}
       </div>
-    </div>
+    </motion.div>
   );
 }
