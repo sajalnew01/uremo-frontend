@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiRequest } from "@/lib/api";
-import { notifyAuthChanged } from "@/hooks/useAuth";
+import { apiRequest, setAuthSession } from "@/lib/api";
 
 export default function Signup() {
   const router = useRouter();
@@ -26,16 +25,10 @@ export default function Signup() {
         password,
       });
 
-      localStorage.setItem("token", res.token);
-      localStorage.setItem(
-        "user",
-        JSON.stringify(res.user || { role: "user", email })
-      );
-      const role = res?.user?.role || "user";
-      document.cookie = `role=${encodeURIComponent(role)}; Path=/; Max-Age=${
-        60 * 60 * 24 * 7
-      }; SameSite=Lax`;
-      notifyAuthChanged();
+      setAuthSession({
+        token: res.token,
+        user: res.user || { role: "user", email },
+      });
       router.push("/dashboard");
     } catch (err: any) {
       alert(err.message);

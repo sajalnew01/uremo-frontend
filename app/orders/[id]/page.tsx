@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiRequest } from "@/lib/api";
+import { ApiError, apiRequest } from "@/lib/api";
 
 interface Order {
   _id: string;
@@ -34,13 +34,30 @@ export default function OrderDetailsPage({
   const router = useRouter();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [messages, setMessages] = useState<OrderMessage[]>([]);
   const [messageText, setMessageText] = useState<string>("");
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
 
+  const isValidOrderId = useMemo(() => {
+    // Mongo ObjectId (most common in this project)
+    return /^[a-f\d]{24}$/i.test(params.id || "");
+  }, [params.id]);
+
   const loadOrder = async () => {
+    setLoadError(null);
+    setNotFound(false);
+
+    if (!isValidOrderId) {
+      setOrder(null);
+      setNotFound(true);
+      setLoading(false);
+      return;
+    }
+
     try {
       const data = await apiRequest(
         `/api/orders/${params.id}`,
@@ -50,8 +67,21 @@ export default function OrderDetailsPage({
       );
       setOrder(data);
     } catch (err) {
-      alert("Failed to load order");
-      router.push("/orders");
+      const apiErr = err as ApiError;
+      if (apiErr?.status === 401 || apiErr?.status === 403) {
+        router.replace(
+          `/login?next=${encodeURIComponent(`/orders/${params.id}`)}`
+        );
+        return;
+      }
+
+      if (apiErr?.status === 404) {
+        setOrder(null);
+        setNotFound(true);
+        return;
+      }
+
+      setLoadError(apiErr?.message || "Failed to load order");
     } finally {
       setLoading(false);
     }
@@ -66,8 +96,13 @@ export default function OrderDetailsPage({
         true
       );
       setMessages(Array.isArray(data) ? data : []);
-    } catch {
-      // Non-blocking
+    } catch (err) {
+      const apiErr = err as ApiError;
+      if (apiErr?.status === 401 || apiErr?.status === 403) {
+        router.replace(
+          `/login?next=${encodeURIComponent(`/orders/${params.id}`)}`
+        );
+      }
     }
   };
 
@@ -118,8 +153,61 @@ export default function OrderDetailsPage({
     return <div className="p-6">Loading order...</div>;
   }
 
+  if (notFound) {
+    return (
+      <div className="p-6 max-w-3xl space-y-3">
+        <h1 className="text-xl font-semibold">Order not found</h1>
+        <p className="text-sm text-[#9CA3AF]">
+          This order doesn’t exist, or you don’t have access.
+        </p>
+        <button
+          onClick={() => router.push("/orders")}
+          className="btn-secondary w-fit"
+        >
+          Back to Orders
+        </button>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="p-6 max-w-3xl space-y-3">
+        <h1 className="text-xl font-semibold">Couldn’t load order</h1>
+        <p className="text-sm text-[#9CA3AF]">{loadError}</p>
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => {
+              setLoading(true);
+              loadOrder();
+            }}
+            className="btn-primary w-fit"
+          >
+            Retry
+          </button>
+          <button
+            onClick={() => router.push("/orders")}
+            className="btn-secondary w-fit"
+          >
+            Back to Orders
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!order) {
-    return <div className="p-6">Order not found</div>;
+    return (
+      <div className="p-6 max-w-3xl space-y-3">
+        <h1 className="text-xl font-semibold">Order unavailable</h1>
+        <button
+          onClick={() => router.push("/orders")}
+          className="btn-secondary w-fit"
+        >
+          Back to Orders
+        </button>
+      </div>
+    );
   }
 
   return (

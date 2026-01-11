@@ -1,15 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { clearAuthSession, notifyAuthChanged } from "@/lib/api";
 
 type User = { email?: string; role?: string; name?: string } | null;
 
 const AUTH_CHANGED_EVENT = "auth-changed";
-
-export function notifyAuthChanged() {
-  if (typeof window === "undefined") return;
-  window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
-}
 
 export function useAuth() {
   const [token, setToken] = useState<string | null>(null);
@@ -65,10 +61,7 @@ export function useAuth() {
   }, [syncFromStorage]);
 
   const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    document.cookie = "role=; Path=/; Max-Age=0; SameSite=Lax";
-    notifyAuthChanged();
+    clearAuthSession();
     window.location.href = "/login";
   };
 

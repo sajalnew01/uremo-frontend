@@ -1,3 +1,42 @@
+export const AUTH_CHANGED_EVENT = "auth-changed";
+
+export class ApiError extends Error {
+  status: number;
+  payload?: unknown;
+
+  constructor(message: string, status: number, payload?: unknown) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.payload = payload;
+  }
+}
+
+export function notifyAuthChanged() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
+}
+
+export function setAuthSession(input: { token: string; user: unknown }) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem("token", input.token);
+  localStorage.setItem("user", JSON.stringify(input.user));
+
+  const role = (input.user as any)?.role || "user";
+  document.cookie = `role=${encodeURIComponent(role)}; Path=/; Max-Age=${
+    60 * 60 * 24 * 7
+  }; SameSite=Lax`;
+  notifyAuthChanged();
+}
+
+export function clearAuthSession() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  document.cookie = "role=; Path=/; Max-Age=0; SameSite=Lax";
+  notifyAuthChanged();
+}
+
 export async function apiRequest<T = any>(
   endpoint: string,
   method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
@@ -5,9 +44,16 @@ export async function apiRequest<T = any>(
   auth: boolean = false,
   isFormData: boolean = false
 ): Promise<T> {
+  const envBase = process.env.NEXT_PUBLIC_API_URL?.trim();
   const baseUrl = (
-    process.env.NEXT_PUBLIC_API_URL || "https://uremo-backend.onrender.com"
+    envBase || (process.env.NODE_ENV === "development" ? "http://localhost:5000" : "")
   ).replace(/\/+$/, "");
+
+  if (!baseUrl) {
+    throw new Error(
+      "NEXT_PUBLIC_API_URL is not set. Please configure it for this deployment."
+    );
+  }
 
   const headers: Record<string, string> = {};
 
@@ -17,15 +63,18 @@ export async function apiRequest<T = any>(
     headers["Content-Type"] = "application/json";
   }
 
-  if (auth) {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-    if (!token) {
-      throw new Error("Authentication required");
-    }
-
+  // Always attach Authorization header if token exists.
+  if (token) {
     headers.Authorization = `Bearer ${token}`;
+  }
+
+  if (auth) {
+    if (!token) {
+      throw new ApiError("Authentication required", 401);
+    }
   }
 
   const controller = new AbortController();
@@ -60,10 +109,7 @@ export async function apiRequest<T = any>(
 
   // If auth fails, clear potentially stale tokens to prevent repeated bad state.
   if (typeof window !== "undefined" && (res.status === 401 || res.status === 403)) {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    document.cookie = "role=; Path=/; Max-Age=0; SameSite=Lax";
-    window.dispatchEvent(new Event("auth-changed"));
+    clearAuthSession();
   }
 
   const contentType = res.headers.get("content-type") || "";
@@ -83,7 +129,7 @@ export async function apiRequest<T = any>(
       (isJson ? extractMessage(payload) : null) ||
       (typeof payload === "string" && payload.trim() ? payload : null) ||
       `Request failed (${res.status})`;
-    throw new Error(message);
+    throw new ApiError(message, res.status, payload);
   }
 
   return payload as T;

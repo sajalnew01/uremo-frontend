@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiRequest } from "@/lib/api";
-import { notifyAuthChanged } from "@/hooks/useAuth";
+import { apiRequest, setAuthSession } from "@/lib/api";
 
 export default function Login() {
   const router = useRouter();
@@ -32,14 +31,7 @@ export default function Login() {
         password,
       });
 
-      localStorage.setItem("token", res.token);
-      localStorage.setItem("user", JSON.stringify(res.user));
-      // Keep server-side /admin guard in sync.
-      const role = res?.user?.role || "user";
-      document.cookie = `role=${encodeURIComponent(role)}; Path=/; Max-Age=${
-        60 * 60 * 24 * 7
-      }; SameSite=Lax`;
-      notifyAuthChanged();
+      setAuthSession({ token: res.token, user: res.user });
       router.push("/dashboard");
     } catch (err: any) {
       alert(err.message);
