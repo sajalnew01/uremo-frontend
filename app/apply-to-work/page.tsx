@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
+import { useToast } from "@/hooks/useToast";
 
 interface Application {
   _id: string;
@@ -10,6 +11,7 @@ interface Application {
 }
 
 export default function ApplyToWorkPage() {
+  const { toast } = useToast();
   const [category, setCategory] = useState("");
   const [message, setMessage] = useState("");
   const [resume, setResume] = useState<File | null>(null);
@@ -32,12 +34,12 @@ export default function ApplyToWorkPage() {
 
   const submit = async () => {
     if (!category) {
-      alert("Please select a category");
+      toast("Please select a category", "error");
       return;
     }
 
     if (!resume) {
-      alert("Resume upload is required");
+      toast("Resume upload is required", "error");
       return;
     }
 
@@ -50,10 +52,10 @@ export default function ApplyToWorkPage() {
       setLoading(true);
       await apiRequest("/api/apply-work", "POST", formData, true, true);
 
-      alert("Application submitted successfully");
+      toast("Application submitted successfully", "success");
       window.location.href = "/dashboard";
     } catch (err: any) {
-      alert(err.message || "Submission failed");
+      toast(err.message || "Submission failed", "error");
     } finally {
       setLoading(false);
     }

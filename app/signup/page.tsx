@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiRequest, setAuthSession } from "@/lib/api";
+import { useToast } from "@/hooks/useToast";
 
 export default function Signup() {
   const router = useRouter();
+  const { toast } = useToast();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -13,7 +15,7 @@ export default function Signup() {
 
   const submit = async () => {
     if (!name || !email || !password) {
-      alert("Name, email and password required");
+      toast("Name, email and password required", "error");
       return;
     }
 
@@ -31,7 +33,7 @@ export default function Signup() {
       });
       router.push("/dashboard");
     } catch (err: any) {
-      alert(err.message);
+      toast(err.message || "Signup failed", "error");
     } finally {
       setLoading(false);
     }

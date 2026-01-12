@@ -15,8 +15,59 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "UREMO",
-  description: "Professional service marketplace",
+  title: "UREMO — Verified Digital Onboarding & Marketplace",
+  description:
+    "Buy trusted onboarding, KYC, and verification assistance services. Track orders with human verification and admin support. UREMO is your independent digital operations partner.",
+  keywords: [
+    "onboarding",
+    "verification",
+    "kyc",
+    "digital services",
+    "account setup",
+    "manual operations",
+    "marketplace",
+    "service provider",
+  ],
+  metadataBase: new URL("https://uremo.online"),
+  openGraph: {
+    title: "UREMO — Verified Digital Onboarding & Marketplace",
+    description:
+      "Buy trusted onboarding, KYC, and verification assistance services. Track orders with human verification and admin support.",
+    url: "https://uremo.online",
+    siteName: "UREMO",
+    locale: "en_US",
+    type: "website",
+    images: [
+      {
+        url: "/og.png",
+        width: 1200,
+        height: 630,
+        alt: "UREMO — Verified Digital Onboarding & Marketplace",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "UREMO — Verified Digital Onboarding & Marketplace",
+    description:
+      "Buy trusted onboarding, KYC, and verification assistance services. Track orders with human verification and admin support.",
+    images: ["/og.png"],
+  },
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-snippet": -1,
+      "max-image-preview": "large",
+      "max-video-preview": -1,
+    },
+  },
 };
 
 export default function RootLayout({

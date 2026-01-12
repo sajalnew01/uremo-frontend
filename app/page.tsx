@@ -402,20 +402,44 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-white/10 mt-20">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 text-center text-sm text-slate-400">
-          <p>© 2026 UREMO. Manual operations for platforms that matter.</p>
-          <p className="mt-2 text-xs text-[#9CA3AF]">
-            Independent service provider. UREMO is not affiliated with, endorsed
-            by, or sponsored by any third-party platforms referenced in service
-            listings.
-          </p>
-          <div className="flex justify-center gap-6 mt-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 space-y-6">
+          <div className="text-center space-y-4">
+            <p className="text-sm">
+              © 2026 UREMO. Manual operations for platforms that matter.
+            </p>
+
+            <div className="space-y-2 text-xs text-[#9CA3AF]">
+              <p>
+                UREMO is an independent service provider. We are not affiliated
+                with, endorsed by, or sponsored by any third-party platforms.
+              </p>
+              <p>
+                Verification outcomes depend on platform rules and policies.
+                UREMO does not store sensitive login credentials or personal
+                data openly.
+              </p>
+              <p>
+                Need support? Email us at{" "}
+                <span className="text-white font-medium">
+                  support@uremo.online
+                </span>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-center gap-6 flex-wrap text-sm">
             <Link href="/buy-service" className="hover:text-white transition">
               Services
             </Link>
             <Link href="/apply-to-work" className="hover:text-white transition">
               Work With Us
             </Link>
+            <a
+              href="mailto:support@uremo.online"
+              className="text-[#9CA3AF] hover:text-white transition"
+            >
+              Contact
+            </a>
           </div>
         </div>
       </footer>

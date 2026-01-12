@@ -43,8 +43,14 @@ export default function PaymentPage() {
 
   const submitProof = async () => {
     if (!canSubmit) return;
-    if (!selectedMethodId) return alert("Please select a payment method");
-    if (!file) return alert("Please upload payment proof");
+    if (!selectedMethodId) {
+      toast("Please select a payment method", "error");
+      return;
+    }
+    if (!file) {
+      toast("Please upload payment proof", "error");
+      return;
+    }
 
     const form = new FormData();
     form.append("file", file);
