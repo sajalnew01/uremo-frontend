@@ -23,6 +23,7 @@ export default function Sidebar() {
     { name: "Admin", href: "/admin" },
     { name: "Inbox", href: "/admin/messages" },
     { name: "Applications", href: "/admin/applications" },
+    { name: "Email Campaigns", href: "/admin/email" },
     { name: "Services", href: "/admin/services" },
     { name: "Orders", href: "/admin/orders" },
     { name: "Rejected Orders", href: "/admin/rejected-orders" },
