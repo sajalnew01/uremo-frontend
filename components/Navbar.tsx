@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useSidebar } from "@/hooks/useSidebar";
+import ProfileMenu from "@/components/ProfileMenu";
 
 export default function Navbar() {
   const { ready, user, isAuthenticated, logout } = useAuth();
@@ -36,9 +37,40 @@ export default function Navbar() {
           </div>
 
           <div className="w-1/3 flex justify-center min-w-0">
-            <Link href="/" className="text-lg md:text-xl font-bold truncate">
-              UREMO
-            </Link>
+            <div className="flex items-center gap-5 min-w-0">
+              <Link href="/" className="text-lg md:text-xl font-bold truncate">
+                UREMO
+              </Link>
+
+              {isAuthenticated && (
+                <div className="hidden md:flex items-center gap-3 text-sm text-slate-200">
+                  <Link
+                    href="/dashboard"
+                    className="hover:text-white/90 transition"
+                  >
+                    Dashboard
+                  </Link>
+                  <Link
+                    href="/buy-service"
+                    className="hover:text-white/90 transition"
+                  >
+                    Services
+                  </Link>
+                  <Link
+                    href="/orders"
+                    className="hover:text-white/90 transition"
+                  >
+                    My Orders
+                  </Link>
+                  <Link
+                    href="/apply-to-work"
+                    className="hover:text-white/90 transition"
+                  >
+                    Apply to Work
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="w-1/3 flex gap-2 md:gap-3 items-center justify-end">
@@ -64,14 +96,7 @@ export default function Navbar() {
               </div>
             )}
 
-            {isAuthenticated && (
-              <button
-                onClick={logout}
-                className="btn-secondary border-red-500/30 text-red-200 hover:border-red-500/50"
-              >
-                Logout
-              </button>
-            )}
+            {isAuthenticated && <ProfileMenu />}
           </div>
         </div>
       </div>
