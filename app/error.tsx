@@ -11,9 +11,11 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log error for monitoring
-    console.error("Global error:", error);
+    // Log the real error for monitoring / debugging
+    console.error(error);
   }, [error]);
+
+  const isDev = process.env.NODE_ENV !== "production";
 
   return (
     <div className="u-container max-w-2xl py-20">
@@ -27,9 +29,18 @@ export default function Error({
           page.
         </p>
 
-        {error?.message && (
+        {isDev && (error?.message || error?.digest) && (
           <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3">
-            <p className="text-xs text-[#9CA3AF] font-mono">{error.message}</p>
+            {error?.digest && (
+              <p className="text-xs text-[#9CA3AF] font-mono">
+                digest: {error.digest}
+              </p>
+            )}
+            {error?.message && (
+              <p className="text-xs text-[#9CA3AF] font-mono">
+                {error.message}
+              </p>
+            )}
           </div>
         )}
 

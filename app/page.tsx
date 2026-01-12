@@ -33,16 +33,9 @@ export default function LandingPage() {
     }
   }, [ready, isAuthenticated, router]);
 
-  // While checking auth or if authenticated (before redirect), show minimal loading
-  if (!ready || isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-slate-400">Loading...</div>
-      </div>
-    );
-  }
-
   useEffect(() => {
+    if (!ready || isAuthenticated) return;
+
     let mounted = true;
     setServicesLoading(true);
 
@@ -63,7 +56,7 @@ export default function LandingPage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [ready, isAuthenticated]);
 
   const popularServices = useMemo(() => {
     const list = Array.isArray(services) ? services : [];
@@ -73,6 +66,15 @@ export default function LandingPage() {
       .sort((a, b) => Number(Boolean(b.active)) - Number(Boolean(a.active)));
     return activeFirst.slice(0, 3);
   }, [services]);
+
+  // While checking auth or if authenticated (before redirect), show minimal loading
+  if (!ready || isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-slate-400">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
