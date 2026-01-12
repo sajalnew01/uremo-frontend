@@ -19,10 +19,12 @@ export default function Login() {
     }
 
     if (process.env.NODE_ENV !== "production") {
-      console.log("login submit", {
-        email,
-        passwordLength: password.length,
-        apiBase: process.env.NEXT_PUBLIC_API_URL || "(fallback: onrender)",
+      console.log("[LOGIN_PAYLOAD]", {
+        endpoint: "/api/auth/login",
+        email: String(email).trim().toLowerCase(),
+        hasPassword: Boolean(password),
+        passwordLength: String(password).length,
+        apiBase: process.env.NEXT_PUBLIC_API_URL || "(missing)",
       });
     }
 
