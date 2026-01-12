@@ -97,7 +97,7 @@ export default function AdminPaymentMethodsPage() {
       <Card title="Add Payment Method">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <select
-            className="p-2 border border-[#1F2937] bg-transparent rounded"
+            className="u-select"
             value={type}
             onChange={(e) => setType(e.target.value)}
           >
@@ -109,21 +109,21 @@ export default function AdminPaymentMethodsPage() {
 
           <input
             placeholder="Label (e.g., Main PayPal Account)"
-            className="p-2 border border-[#1F2937] bg-transparent rounded"
+            className="u-input placeholder:text-slate-400"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
           />
 
           <input
             placeholder="Value (email / ID / wallet address)"
-            className="p-2 border border-[#1F2937] bg-transparent rounded md:col-span-2"
+            className="u-input placeholder:text-slate-400 md:col-span-2"
             value={value}
             onChange={(e) => setValue(e.target.value)}
           />
 
           <textarea
             placeholder="Instructions (optional)"
-            className="p-2 border border-[#1F2937] bg-transparent rounded md:col-span-2"
+            className="u-textarea placeholder:text-slate-400 md:col-span-2"
             rows={2}
             value={instructions}
             onChange={(e) => setInstructions(e.target.value)}
@@ -133,7 +133,7 @@ export default function AdminPaymentMethodsPage() {
         <button
           onClick={createMethod}
           disabled={loading}
-          className="mt-4 px-4 py-2 bg-[#22C55E] text-black rounded disabled:opacity-50"
+          className="mt-4 btn-primary disabled:opacity-50"
         >
           {loading ? "Adding..." : "Add Payment Method"}
         </button>

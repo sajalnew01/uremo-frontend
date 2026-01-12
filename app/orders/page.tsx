@@ -3,18 +3,24 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
+import { useToast } from "@/hooks/useToast";
 
 export default function OrdersPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const loadOrders = async () => {
+    setError(null);
     try {
       const data = await apiRequest("/api/orders/my", "GET", null, true);
       setOrders(data);
-    } catch {
-      alert("Failed to load orders");
+    } catch (err: any) {
+      const msg = err?.message || "Failed to load orders";
+      setError(msg);
+      toast(msg, "error");
     } finally {
       setLoading(false);
     }
@@ -131,6 +137,22 @@ export default function OrdersPage() {
       </p>
 
       {loading && <p className="text-sm text-[#9CA3AF]">Loading orders…</p>}
+
+      {!loading && error && (
+        <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+          <p className="text-sm text-red-200">{error}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setLoading(true);
+              loadOrders();
+            }}
+            className="mt-3 btn-secondary px-3 py-2 text-sm"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       <div className="space-y-8">
         <section className="space-y-3">

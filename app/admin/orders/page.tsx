@@ -7,6 +7,7 @@ import { apiRequest } from "@/lib/api";
 interface Order {
   _id: string;
   status: string;
+  isRejectedArchive?: boolean;
   userId?: { email: string };
   serviceId?: { title: string };
   payment?: {
@@ -71,6 +72,20 @@ export default function AdminOrdersPage() {
   const updateStatus = async (id: string, status: string) => {
     await apiRequest(`/api/admin/orders/${id}`, "PUT", { status }, true);
     load();
+  };
+
+  const archiveRejected = async (id: string) => {
+    try {
+      await apiRequest(
+        `/api/admin/orders/${id}/archive-rejected`,
+        "PUT",
+        {},
+        true
+      );
+      setOrders((prev) => prev.filter((o) => o._id !== id));
+    } catch (err) {
+      alert("Failed to move order to rejected list");
+    }
   };
 
   useEffect(() => {
@@ -182,6 +197,16 @@ export default function AdminOrdersPage() {
                           >
                             {selectedOrderId === o._id ? "Hide" : "View"}
                           </button>
+
+                          {o.status === "rejected" && !o.isRejectedArchive && (
+                            <button
+                              type="button"
+                              onClick={() => archiveRejected(o._id)}
+                              className="px-3 py-1 text-xs rounded bg-red-600/20 border border-red-500/30 text-red-200 hover:bg-red-600/30"
+                            >
+                              Move to Rejected List
+                            </button>
+                          )}
 
                           <select
                             className="px-2 py-1 text-xs rounded bg-[#020617] border border-white/10 text-white"

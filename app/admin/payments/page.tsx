@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
 
 export default function AdminPaymentsPage() {
@@ -83,113 +84,135 @@ export default function AdminPaymentsPage() {
   }, []);
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-6">Admin - Payment Methods</h1>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Admin — Payment Methods</h1>
 
-      {/* Create Form */}
-      <div className="bg-white p-6 rounded-lg shadow mb-8">
-        <h2 className="text-xl font-semibold mb-4">Add Payment Method</h2>
+      <Card title="Add Payment Method">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <label className="block text-xs tracking-widest text-slate-300 mb-2">
+              Name
+            </label>
+            <input
+              type="text"
+              placeholder="PayPal, Binance, USDT…"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="u-input placeholder:text-slate-400"
+            />
+          </div>
 
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Name</label>
-          <input
-            type="text"
-            placeholder="PayPal, Binance, USDT..."
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full border rounded px-3 py-2"
-          />
-        </div>
+          <div>
+            <label className="block text-xs tracking-widest text-slate-300 mb-2">
+              Type
+            </label>
+            <select
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+              className="u-select"
+            >
+              <option value="paypal">PayPal</option>
+              <option value="crypto">Crypto</option>
+              <option value="binance">Binance</option>
+              <option value="bank">Bank</option>
+            </select>
+          </div>
 
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Type</label>
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-            className="w-full border rounded px-3 py-2"
-          >
-            <option value="paypal">PayPal</option>
-            <option value="crypto">Crypto</option>
-            <option value="binance">Binance</option>
-            <option value="bank">Bank</option>
-          </select>
-        </div>
+          <div>
+            <label className="block text-xs tracking-widest text-slate-300 mb-2">
+              Details
+            </label>
+            <input
+              type="text"
+              placeholder="Email / UID / Address…"
+              value={details}
+              onChange={(e) => setDetails(e.target.value)}
+              className="u-input placeholder:text-slate-400"
+            />
+          </div>
 
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Details</label>
-          <input
-            type="text"
-            placeholder="Email / UID / Address..."
-            value={details}
-            onChange={(e) => setDetails(e.target.value)}
-            className="w-full border rounded px-3 py-2"
-          />
-        </div>
-
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">
-            Instructions (optional)
-          </label>
-          <textarea
-            placeholder="Send payment to this address..."
-            value={instructions}
-            onChange={(e) => setInstructions(e.target.value)}
-            rows={3}
-            className="w-full border rounded px-3 py-2"
-          />
+          <div className="md:col-span-2">
+            <label className="block text-xs tracking-widest text-slate-300 mb-2">
+              Instructions (optional)
+            </label>
+            <textarea
+              placeholder="Send payment to this address…"
+              value={instructions}
+              onChange={(e) => setInstructions(e.target.value)}
+              rows={3}
+              className="u-textarea placeholder:text-slate-400"
+            />
+          </div>
         </div>
 
         <button
           onClick={createMethod}
           disabled={loading}
-          className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+          className="mt-4 btn-primary disabled:opacity-50"
         >
-          {loading ? "Creating..." : "Create Payment Method"}
+          {loading ? "Creating…" : "Create Payment Method"}
         </button>
-      </div>
+      </Card>
 
-      {/* List */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-semibold mb-4">Existing Methods</h2>
+      <Card title="Existing Methods">
         <div className="overflow-x-auto">
-          <table className="min-w-[720px] w-full border-collapse">
+          <table className="min-w-[820px] w-full text-sm">
             <thead>
-              <tr className="border-b">
-                <th className="text-left p-3">Name</th>
-                <th className="text-left p-3">Type</th>
-                <th className="text-left p-3">Details</th>
-                <th className="text-left p-3">Instructions</th>
-                <th className="text-left p-3">Active</th>
-                <th className="text-left p-3">Actions</th>
+              <tr className="text-left sticky top-0 bg-[#0B1220]/90 backdrop-blur border-b border-white/10">
+                <th className="p-3 text-xs tracking-widest text-slate-300">
+                  Name
+                </th>
+                <th className="p-3 text-xs tracking-widest text-slate-300">
+                  Type
+                </th>
+                <th className="p-3 text-xs tracking-widest text-slate-300">
+                  Details
+                </th>
+                <th className="p-3 text-xs tracking-widest text-slate-300">
+                  Instructions
+                </th>
+                <th className="p-3 text-xs tracking-widest text-slate-300">
+                  Active
+                </th>
+                <th className="p-3 text-xs tracking-widest text-slate-300">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
               {methods.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-3 text-gray-500">
+                  <td colSpan={6} className="p-3 text-[#9CA3AF]">
                     No records yet.
                   </td>
                 </tr>
               ) : (
-                methods.map((m) => (
-                  <tr key={m._id} className="border-b">
-                    <td className="p-3">{m.name}</td>
+                methods.map((m, idx) => (
+                  <tr
+                    key={m._id}
+                    className={`border-b border-white/10 hover:bg-white/5 transition ${
+                      idx % 2 === 0 ? "bg-white/[0.02]" : "bg-transparent"
+                    }`}
+                  >
+                    <td className="p-3 text-slate-200">{m.name}</td>
                     <td className="p-3">
-                      <span className="bg-gray-200 px-2 py-1 rounded text-xs">
+                      <span className="u-pill text-slate-200 capitalize">
                         {m.type}
                       </span>
                     </td>
-                    <td className="p-3 font-mono text-sm">{m.details}</td>
-                    <td className="p-3 text-sm text-gray-600">
-                      {m.instructions || "-"}
+                    <td className="p-3 font-mono text-xs text-slate-200 break-all">
+                      {m.details}
+                    </td>
+                    <td className="p-3 text-sm text-slate-300">
+                      {m.instructions || "—"}
                     </td>
                     <td className="p-3">
                       <button
                         onClick={() => toggleActive(m._id, m.active)}
-                        className={`px-3 py-1 rounded text-xs ${
+                        className={`px-3 py-1 rounded text-xs border ${
                           m.active
-                            ? "bg-green-100 text-green-700"
-                            : "bg-gray-200 text-gray-600"
+                            ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-200"
+                            : "bg-white/5 border-white/10 text-slate-300"
                         }`}
                       >
                         {m.active ? "Active" : "Inactive"}
@@ -198,7 +221,7 @@ export default function AdminPaymentsPage() {
                     <td className="p-3">
                       <button
                         onClick={() => deleteMethod(m._id)}
-                        className="text-red-600 hover:underline text-sm"
+                        className="text-red-200 hover:text-red-100 hover:underline text-sm"
                       >
                         Delete
                       </button>
@@ -209,7 +232,7 @@ export default function AdminPaymentsPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

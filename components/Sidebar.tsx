@@ -25,6 +25,7 @@ export default function Sidebar() {
     { name: "Applications", href: "/admin/applications" },
     { name: "Services", href: "/admin/services" },
     { name: "Orders", href: "/admin/orders" },
+    { name: "Rejected Orders", href: "/admin/rejected-orders" },
     { name: "Payments", href: "/admin/payments" },
   ];
 

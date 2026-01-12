@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError, apiRequest } from "@/lib/api";
+import { useToast } from "@/hooks/useToast";
 
 interface Order {
   _id: string;
@@ -32,6 +33,7 @@ export default function OrderDetailsPage({
   params: { id: string };
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -40,6 +42,7 @@ export default function OrderDetailsPage({
   const [messageText, setMessageText] = useState<string>("");
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [messageLoadError, setMessageLoadError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
 
   const isValidOrderId = useMemo(() => {
@@ -88,6 +91,7 @@ export default function OrderDetailsPage({
   };
 
   const loadMessages = async () => {
+    setMessageLoadError(null);
     try {
       const data = await apiRequest(
         `/api/orders/${params.id}/messages`,
@@ -95,14 +99,24 @@ export default function OrderDetailsPage({
         null,
         true
       );
-      setMessages(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? (data as OrderMessage[]) : [];
+      // Defensive sort (backend already sorts, but keep UI stable).
+      list.sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+      setMessages(list);
     } catch (err) {
       const apiErr = err as ApiError;
       if (apiErr?.status === 401 || apiErr?.status === 403) {
         router.replace(
           `/login?next=${encodeURIComponent(`/orders/${params.id}`)}`
         );
+        return;
       }
+
+      const msg = apiErr?.message || "Failed to load messages";
+      setMessageLoadError(msg);
     }
   };
 
@@ -110,6 +124,21 @@ export default function OrderDetailsPage({
     loadOrder();
     loadMessages();
   }, [params.id]);
+
+  // Poll for new messages (reliability: prevents "stuck" chat)
+  useEffect(() => {
+    if (!isValidOrderId) return;
+
+    const intervalMs = 7000;
+    const id = window.setInterval(() => {
+      // Avoid spamming while user is actively sending
+      if (!sending) {
+        loadMessages();
+      }
+    }, intervalMs);
+
+    return () => window.clearInterval(id);
+  }, [params.id, isValidOrderId, sending]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -144,6 +173,7 @@ export default function OrderDetailsPage({
     } catch (err: any) {
       const msg = err?.message || "Failed to send message";
       setSendError(msg);
+      toast(msg, "error");
     } finally {
       setSending(false);
     }
@@ -302,6 +332,10 @@ export default function OrderDetailsPage({
             Refresh
           </button>
         </div>
+
+        {messageLoadError && (
+          <p className="mt-2 text-xs text-red-400">{messageLoadError}</p>
+        )}
 
         <div className="mt-4 h-[360px] overflow-y-auto rounded-lg border border-[#1F2937] bg-[#020617] p-4 space-y-3">
           {messages.length === 0 ? (
