@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Dashboard() {
+  const { user, isAdmin } = useAuth();
+
   const cards = [
     {
       title: "Buy a Service",
@@ -23,7 +26,22 @@ export default function Dashboard() {
       href: "/apply-to-work",
       icon: "💼",
     },
+    {
+      title: "Support",
+      desc: "Get help through your order chat and updates.",
+      href: "/orders",
+      icon: "🛟",
+    },
   ];
+
+  if (isAdmin) {
+    cards.push({
+      title: "Admin Desk",
+      desc: "Manage orders, payments, services & reviews.",
+      href: "/admin",
+      icon: "🧰",
+    });
+  }
 
   return (
     <motion.div
@@ -37,7 +55,13 @@ export default function Dashboard() {
         Human-assisted onboarding, verification & manual operations.
       </p>
 
-      <div className="grid md:grid-cols-3 gap-6">
+      {user?.email && (
+        <p className="text-sm text-[#9CA3AF] mb-6">
+          Signed in as <span className="text-white">{user.email}</span>
+        </p>
+      )}
+
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {cards.map((card, i) => (
           <Link key={card.href} href={card.href} className="block">
             <motion.div

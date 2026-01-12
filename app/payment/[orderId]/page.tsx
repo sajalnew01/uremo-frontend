@@ -37,9 +37,9 @@ export default function PaymentPage() {
     (status === "payment_pending" || status === "rejected") && !isExpired;
   const isSubmitted = status === "payment_submitted";
 
-  const step = isSubmitted ? 3 : 2;
   const hasMethod = Boolean(selectedMethodId);
   const hasProof = Boolean(file);
+  const step = isSubmitted ? 3 : hasMethod ? 2 : 1;
 
   const submitProof = async () => {
     if (!canSubmit) return;
@@ -99,7 +99,7 @@ export default function PaymentPage() {
       <div className="card">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           {[1, 2, 3].map((n) => {
-            const done = (isSubmitted && n <= 3) || (!isSubmitted && n < step);
+            const done = n < step;
             const active = n === step;
             return (
               <div key={n} className="flex items-center gap-3">
@@ -120,14 +120,14 @@ export default function PaymentPage() {
                       ? "Select method"
                       : n === 2
                       ? "Upload proof"
-                      : "Submitted"}
+                      : "Await verification"}
                   </p>
                   <p className="text-xs text-[#9CA3AF]">
                     {n === 1
                       ? "Choose where you paid"
                       : n === 2
                       ? "Attach receipt/screenshot"
-                      : "Await verification"}
+                      : "We verify payments manually"}
                   </p>
                 </div>
               </div>
@@ -166,86 +166,148 @@ export default function PaymentPage() {
       )}
 
       {isSubmitted && (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-emerald-200">
-          <p className="font-semibold">Payment submitted</p>
-          <p className="text-sm opacity-90 mt-1">
-            Payment submitted. Await verification.
+        <div className="card border border-emerald-500/30 bg-emerald-500/10">
+          <p className="font-semibold text-emerald-100">Payment submitted</p>
+          <p className="text-sm text-emerald-200/90 mt-1">
+            Your proof is in our queue. We'll verify it and update your order
+            status.
           </p>
         </div>
       )}
 
       {status === "rejected" && (
-        <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 p-4 text-orange-200">
-          <p className="font-semibold">Payment rejected</p>
-          <p className="text-sm opacity-90 mt-1">
-            Your previous proof was rejected. Please submit a new proof.
+        <div className="card border border-orange-500/30 bg-orange-500/10">
+          <p className="font-semibold text-orange-100">Payment rejected</p>
+          <p className="text-sm text-orange-200/90 mt-1">
+            Your previous proof was rejected. Select a method and submit a new
+            proof.
           </p>
         </div>
       )}
 
-      <div className="border rounded p-4">
-        <p className="font-semibold">{order.serviceId?.title}</p>
-        <p className="text-slate-600">Amount: ${order.serviceId?.price}</p>
-      </div>
-
-      <div className="space-y-3">
-        <h3 className="font-medium">Payment Methods</h3>
-
-        {methods.length === 0 && (
-          <p className="text-slate-500 text-sm">No payment methods yet.</p>
-        )}
-
-        {methods.map((m) => (
-          <div
-            key={m._id}
-            className={`rounded-xl border p-4 cursor-pointer transition ${
-              selectedMethodId === m._id
-                ? "border-blue-500/40 bg-blue-500/10"
-                : "border-white/10 hover:border-white/20 bg-white/5"
-            }`}
-            onClick={() => {
-              if (canSubmit) setSelectedMethodId(m._id);
-            }}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ")
-                if (canSubmit) setSelectedMethodId(m._id);
-            }}
-            aria-disabled={!canSubmit}
-          >
-            <p className="font-semibold">{m.name}</p>
-            <p className="text-sm text-slate-200 mt-1">{m.details}</p>
-            {m.instructions && (
-              <p className="text-xs text-[#9CA3AF] mt-2">{m.instructions}</p>
+      <div className="grid md:grid-cols-2 gap-6 items-start">
+        {/* Methods */}
+        <div className="card">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="font-semibold">Payment method</h3>
+            {!canSubmit && (
+              <span className="text-xs text-[#9CA3AF]">Locked</span>
             )}
           </div>
-        ))}
-      </div>
 
-      <div>
-        <label className="block mb-2 font-medium">Reference (optional)</label>
-        <input
-          className="u-input"
-          placeholder="Transaction ID / note you used"
-          value={reference}
-          onChange={(e) => setReference(e.target.value)}
-          disabled={!canSubmit}
-        />
-      </div>
-
-      <div>
-        <label className="block mb-2 font-medium">Upload Payment Proof</label>
-        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-          <input
-            type="file"
-            disabled={!canSubmit}
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
-            className="text-sm text-slate-200"
-          />
-          <p className="mt-2 text-xs text-[#9CA3AF]">
-            Tip: include amount + receiver details in the screenshot.
+          <p className="mt-1 text-sm text-[#9CA3AF]">
+            Select the exact method you used for this payment.
           </p>
+
+          <div className="mt-4 space-y-3">
+            {methods.length === 0 && (
+              <p className="text-[#9CA3AF] text-sm">No payment methods yet.</p>
+            )}
+
+            {methods.map((m) => (
+              <div
+                key={m._id}
+                className={`rounded-xl border p-4 cursor-pointer transition ${
+                  selectedMethodId === m._id
+                    ? "border-blue-500/40 bg-blue-500/10"
+                    : "border-white/10 hover:border-white/20 bg-white/5"
+                } ${!canSubmit ? "opacity-60 cursor-not-allowed" : ""}`}
+                onClick={() => {
+                  if (canSubmit) setSelectedMethodId(m._id);
+                }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    if (canSubmit) setSelectedMethodId(m._id);
+                  }
+                }}
+                aria-disabled={!canSubmit}
+              >
+                <p className="font-semibold">{m.name}</p>
+                <p className="text-sm text-slate-200 mt-1">{m.details}</p>
+                {m.instructions && (
+                  <p className="text-xs text-[#9CA3AF] mt-2">
+                    {m.instructions}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-5">
+            <label className="block mb-2 text-sm font-medium">
+              Reference (optional)
+            </label>
+            <input
+              className="u-input"
+              placeholder="Transaction ID / note you used"
+              value={reference}
+              onChange={(e) => setReference(e.target.value)}
+              disabled={!canSubmit}
+            />
+          </div>
+        </div>
+
+        {/* Proof */}
+        <div className="card">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="font-semibold">Upload proof</h3>
+            <span className="text-xs text-[#9CA3AF]">PNG/JPG/PDF</span>
+          </div>
+          <p className="mt-1 text-sm text-[#9CA3AF]">
+            Upload a screenshot/receipt showing the amount and receiver details.
+          </p>
+
+          <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <p className="text-sm text-slate-200 font-medium">
+                  Selected file
+                </p>
+                <p className="text-xs text-[#9CA3AF] mt-1">
+                  {file ? file.name : "No file selected"}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {file && canSubmit && (
+                  <button
+                    type="button"
+                    onClick={() => setFile(null)}
+                    className="btn-secondary"
+                  >
+                    Remove
+                  </button>
+                )}
+                <label
+                  className={`btn-primary ${
+                    !canSubmit ? "opacity-50 pointer-events-none" : ""
+                  }`}
+                >
+                  Choose file
+                  <input
+                    type="file"
+                    disabled={!canSubmit}
+                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <p className="mt-3 text-xs text-[#9CA3AF]">
+              Tip: include both amount + receiver details in the screenshot.
+            </p>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
+            <p className="text-sm font-medium text-white">Safety & trust</p>
+            <ul className="mt-2 space-y-2 text-xs text-[#9CA3AF]">
+              <li>• We never ask for your password or login codes.</li>
+              <li>• Payments are verified manually to prevent fraud.</li>
+              <li>• Fake or reused proofs will be rejected.</li>
+            </ul>
+          </div>
         </div>
       </div>
 
@@ -270,8 +332,8 @@ export default function PaymentPage() {
       )}
 
       <p className="text-xs text-[#9CA3AF]">
-        Payments are verified manually. Fake or reused proofs will result in
-        rejection.
+        Need help? Open your <span className="text-white">My Orders</span> page
+        and use the order chat.
       </p>
     </div>
   );

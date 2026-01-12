@@ -1,14 +1,30 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
+import { apiRequest } from "@/lib/api";
+
+type Service = {
+  _id: string;
+  title: string;
+  description?: string;
+  category?: string;
+  price: number;
+  currency?: string;
+  deliveryType?: string;
+  images?: string[];
+  active?: boolean;
+};
 
 export default function LandingPage() {
   const router = useRouter();
   const { ready, isAuthenticated } = useAuth();
+
+  const [services, setServices] = useState<Service[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(true);
 
   useEffect(() => {
     // Redirect logged-in users to dashboard
@@ -25,6 +41,38 @@ export default function LandingPage() {
       </div>
     );
   }
+
+  useEffect(() => {
+    let mounted = true;
+    setServicesLoading(true);
+
+    apiRequest<Service[]>("/api/services")
+      .then((data) => {
+        if (!mounted) return;
+        setServices(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setServices([]);
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setServicesLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const popularServices = useMemo(() => {
+    const list = Array.isArray(services) ? services : [];
+    // Prefer active services; keep stable ordering.
+    const activeFirst = list
+      .slice()
+      .sort((a, b) => Number(Boolean(b.active)) - Number(Boolean(a.active)));
+    return activeFirst.slice(0, 3);
+  }, [services]);
 
   return (
     <div className="min-h-screen">
@@ -130,36 +178,143 @@ export default function LandingPage() {
           How UREMO Works
         </h2>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-4 gap-6">
           {[
             {
-              step: "1",
-              title: "Choose a Service",
-              desc: "Select from KYC verification, account onboarding, or gig work.",
+              icon: "🧭",
+              title: "Pick a service",
+              desc: "Choose the exact manual operation you need.",
             },
             {
-              step: "2",
-              title: "Submit & Pay",
-              desc: "Provide required details and complete secure payment.",
+              icon: "🧾",
+              title: "Submit requirements",
+              desc: "We collect what’s needed to deliver accurately.",
             },
             {
-              step: "3",
-              title: "Get Verified",
-              desc: "Our team manually processes your request with care.",
+              icon: "🔎",
+              title: "Manual review",
+              desc: "A real operator processes your request carefully.",
+            },
+            {
+              icon: "✅",
+              title: "Delivery + support",
+              desc: "Track status and chat with the team in your order.",
             },
           ].map((item) => (
             <motion.div
-              key={item.step}
+              key={item.title}
               whileHover={{ y: -4 }}
               className="card text-center"
             >
-              <div className="w-12 h-12 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-xl font-bold mx-auto mb-4">
-                {item.step}
+              <div className="w-12 h-12 rounded-full bg-blue-500/15 border border-blue-500/20 text-blue-100 flex items-center justify-center text-xl font-bold mx-auto mb-4">
+                {item.icon}
               </div>
               <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
               <p className="text-sm text-slate-400">{item.desc}</p>
             </motion.div>
           ))}
+        </div>
+      </motion.section>
+
+      {/* Popular services */}
+      <motion.section
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        transition={{ duration: 0.7 }}
+        viewport={{ once: true }}
+        className="max-w-6xl mx-auto px-4 sm:px-6 py-16"
+      >
+        <div className="flex items-end justify-between gap-4 flex-wrap">
+          <div>
+            <h2 className="text-3xl font-bold">Popular services</h2>
+            <p className="text-slate-300 mt-2 max-w-2xl">
+              Start with our most-requested manual operations.
+            </p>
+          </div>
+          <Link href="/buy-service" className="btn-secondary px-4 py-2 text-sm">
+            Browse all
+          </Link>
+        </div>
+
+        <div className="mt-8 grid md:grid-cols-3 gap-6">
+          {servicesLoading ? (
+            [0, 1, 2].map((i) => (
+              <div key={i} className="card">
+                <div className="h-32 rounded-xl bg-white/5 border border-white/10 animate-pulse" />
+                <div className="mt-4 h-4 w-2/3 bg-white/5 rounded animate-pulse" />
+                <div className="mt-3 h-3 w-1/2 bg-white/5 rounded animate-pulse" />
+              </div>
+            ))
+          ) : popularServices.length === 0 ? (
+            <div className="card md:col-span-3">
+              <p className="text-slate-300">No services available yet.</p>
+              <p className="text-sm text-[#9CA3AF] mt-1">
+                Check back soon or browse the catalog.
+              </p>
+              <div className="mt-4">
+                <Link href="/buy-service" className="btn-primary">
+                  Browse services
+                </Link>
+              </div>
+            </div>
+          ) : (
+            popularServices.map((s) => (
+              <Link
+                key={s._id}
+                href={`/services/${s._id}`}
+                className="block group"
+              >
+                <div className="card cursor-pointer overflow-hidden">
+                  <div className="relative">
+                    <div className="h-36 rounded-xl border border-white/10 bg-gradient-to-br from-blue-500/15 via-white/5 to-emerald-500/10 overflow-hidden">
+                      {Array.isArray(s.images) && s.images[0] ? (
+                        <img
+                          src={s.images[0]}
+                          alt={s.title}
+                          className="h-36 w-full object-cover opacity-90 group-hover:opacity-100 transition"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="h-36 w-full flex items-center justify-center text-3xl text-white/70">
+                          ✦
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="absolute top-3 right-3">
+                      <span className="px-3 py-1 rounded-full text-xs border border-emerald-500/25 bg-emerald-500/10 text-emerald-200 font-semibold">
+                        ${s.price}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="text-lg font-semibold text-white truncate">
+                        {s.title}
+                      </h3>
+                      <div className="mt-2 flex items-center gap-2 flex-wrap">
+                        {s.category && (
+                          <span className="u-pill text-slate-200">
+                            {s.category}
+                          </span>
+                        )}
+                        {s.deliveryType && (
+                          <span className="u-pill text-slate-200">
+                            {String(s.deliveryType).replace(/_/g, " ")}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-slate-300 mt-3 line-clamp-2">
+                    {s.description || "Manual service delivered by UREMO."}
+                  </p>
+                </div>
+              </Link>
+            ))
+          )}
         </div>
       </motion.section>
 
@@ -249,6 +404,11 @@ export default function LandingPage() {
       <footer className="border-t border-white/10 mt-20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 text-center text-sm text-slate-400">
           <p>© 2026 UREMO. Manual operations for platforms that matter.</p>
+          <p className="mt-2 text-xs text-[#9CA3AF]">
+            Independent service provider. UREMO is not affiliated with, endorsed
+            by, or sponsored by any third-party platforms referenced in service
+            listings.
+          </p>
           <div className="flex justify-center gap-6 mt-4">
             <Link href="/buy-service" className="hover:text-white transition">
               Services
