@@ -12,6 +12,9 @@ interface Order {
     title: string;
     price: number;
   };
+  payment?: {
+    verifiedAt?: string | null;
+  };
   createdAt?: string;
   expiresAt?: string | null;
   statusLog?: Array<{
@@ -145,6 +148,7 @@ export default function OrderDetailsPage({
   }, [messages.length]);
 
   const isPendingPayment = order?.status === "payment_pending";
+  const isPaymentVerified = Boolean(order?.payment?.verifiedAt);
   const expiresText = useMemo(() => {
     if (!isPendingPayment || !order?.expiresAt) return null;
     const expiresAt = new Date(order.expiresAt);
@@ -274,9 +278,16 @@ export default function OrderDetailsPage({
 
           <div>
             <p className="text-[#9CA3AF] text-sm">Status</p>
-            <span className="inline-block px-3 py-1 rounded bg-[#1F2937] text-sm">
-              {order.status.replace(/_/g, " ")}
-            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="inline-block px-3 py-1 rounded bg-[#1F2937] text-sm">
+                {order.status.replace(/_/g, " ")}
+              </span>
+              {isPaymentVerified && (
+                <span className="inline-block px-3 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-200 text-sm">
+                  Payment verified ✅
+                </span>
+              )}
+            </div>
             {expiresText && (
               <p className="text-xs text-[#9CA3AF] mt-2">{expiresText}</p>
             )}

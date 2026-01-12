@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useState } from "react";
 import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
+import { useToast } from "@/hooks/useToast";
 
 interface Order {
   _id: string;
@@ -46,6 +47,7 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
+  const { toast } = useToast();
 
   const load = async () => {
     const data = await apiRequest("/api/admin/orders", "GET", null, true);
@@ -65,13 +67,36 @@ export default function AdminOrdersPage() {
       setSelectedOrderId(null);
       load();
     } catch (err) {
-      alert("Failed to add note");
+      toast("Failed to add note", "error");
     }
   };
 
   const updateStatus = async (id: string, status: string) => {
-    await apiRequest(`/api/admin/orders/${id}`, "PUT", { status }, true);
-    load();
+    try {
+      await apiRequest(`/api/admin/orders/${id}`, "PUT", { status }, true);
+      toast("Order updated", "success");
+      load();
+    } catch (err: any) {
+      toast(err?.message || "Failed to update status", "error");
+    }
+  };
+
+  const verifyPayment = async (id: string) => {
+    try {
+      const updated = await apiRequest(
+        `/api/admin/orders/${id}/verify-payment`,
+        "PUT",
+        {},
+        true
+      );
+
+      toast("Payment verified. Order moved to processing.", "success");
+      setOrders((prev) =>
+        prev.map((o) => (o._id === id ? (updated as any) : o))
+      );
+    } catch (err: any) {
+      toast(err?.message || "Failed to verify payment", "error");
+    }
   };
 
   const archiveRejected = async (id: string) => {
@@ -84,7 +109,7 @@ export default function AdminOrdersPage() {
       );
       setOrders((prev) => prev.filter((o) => o._id !== id));
     } catch (err) {
-      alert("Failed to move order to rejected list");
+      toast("Failed to move order to rejected list", "error");
     }
   };
 
@@ -205,6 +230,16 @@ export default function AdminOrdersPage() {
                               className="px-3 py-1 text-xs rounded bg-red-600/20 border border-red-500/30 text-red-200 hover:bg-red-600/30"
                             >
                               Move to Rejected List
+                            </button>
+                          )}
+
+                          {o.status === "payment_submitted" && (
+                            <button
+                              type="button"
+                              onClick={() => verifyPayment(o._id)}
+                              className="px-3 py-1 text-xs rounded bg-emerald-600/20 border border-emerald-500/30 text-emerald-200 hover:bg-emerald-600/30"
+                            >
+                              Verify Payment
                             </button>
                           )}
 
