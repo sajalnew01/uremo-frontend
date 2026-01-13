@@ -6,6 +6,10 @@ import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/api";
+import {
+  DEFAULT_PUBLIC_SITE_SETTINGS,
+  useSiteSettings,
+} from "@/hooks/useSiteSettings";
 
 type Service = {
   _id: string;
@@ -22,6 +26,17 @@ type Service = {
 export default function LandingPage() {
   const router = useRouter();
   const { ready, isAuthenticated } = useAuth();
+  const { data: settings } = useSiteSettings();
+
+  const disclaimerText =
+    settings?.footer?.disclaimer ||
+    DEFAULT_PUBLIC_SITE_SETTINGS.footer.disclaimer;
+  const dataSafetyText =
+    settings?.footer?.dataSafetyNote ||
+    DEFAULT_PUBLIC_SITE_SETTINGS.footer.dataSafetyNote;
+  const supportEmail =
+    settings?.support?.supportEmail ||
+    DEFAULT_PUBLIC_SITE_SETTINGS.support.supportEmail;
 
   const [services, setServices] = useState<Service[]>([]);
   const [servicesLoading, setServicesLoading] = useState(true);
@@ -411,20 +426,11 @@ export default function LandingPage() {
             </p>
 
             <div className="space-y-2 text-xs text-[#9CA3AF]">
-              <p>
-                UREMO is an independent service provider. We are not affiliated
-                with, endorsed by, or sponsored by any third-party platforms.
-              </p>
-              <p>
-                Verification outcomes depend on platform rules and policies.
-                UREMO does not store sensitive login credentials or personal
-                data openly.
-              </p>
+              <p>{disclaimerText}</p>
+              <p>{dataSafetyText}</p>
               <p>
                 Need support? Email us at{" "}
-                <span className="text-white font-medium">
-                  support@uremo.online
-                </span>
+                <span className="text-white font-medium">{supportEmail}</span>
               </p>
             </div>
           </div>
@@ -437,7 +443,7 @@ export default function LandingPage() {
               Work With Us
             </Link>
             <a
-              href="mailto:support@uremo.online"
+              href={`mailto:${supportEmail}`}
               className="text-[#9CA3AF] hover:text-white transition"
             >
               Contact

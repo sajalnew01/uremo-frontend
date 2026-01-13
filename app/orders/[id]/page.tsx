@@ -5,6 +5,11 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ApiError, apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  DEFAULT_PUBLIC_SITE_SETTINGS,
+  useSiteSettings,
+} from "@/hooks/useSiteSettings";
+import FaqAccordion from "@/components/ui/FaqAccordion";
 
 interface Order {
   _id: string;
@@ -37,6 +42,7 @@ export default function OrderDetailsPage() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const { ready: authReady, isAuthenticated } = useAuth();
+  const { data: settings } = useSiteSettings();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -50,6 +56,11 @@ export default function OrderDetailsPage() {
   const endRef = useRef<HTMLDivElement | null>(null);
   const chatSectionRef = useRef<HTMLDivElement | null>(null);
   const chatInputRef = useRef<HTMLInputElement | null>(null);
+
+  const orderSupportFaq =
+    settings?.faq?.orderSupport && settings.faq.orderSupport.length
+      ? settings.faq.orderSupport
+      : DEFAULT_PUBLIC_SITE_SETTINGS.faq.orderSupport;
 
   const quickReplies = useMemo(
     () => [
@@ -399,6 +410,27 @@ export default function OrderDetailsPage() {
             <p className="text-[#9CA3AF] text-sm">No timeline events yet.</p>
           )}
         </div>
+      </div>
+
+      <div className="space-y-3">
+        <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 p-5">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <p className="text-sm font-semibold text-white">Support Guide</p>
+              <p className="mt-1 text-sm text-slate-200">
+                Quick tips to get faster help.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => scrollToChat({ focus: true })}
+              className="btn-secondary w-full sm:w-auto"
+            >
+              Open chat
+            </button>
+          </div>
+        </div>
+        <FaqAccordion items={orderSupportFaq} defaultOpenIndex={null} />
       </div>
 
       {/* Chat */}

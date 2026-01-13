@@ -4,6 +4,11 @@ import { useEffect, useState } from "react";
 import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
+import {
+  DEFAULT_PUBLIC_SITE_SETTINGS,
+  useSiteSettings,
+} from "@/hooks/useSiteSettings";
+import FaqAccordion from "@/components/ui/FaqAccordion";
 
 interface Application {
   _id: string;
@@ -12,12 +17,18 @@ interface Application {
 
 export default function ApplyToWorkPage() {
   const { toast } = useToast();
+  const { data: settings } = useSiteSettings();
   const [category, setCategory] = useState("");
   const [message, setMessage] = useState("");
   const [resume, setResume] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [existing, setExisting] = useState<Application | null>(null);
   const [checking, setChecking] = useState(true);
+
+  const applyFaq =
+    settings?.faq?.applyWork && settings.faq.applyWork.length
+      ? settings.faq.applyWork
+      : DEFAULT_PUBLIC_SITE_SETTINGS.faq.applyWork;
 
   const checkExisting = async () => {
     try {
@@ -209,6 +220,8 @@ export default function ApplyToWorkPage() {
           reviews applications manually based on current operational needs.
         </p>
       </Card>
+
+      <FaqAccordion title="Apply-to-work FAQ" items={applyFaq} />
     </div>
   );
 }

@@ -1,15 +1,20 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
+import {
+  DEFAULT_PUBLIC_SITE_SETTINGS,
+  useSiteSettings,
+} from "@/hooks/useSiteSettings";
 
 export default function PaymentPage() {
   const { orderId } = useParams();
   const resolvedOrderId = Array.isArray(orderId) ? orderId[0] : orderId;
   const router = useRouter();
   const { toast } = useToast();
+  const { data: settings } = useSiteSettings();
 
   const [order, setOrder] = useState<any>(null);
   const [methods, setMethods] = useState<any[]>([]);
@@ -18,6 +23,11 @@ export default function PaymentPage() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [faqOpen, setFaqOpen] = useState<number | null>(0);
+
+  const paymentFaq =
+    settings?.faq?.payment && settings.faq.payment.length
+      ? settings.faq.payment
+      : DEFAULT_PUBLIC_SITE_SETTINGS.faq.payment;
 
   const loadOrder = async () => {
     const data = await apiRequest(
@@ -95,7 +105,7 @@ export default function PaymentPage() {
         true
       );
 
-      toast("Proof submitted. Redirecting…", "success");
+      toast("Proof submitted. Redirecting...", "success");
       setFile(null);
       router.push(`/orders/${resolvedOrderId}?chat=1`);
     } catch (e: any) {
@@ -105,7 +115,7 @@ export default function PaymentPage() {
     }
   };
 
-  if (!order) return <p className="p-6">Loading…</p>;
+  if (!order) return <p className="p-6">Loading...</p>;
 
   return (
     <div className="u-container max-w-3xl space-y-6">
@@ -415,7 +425,7 @@ export default function PaymentPage() {
       {!isSubmitted && canSubmit && (
         <p className="text-xs text-[#9CA3AF]">
           Status: {hasMethod ? "method selected" : "select a method"}
-          {" · "}
+          {" • "}
           {hasProof ? "proof attached" : "attach proof"}
         </p>
       )}
@@ -433,36 +443,11 @@ export default function PaymentPage() {
         </p>
 
         <div className="mt-4 space-y-2">
-          {[
-            {
-              q: "What should my payment proof include?",
-              a: "A clear screenshot/receipt showing the amount, receiver details, and date/time (if available).",
-            },
-            {
-              q: "How long does verification take?",
-              a: "We verify manually. Most proofs are verified within a few minutes, but it can take longer during peak times.",
-            },
-            {
-              q: "Why was my proof rejected?",
-              a: "Common reasons: wrong amount, wrong receiver, cropped/blurred image, reused proof, or missing transaction details.",
-            },
-            {
-              q: "Can I upload a PDF instead of an image?",
-              a: "Yes. PDFs and images are accepted for proof uploads.",
-            },
-            {
-              q: "What if I used a different payment method than I selected?",
-              a: "Select the method you actually used. If unsure, choose the closest match and tell support in the order chat.",
-            },
-            {
-              q: "I submitted proof — what happens next?",
-              a: "You’ll be redirected to your order details. Support chat opens automatically so you can message us if needed.",
-            },
-          ].map((item, idx) => {
+          {paymentFaq.map((item, idx) => {
             const open = faqOpen === idx;
             return (
               <div
-                key={idx}
+                key={`${idx}-${item.q}`}
                 className="rounded-xl border border-white/10 bg-white/5"
               >
                 <button
