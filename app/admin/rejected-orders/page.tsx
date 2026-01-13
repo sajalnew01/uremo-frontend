@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Card from "@/components/Card";
+import FilePreview from "@/components/FilePreview";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 
@@ -132,14 +133,10 @@ export default function AdminRejectedOrdersPage() {
                     </td>
                     <td className="p-3">
                       {o.payment?.proofUrl ? (
-                        <a
-                          href={o.payment.proofUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-[#3B82F6] text-sm hover:underline"
-                        >
-                          View proof
-                        </a>
+                        <FilePreview
+                          url={o.payment.proofUrl}
+                          label="View proof"
+                        />
                       ) : (
                         <span className="text-[#9CA3AF]">—</span>
                       )}

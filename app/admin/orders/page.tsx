@@ -1,9 +1,11 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import Card from "@/components/Card";
+import FilePreview from "@/components/FilePreview";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
+import { useRouter, useSearchParams } from "next/navigation";
 
 interface Order {
   _id: string;
@@ -48,9 +50,30 @@ export default function AdminOrdersPage() {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
   const { toast } = useToast();
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const load = async () => {
-    const data = await apiRequest("/api/admin/orders", "GET", null, true);
+  const status = useMemo(() => {
+    const v = String(searchParams.get("status") || "all")
+      .trim()
+      .toLowerCase();
+    return v || "all";
+  }, [searchParams]);
+
+  const setStatus = (next: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (!next || next === "all") params.delete("status");
+    else params.set("status", next);
+    const qs = params.toString();
+    router.push(qs ? `/admin/orders?${qs}` : "/admin/orders");
+  };
+
+  const load = async (statusValue: string) => {
+    const qs =
+      statusValue && statusValue !== "all"
+        ? `?status=${encodeURIComponent(statusValue)}`
+        : "";
+    const data = await apiRequest(`/api/admin/orders${qs}`, "GET", null, true);
     setOrders(data);
   };
 
@@ -65,17 +88,22 @@ export default function AdminOrdersPage() {
       );
       setNoteText("");
       setSelectedOrderId(null);
-      load();
+      load(status);
     } catch (err) {
       toast("Failed to add note", "error");
     }
   };
 
-  const updateStatus = async (id: string, status: string) => {
+  const updateStatus = async (id: string, nextStatus: string) => {
     try {
-      await apiRequest(`/api/admin/orders/${id}`, "PUT", { status }, true);
+      await apiRequest(
+        `/api/admin/orders/${id}`,
+        "PUT",
+        { status: nextStatus },
+        true
+      );
       toast("Order updated", "success");
-      load();
+      load(status);
     } catch (err: any) {
       toast(err?.message || "Failed to update status", "error");
     }
@@ -83,7 +111,7 @@ export default function AdminOrdersPage() {
 
   const verifyPayment = async (id: string) => {
     try {
-      const updated = await apiRequest(
+      await apiRequest(
         `/api/admin/orders/${id}/verify-payment`,
         "PUT",
         {},
@@ -91,9 +119,7 @@ export default function AdminOrdersPage() {
       );
 
       toast("Payment verified. Order moved to processing.", "success");
-      setOrders((prev) =>
-        prev.map((o) => (o._id === id ? (updated as any) : o))
-      );
+      load(status);
     } catch (err: any) {
       toast(err?.message || "Failed to verify payment", "error");
     }
@@ -107,19 +133,44 @@ export default function AdminOrdersPage() {
         {},
         true
       );
-      setOrders((prev) => prev.filter((o) => o._id !== id));
+      load(status);
     } catch (err) {
       toast("Failed to move order to rejected list", "error");
     }
   };
 
   useEffect(() => {
-    load();
-  }, []);
+    load(status);
+  }, [status]);
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Admin — Orders</h1>
+
+      <div className="flex flex-wrap gap-2">
+        {[
+          { key: "all", label: "All" },
+          { key: "pending", label: "Pending" },
+          { key: "submitted", label: "Submitted" },
+          { key: "processing", label: "Processing" },
+        ].map((t) => {
+          const active = status === t.key;
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setStatus(t.key)}
+              className={`px-4 py-2 rounded-xl text-sm border transition ${
+                active
+                  ? "bg-white/10 border-white/20 text-white"
+                  : "bg-white/5 border-white/10 text-zinc-200 hover:bg-white/10"
+              }`}
+            >
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
 
       <Card>
         <div className="overflow-x-auto">
@@ -185,14 +236,12 @@ export default function AdminOrdersPage() {
                               </div>
                             )}
                             {o.payment.proofUrl && (
-                              <a
-                                href={o.payment.proofUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-[#3B82F6] text-xs block mt-1"
-                              >
-                                View proof
-                              </a>
+                              <div className="mt-2">
+                                <FilePreview
+                                  url={o.payment.proofUrl}
+                                  label="View proof"
+                                />
+                              </div>
                             )}
                           </>
                         ) : (
