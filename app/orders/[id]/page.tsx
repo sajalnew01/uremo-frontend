@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ApiError, apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,11 +31,8 @@ type OrderMessage = {
   createdAt: string;
 };
 
-export default function OrderDetailsPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function OrderDetailsPage() {
+  const { id: orderId } = useParams<{ id: string }>();
   const router = useRouter();
   const { toast } = useToast();
   const { ready: authReady, isAuthenticated } = useAuth();
@@ -52,8 +49,12 @@ export default function OrderDetailsPage({
 
   const isValidOrderId = useMemo(() => {
     // Mongo ObjectId (most common in this project)
-    return /^[a-f\d]{24}$/i.test(params.id || "");
-  }, [params.id]);
+    return /^[a-f\d]{24}$/i.test(String(orderId || ""));
+  }, [orderId]);
+
+  useEffect(() => {
+    console.log("Chat endpoint:", `/api/orders/${orderId}/messages`);
+  }, [orderId]);
 
   const loadOrder = async () => {
     setLoadError(null);
@@ -68,7 +69,7 @@ export default function OrderDetailsPage({
 
     try {
       const data = await apiRequest(
-        `/api/orders/${params.id}`,
+        `/api/orders/${orderId}`,
         "GET",
         null,
         true
@@ -78,7 +79,7 @@ export default function OrderDetailsPage({
       const apiErr = err as ApiError;
       if (apiErr?.status === 401 || apiErr?.status === 403) {
         router.replace(
-          `/login?next=${encodeURIComponent(`/orders/${params.id}`)}`
+          `/login?next=${encodeURIComponent(`/orders/${orderId}`)}`
         );
         return;
       }
@@ -99,7 +100,7 @@ export default function OrderDetailsPage({
     setMessageLoadError(null);
     try {
       const data = await apiRequest(
-        `/api/orders/${params.id}/messages`,
+        `/api/orders/${orderId}/messages`,
         "GET",
         null,
         true
@@ -115,7 +116,7 @@ export default function OrderDetailsPage({
       const apiErr = err as ApiError;
       if (apiErr?.status === 401 || apiErr?.status === 403) {
         router.replace(
-          `/login?next=${encodeURIComponent(`/orders/${params.id}`)}`
+          `/login?next=${encodeURIComponent(`/orders/${orderId}`)}`
         );
         return;
       }
@@ -128,7 +129,7 @@ export default function OrderDetailsPage({
   useEffect(() => {
     loadOrder();
     loadMessages();
-  }, [params.id]);
+  }, [orderId]);
 
   // Poll for new messages (reliability: prevents "stuck" chat)
   useEffect(() => {
@@ -144,7 +145,7 @@ export default function OrderDetailsPage({
     }, intervalMs);
 
     return () => window.clearInterval(id);
-  }, [params.id, isValidOrderId, sending, authReady, isAuthenticated]);
+  }, [orderId, isValidOrderId, sending, authReady, isAuthenticated]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -163,14 +164,14 @@ export default function OrderDetailsPage({
     if (!text) return;
 
     if (process.env.NODE_ENV !== "production") {
-      console.log("sending", params.id, text);
+      console.log("sending", orderId, text);
     }
 
     setSendError(null);
     setSending(true);
     try {
       await apiRequest(
-        `/api/orders/${params.id}/messages`,
+        `/api/orders/${orderId}/messages`,
         "POST",
         { message: text },
         true
