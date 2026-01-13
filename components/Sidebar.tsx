@@ -150,7 +150,7 @@ export default function Sidebar() {
       {/* Mobile overlay */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/60 md:hidden z-40 pointer-events-auto"
+          className="fixed inset-0 bg-black/60 lg:hidden z-40 pointer-events-auto"
           onClick={closeSidebar}
           aria-hidden="true"
         />
@@ -159,7 +159,7 @@ export default function Sidebar() {
       {/* Mobile drawer */}
       <aside
         aria-hidden={!isSidebarOpen}
-        className={`fixed top-0 left-0 h-full w-[80vw] max-w-[280px] bg-[#020617]/95 border-r border-white/10 p-5 md:hidden z-50 transform transition-transform duration-200 backdrop-blur ${
+        className={`fixed top-0 left-0 h-full w-[80vw] max-w-[280px] bg-[#020617]/95 border-r border-white/10 p-5 lg:hidden z-50 transform transition-transform duration-200 backdrop-blur ${
           isSidebarOpen
             ? "translate-x-0 pointer-events-auto"
             : "-translate-x-full pointer-events-none"
@@ -207,7 +207,7 @@ export default function Sidebar() {
       </aside>
 
       {/* Desktop sidebar */}
-      <aside className="hidden md:block fixed left-0 top-14 w-[260px] h-[calc(100vh-56px)] border-r border-white/10 bg-black/10 backdrop-blur z-30">
+      <aside className="hidden lg:block fixed left-0 top-14 w-[260px] h-[calc(100vh-56px)] border-r border-white/10 bg-black/10 backdrop-blur z-30">
         <nav className="space-y-3 p-5 overflow-y-auto h-full">
           <div className="sticky top-0 z-10 -mx-5 px-5 pb-3 pt-2 bg-[#020617]/70 backdrop-blur border-b border-white/10">
             <SidebarUserMenu />

@@ -78,16 +78,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.variable}>
+      <body className={`${inter.variable} overflow-x-hidden`}>
         <ToastProvider>
           <SidebarProvider>
             <Navbar />
             <ToastViewport />
-            <div className="pt-14">
-              <div className="md:grid md:grid-cols-[260px_1fr] min-h-[calc(100vh-56px)]">
-                <div className="hidden md:block" />
+            <div className="pt-12 lg:pt-14">
+              <div className="lg:grid lg:grid-cols-[260px_1fr] min-h-[calc(100vh-48px)] lg:min-h-[calc(100vh-56px)]">
+                <div className="hidden lg:block" />
                 <main className="min-w-0 relative z-10 u-page">
-                  <div className="hidden md:block">
+                  <div className="hidden lg:block">
                     <StatusBanner />
                   </div>
                   {children}

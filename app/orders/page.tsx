@@ -92,11 +92,11 @@ export default function OrdersPage() {
             </span>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-2 w-full sm:w-auto">
             {o.status === "payment_pending" && (
               <button
                 onClick={() => router.push(`/payment/${o._id}`)}
-                className="btn-primary"
+                className="btn-primary w-full sm:w-auto"
               >
                 Complete payment
               </button>
@@ -105,7 +105,7 @@ export default function OrdersPage() {
             {o.status === "rejected" && (
               <button
                 onClick={() => router.push(`/payment/${o._id}`)}
-                className="btn-primary"
+                className="btn-primary w-full sm:w-auto"
               >
                 Resubmit proof
               </button>
@@ -113,7 +113,7 @@ export default function OrdersPage() {
 
             <button
               onClick={() => router.push(`/orders/${o._id}`)}
-              className="btn-secondary"
+              className="btn-secondary w-full sm:w-auto"
             >
               View details
             </button>
@@ -121,7 +121,7 @@ export default function OrdersPage() {
             <button
               type="button"
               onClick={() => router.push(`/orders/${o._id}?chat=1`)}
-              className="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-sm text-slate-200 hover:bg-white/10"
+              className="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-sm text-slate-200 hover:bg-white/10 w-full sm:w-auto"
             >
               Open Support Chat →
             </button>

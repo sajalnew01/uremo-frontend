@@ -253,19 +253,19 @@ export default function OrderDetailsPage() {
       <div className="p-6 max-w-3xl space-y-3">
         <h1 className="text-xl font-semibold">Couldn’t load order</h1>
         <p className="text-sm text-[#9CA3AF]">{loadError}</p>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex flex-col sm:flex-row gap-2 flex-wrap">
           <button
             onClick={() => {
               setLoading(true);
               loadOrder();
             }}
-            className="btn-primary w-fit"
+            className="btn-primary w-full sm:w-fit"
           >
             Retry
           </button>
           <button
             onClick={() => router.push("/orders")}
-            className="btn-secondary w-fit"
+            className="btn-secondary w-full sm:w-fit"
           >
             Back to Orders
           </button>
@@ -289,7 +289,7 @@ export default function OrderDetailsPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="u-container max-w-3xl space-y-6">
       <div>
         <button
           onClick={() => router.push("/orders")}
@@ -319,7 +319,7 @@ export default function OrderDetailsPage() {
           <button
             type="button"
             onClick={() => scrollToChat({ focus: true })}
-            className="btn-primary"
+            className="btn-primary w-full sm:w-auto"
           >
             Chat Now
           </button>
@@ -504,10 +504,10 @@ export default function OrderDetailsPage() {
             ))}
           </div>
 
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex flex-col sm:flex-row gap-2">
             <input
               ref={chatInputRef}
-              className="flex-1 rounded-lg border border-[#1F2937] bg-[#020617] px-3 py-2 text-sm text-white placeholder:text-[#64748B]"
+              className="w-full sm:flex-1 rounded-lg border border-[#1F2937] bg-[#020617] px-3 py-2 text-sm text-white placeholder:text-[#64748B]"
               placeholder="Type a message..."
               value={messageText}
               onChange={(e) => {
@@ -526,7 +526,7 @@ export default function OrderDetailsPage() {
               type="button"
               onClick={sendMessage}
               disabled={sending || !messageText.trim()}
-              className="px-4 py-2 rounded-lg bg-[#3B82F6] text-white text-sm disabled:opacity-50"
+              className="px-4 py-2 rounded-lg bg-[#3B82F6] text-white text-sm disabled:opacity-50 w-full sm:w-auto"
             >
               {sending ? "Sending..." : "Send"}
             </button>

@@ -23,15 +23,15 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="fixed top-0 inset-x-0 z-[9999] pointer-events-auto h-14 border-b border-white/10 bg-black/10 backdrop-blur">
-      <div className="h-14 px-4 md:px-6 flex items-center">
+    <nav className="fixed top-0 inset-x-0 z-[9999] pointer-events-auto h-12 lg:h-14 border-b border-white/10 bg-black/10 backdrop-blur">
+      <div className="h-12 lg:h-14 px-3 lg:px-6 flex items-center">
         <div className="flex items-center w-full">
           <div className="w-1/3 flex items-center">
             {isAuthenticated && (
               <button
                 type="button"
                 onClick={toggleSidebar}
-                className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-xl border border-white/10 hover:border-white/20"
+                className="lg:hidden inline-flex items-center justify-center w-10 h-10 rounded-xl border border-white/10 hover:border-white/20"
                 aria-label="Open menu"
               >
                 <span className="text-lg">☰</span>
@@ -51,10 +51,10 @@ export default function Navbar() {
                     <Image
                       src="/brand/logo-mark.png"
                       alt="UREMO"
-                      width={36}
-                      height={36}
+                      width={30}
+                      height={30}
                       priority
-                      className="md:hidden"
+                      className="lg:hidden"
                       onError={() => setLogoFailed(true)}
                     />
                     <Image
@@ -63,7 +63,7 @@ export default function Navbar() {
                       width={120}
                       height={36}
                       priority
-                      className="hidden md:block"
+                      className="hidden lg:block"
                       onError={() => setLogoFailed(true)}
                     />
                   </>
@@ -75,7 +75,7 @@ export default function Navbar() {
               </Link>
 
               {isAuthenticated && (
-                <div className="hidden md:flex items-center gap-3 text-sm text-slate-200">
+                <div className="hidden lg:flex items-center gap-3 text-sm text-slate-200">
                   <Link
                     href="/dashboard"
                     className="hover:text-white/90 transition"

@@ -61,7 +61,7 @@ export default function Dashboard() {
         </p>
       )}
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         {cards.map((card, i) => (
           <Link key={card.href} href={card.href} className="block">
             <motion.div

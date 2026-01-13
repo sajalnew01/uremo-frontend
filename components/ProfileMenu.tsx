@@ -43,17 +43,14 @@ export default function ProfileMenu() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition px-2 py-1.5"
+        className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition"
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-label="Account"
       >
         <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-white/10 border border-white/10 text-white font-semibold">
           {avatarLetter}
         </span>
-        <span className="hidden sm:block max-w-[220px] truncate text-sm text-slate-200">
-          {email || "Account"}
-        </span>
-        <span className="text-slate-400 hidden sm:inline">▾</span>
       </button>
 
       {open && (
