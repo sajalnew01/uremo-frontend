@@ -90,6 +90,15 @@ function New-UremoOgPng([string]$path) {
 
 New-UremoLogoPng (Join-Path $public "brand\uremo-logo.png")
 New-UremoMarkPng (Join-Path $public "brand\uremo-logo-mark.png") 256
+
+# Required naming system (brand folder)
+New-UremoLogoPng (Join-Path $public "brand\logo-full.png")
+New-UremoMarkPng (Join-Path $public "brand\logo-mark.png") 256
+New-UremoMarkPng (Join-Path $public "brand\favicon.png") 64
+New-UremoMarkPng (Join-Path $public "brand\apple-touch.png") 180
+New-UremoOgPng (Join-Path $public "brand\og.png")
+
+# Keep legacy root-level assets for compatibility
 New-UremoMarkPng (Join-Path $public "icon.png") 512
 New-UremoMarkPng (Join-Path $public "apple-touch-icon.png") 180
 New-UremoMarkPng (Join-Path $public "favicon.png") 64

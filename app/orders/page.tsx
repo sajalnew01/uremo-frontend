@@ -117,6 +117,14 @@ export default function OrdersPage() {
             >
               View details
             </button>
+
+            <button
+              type="button"
+              onClick={() => router.push(`/orders/${o._id}?chat=1`)}
+              className="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-sm text-slate-200 hover:bg-white/10"
+            >
+              Open Support Chat →
+            </button>
           </div>
         </div>
 

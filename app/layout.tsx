@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/og.png",
+        url: "/brand/og.png",
         width: 1200,
         height: 630,
         alt: "UREMO — Verified Digital Onboarding & Marketplace",
@@ -51,11 +51,11 @@ export const metadata: Metadata = {
     title: "UREMO — Verified Digital Onboarding & Marketplace",
     description:
       "Buy trusted onboarding, KYC, and verification assistance services. Track orders with human verification and admin support.",
-    images: ["/og.png"],
+    images: ["/brand/og.png"],
   },
   icons: {
-    icon: [{ url: "/favicon.png", type: "image/png" }],
-    apple: [{ url: "/apple-touch-icon.png", type: "image/png" }],
+    icon: [{ url: "/brand/favicon.png", type: "image/png" }],
+    apple: [{ url: "/brand/apple-touch.png", type: "image/png" }],
     other: [{ rel: "icon", url: "/icon.png", type: "image/png" }],
   },
   robots: {

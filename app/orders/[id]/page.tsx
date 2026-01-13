@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ApiError, apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import { useAuth } from "@/hooks/useAuth";
@@ -34,6 +34,7 @@ type OrderMessage = {
 export default function OrderDetailsPage() {
   const { id: orderId } = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const { ready: authReady, isAuthenticated } = useAuth();
   const [order, setOrder] = useState<Order | null>(null);
@@ -46,6 +47,31 @@ export default function OrderDetailsPage() {
   const [sendError, setSendError] = useState<string | null>(null);
   const [messageLoadError, setMessageLoadError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
+  const chatSectionRef = useRef<HTMLDivElement | null>(null);
+  const chatInputRef = useRef<HTMLInputElement | null>(null);
+
+  const quickReplies = useMemo(
+    () => [
+      "I have paid, please verify.",
+      "When will my service be delivered?",
+      "I need urgent delivery.",
+    ],
+    []
+  );
+
+  const scrollToChat = (opts?: {
+    focus?: boolean;
+    behavior?: ScrollBehavior;
+  }) => {
+    const behavior = opts?.behavior || "smooth";
+    chatSectionRef.current?.scrollIntoView({ behavior, block: "start" });
+    if (opts?.focus) {
+      // Mobile keyboards are more reliable when focus happens after a tick.
+      window.setTimeout(() => {
+        chatInputRef.current?.focus();
+      }, 50);
+    }
+  };
 
   const isValidOrderId = useMemo(() => {
     // Mongo ObjectId (most common in this project)
@@ -150,6 +176,16 @@ export default function OrderDetailsPage() {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
+
+  // If deep-linked to chat via ?chat=1, open chat on load.
+  useEffect(() => {
+    const wantsChat = searchParams?.get("chat") === "1";
+    if (!wantsChat) return;
+    if (loading) return;
+    if (!order) return;
+
+    scrollToChat({ focus: true, behavior: "auto" });
+  }, [searchParams, loading, order]);
 
   const isPendingPayment = order?.status === "payment_pending";
   const isPaymentVerified = Boolean(order?.payment?.verifiedAt);
@@ -260,6 +296,32 @@ export default function OrderDetailsPage() {
         <h1 className="text-3xl font-bold">Order Details</h1>
       </div>
 
+      {/* Support banner */}
+      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-5">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <p className="text-sm font-semibold text-white">
+              Need faster delivery?
+            </p>
+            <p className="mt-1 text-sm text-slate-200">
+              Chat with UREMO support for verification & delivery updates.
+            </p>
+            <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs border border-emerald-500/25 bg-emerald-500/10 text-emerald-200">
+              🟢 Support active <span className="text-emerald-200/70">•</span>
+              Replies usually within 5–10 minutes
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => scrollToChat({ focus: true })}
+            className="btn-primary"
+          >
+            Chat Now
+          </button>
+        </div>
+      </div>
+
       {/* Order Info */}
       <div className="border border-[#1F2937] rounded-lg p-6 bg-[#0F172A]">
         <div className="space-y-3">
@@ -336,9 +398,17 @@ export default function OrderDetailsPage() {
       </div>
 
       {/* Chat */}
-      <div className="border border-[#1F2937] rounded-lg p-6 bg-[#0F172A]">
+      <div
+        ref={chatSectionRef}
+        className="border border-[#1F2937] rounded-lg p-6 bg-[#0F172A]"
+      >
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-lg">Order Chat</h3>
+          <div>
+            <h3 className="font-semibold text-lg">Order Support Chat</h3>
+            <p className="text-xs text-[#9CA3AF] mt-1">
+              Message support for payment verification and delivery updates.
+            </p>
+          </div>
           <button
             type="button"
             onClick={loadMessages}
@@ -354,7 +424,34 @@ export default function OrderDetailsPage() {
 
         <div className="mt-4 h-[360px] overflow-y-auto rounded-lg border border-[#1F2937] bg-[#020617] p-4 space-y-3">
           {messages.length === 0 ? (
-            <p className="text-sm text-[#9CA3AF]">No messages yet.</p>
+            <div className="h-full flex items-center justify-center">
+              <div className="text-center max-w-sm">
+                <div className="mx-auto w-12 h-12 rounded-2xl border border-white/10 bg-white/5 flex items-center justify-center text-xl text-white/80">
+                  ✦
+                </div>
+                <p className="mt-3 text-sm text-slate-200 font-medium">
+                  No messages yet. Support will reply here.
+                </p>
+                <p className="mt-1 text-xs text-[#9CA3AF]">
+                  Use a quick reply to start the conversation.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                  {quickReplies.map((q) => (
+                    <button
+                      key={q}
+                      type="button"
+                      onClick={() => {
+                        setMessageText(q);
+                        scrollToChat({ focus: true });
+                      }}
+                      className="px-3 py-1.5 rounded-full text-xs border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           ) : (
             messages.map((m) => (
               <div
@@ -370,9 +467,12 @@ export default function OrderDetailsPage() {
                       : "bg-white/5 border-white/10 text-slate-200"
                   }`}
                 >
+                  <p className="text-[11px] text-[#9CA3AF] mb-1">
+                    {m.senderRole === "user" ? "You" : "Support"}
+                  </p>
                   <p className="whitespace-pre-wrap">{m.message}</p>
                   <p className="mt-1 text-[11px] text-[#9CA3AF]">
-                    {new Date(m.createdAt).toLocaleString()} — {m.senderRole}
+                    {new Date(m.createdAt).toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -381,31 +481,50 @@ export default function OrderDetailsPage() {
           <div ref={endRef} />
         </div>
 
-        <div className="mt-4 flex gap-2">
-          <input
-            className="flex-1 rounded-lg border border-[#1F2937] bg-[#020617] px-3 py-2 text-sm text-white placeholder:text-[#64748B]"
-            placeholder="Type a message..."
-            value={messageText}
-            onChange={(e) => {
-              setMessageText(e.target.value);
-              if (sendError) setSendError(null);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-              }
-            }}
-            disabled={sending}
-          />
-          <button
-            type="button"
-            onClick={sendMessage}
-            disabled={sending || !messageText.trim()}
-            className="px-4 py-2 rounded-lg bg-[#3B82F6] text-white text-sm disabled:opacity-50"
-          >
-            {sending ? "Sending..." : "Send"}
-          </button>
+        <div className="mt-4">
+          <div className="flex flex-wrap gap-2">
+            {quickReplies.map((q) => (
+              <button
+                key={q}
+                type="button"
+                onClick={() => {
+                  setMessageText(q);
+                  scrollToChat({ focus: true });
+                }}
+                className="px-3 py-1.5 rounded-full text-xs border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-3 flex gap-2">
+            <input
+              ref={chatInputRef}
+              className="flex-1 rounded-lg border border-[#1F2937] bg-[#020617] px-3 py-2 text-sm text-white placeholder:text-[#64748B]"
+              placeholder="Type a message..."
+              value={messageText}
+              onChange={(e) => {
+                setMessageText(e.target.value);
+                if (sendError) setSendError(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  sendMessage();
+                }
+              }}
+              disabled={sending}
+            />
+            <button
+              type="button"
+              onClick={sendMessage}
+              disabled={sending || !messageText.trim()}
+              className="px-4 py-2 rounded-lg bg-[#3B82F6] text-white text-sm disabled:opacity-50"
+            >
+              {sending ? "Sending..." : "Send"}
+            </button>
+          </div>
         </div>
 
         {sendError && <p className="mt-2 text-xs text-red-400">{sendError}</p>}

@@ -49,7 +49,7 @@ export default function Navbar() {
                 {!logoFailed ? (
                   <>
                     <Image
-                      src="/brand/uremo-logo-mark.png"
+                      src="/brand/logo-mark.png"
                       alt="UREMO"
                       width={36}
                       height={36}
@@ -58,7 +58,7 @@ export default function Navbar() {
                       onError={() => setLogoFailed(true)}
                     />
                     <Image
-                      src="/brand/uremo-logo.png"
+                      src="/brand/logo-full.png"
                       alt="UREMO"
                       width={120}
                       height={36}
