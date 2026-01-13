@@ -29,7 +29,7 @@ export default function Dashboard() {
     {
       title: "Support",
       desc: "Get help through your order chat and updates.",
-      href: "/orders",
+      href: "/support",
       icon: "🛟",
     },
   ];

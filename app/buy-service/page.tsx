@@ -14,6 +14,7 @@ type Service = {
   price: number;
   currency?: string;
   images?: string[];
+  imageUrl?: string;
   active?: boolean;
 };
 
@@ -171,9 +172,9 @@ export default function BuyServicePage() {
               <div className="card cursor-pointer overflow-hidden">
                 <div className="relative">
                   <div className="mb-4 overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-blue-500/15 via-white/5 to-emerald-500/10">
-                    {Array.isArray(s.images) && s.images[0] ? (
+                    {s.imageUrl || (Array.isArray(s.images) && s.images[0]) ? (
                       <img
-                        src={s.images[0]}
+                        src={s.imageUrl || s.images?.[0]}
                         alt={s.title}
                         className="h-44 w-full object-cover opacity-90 group-hover:opacity-100 transition"
                         loading="lazy"

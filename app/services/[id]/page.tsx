@@ -113,6 +113,33 @@ export default function ServiceDetailsPage() {
 
   return (
     <div className="u-container max-w-6xl">
+      {/* Hero Image Section (always render) */}
+      <div className="mb-8 overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-blue-500/15 via-white/5 to-emerald-500/10">
+        {service.imageUrl ||
+        (Array.isArray(service.images) && service.images[0]) ? (
+          <img
+            src={service.imageUrl || service.images?.[0]}
+            alt={service.title}
+            className="h-80 w-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <div className="h-80 w-full flex items-center justify-center">
+            <div className="text-center px-6">
+              <div className="mx-auto w-16 h-16 rounded-2xl border border-white/10 bg-white/5 flex items-center justify-center text-2xl text-white/80">
+                ✦
+              </div>
+              <p className="mt-4 text-sm text-slate-200 font-medium">
+                Premium manual service
+              </p>
+              <p className="mt-1 text-xs text-[#9CA3AF]">
+                Verified by human specialists
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="mb-6 flex items-center justify-between gap-4 flex-wrap">
         <div>
           <Link

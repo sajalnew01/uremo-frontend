@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSidebar } from "@/hooks/useSidebar";
 import ProfileMenu from "@/components/ProfileMenu";
@@ -10,6 +12,7 @@ export default function Navbar() {
   const { ready, user, isAuthenticated, logout } = useAuth();
   const { toggleSidebar } = useSidebar();
   const pathname = usePathname();
+  const [logoFailed, setLogoFailed] = useState(false);
 
   if (!ready) {
     return (
@@ -38,8 +41,37 @@ export default function Navbar() {
 
           <div className="w-1/3 flex justify-center min-w-0">
             <div className="flex items-center gap-5 min-w-0">
-              <Link href="/" className="text-lg md:text-xl font-bold truncate">
-                UREMO
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2 min-w-0"
+                aria-label="UREMO Home"
+              >
+                {!logoFailed ? (
+                  <>
+                    <Image
+                      src="/brand/uremo-logo-mark.png"
+                      alt="UREMO"
+                      width={36}
+                      height={36}
+                      priority
+                      className="md:hidden"
+                      onError={() => setLogoFailed(true)}
+                    />
+                    <Image
+                      src="/brand/uremo-logo.png"
+                      alt="UREMO"
+                      width={120}
+                      height={36}
+                      priority
+                      className="hidden md:block"
+                      onError={() => setLogoFailed(true)}
+                    />
+                  </>
+                ) : (
+                  <span className="text-lg md:text-xl font-bold truncate">
+                    UREMO
+                  </span>
+                )}
               </Link>
 
               {isAuthenticated && (

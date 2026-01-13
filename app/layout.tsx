@@ -54,8 +54,9 @@ export const metadata: Metadata = {
     images: ["/og.png"],
   },
   icons: {
-    icon: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
+    icon: [{ url: "/favicon.png", type: "image/png" }],
+    apple: [{ url: "/apple-touch-icon.png", type: "image/png" }],
+    other: [{ rel: "icon", url: "/icon.png", type: "image/png" }],
   },
   robots: {
     index: true,

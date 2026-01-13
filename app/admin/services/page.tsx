@@ -17,6 +17,7 @@ export default function AdminServicesPage() {
   const [editPrice, setEditPrice] = useState("");
   const [editDeliveryType, setEditDeliveryType] = useState("manual");
   const [editActive, setEditActive] = useState(true);
+  const [editImageUrl, setEditImageUrl] = useState("");
   const [editSaving, setEditSaving] = useState(false);
 
   // form state
@@ -27,6 +28,7 @@ export default function AdminServicesPage() {
   const [price, setPrice] = useState("");
   const [deliveryType, setDeliveryType] = useState("manual");
   const [images, setImages] = useState<string[]>([]);
+  const [imageUrl, setImageUrl] = useState("");
 
   // load services
   const loadServices = async () => {
@@ -78,6 +80,7 @@ export default function AdminServicesPage() {
           price: Number(price),
           deliveryType,
           images,
+          imageUrl,
         },
         true
       );
@@ -89,6 +92,7 @@ export default function AdminServicesPage() {
       setPrice("");
       setDeliveryType("manual");
       setImages([]);
+      setImageUrl("");
 
       await loadServices();
       alert("Service added successfully and is now live.");
@@ -132,6 +136,7 @@ export default function AdminServicesPage() {
     setEditPrice(String(service?.price ?? ""));
     setEditDeliveryType(service?.deliveryType || "manual");
     setEditActive(Boolean(service?.active));
+    setEditImageUrl(service?.imageUrl || "");
   };
 
   const closeEdit = () => {
@@ -158,6 +163,7 @@ export default function AdminServicesPage() {
           requirements: editRequirements,
           price: Number(editPrice),
           deliveryType: editDeliveryType,
+          imageUrl: editImageUrl,
           active: editActive,
         },
         true
@@ -170,6 +176,33 @@ export default function AdminServicesPage() {
       toast(err?.message || "Failed to update service", "error");
     } finally {
       setEditSaving(false);
+    }
+  };
+
+  const uploadEditHeroImage = async (files: FileList | null) => {
+    if (!files || !files[0]) return;
+    const formData = new FormData();
+    formData.append("images", files[0]);
+
+    try {
+      const res = await apiRequest(
+        "/api/admin/upload-images",
+        "POST",
+        formData,
+        true,
+        true
+      );
+
+      const url = Array.isArray(res?.urls) ? res.urls[0] : "";
+      if (!url) {
+        toast("Upload succeeded but no URL returned", "error");
+        return;
+      }
+
+      setEditImageUrl(url);
+      toast("Hero image uploaded", "success");
+    } catch (err: any) {
+      toast(err?.message || "Failed to upload image", "error");
     }
   };
 
@@ -230,6 +263,23 @@ export default function AdminServicesPage() {
           <option value="assisted">Assisted</option>
           <option value="instant">Instant</option>
         </select>
+
+        <input
+          placeholder="Image URL (hero image for service)"
+          value={imageUrl}
+          onChange={(e) => setImageUrl(e.target.value)}
+          className="u-input"
+        />
+
+        {imageUrl && (
+          <div className="rounded-lg overflow-hidden border border-white/10">
+            <img
+              src={imageUrl}
+              alt="preview"
+              className="w-full h-40 object-cover"
+            />
+          </div>
+        )}
 
         <input
           type="file"
@@ -405,6 +455,38 @@ export default function AdminServicesPage() {
                   <option value="instant">Instant</option>
                 </select>
               </div>
+
+              <input
+                placeholder="Image URL (hero image for service)"
+                value={editImageUrl}
+                onChange={(e) => setEditImageUrl(e.target.value)}
+                className="u-input"
+              />
+
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <p className="text-xs text-[#9CA3AF]">
+                  Upload will set the Image URL automatically.
+                </p>
+                <label className="px-3 py-2 rounded bg-white/5 border border-white/10 text-white text-sm hover:bg-white/10 cursor-pointer">
+                  Upload hero image
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => uploadEditHeroImage(e.target.files)}
+                  />
+                </label>
+              </div>
+
+              {editImageUrl && (
+                <div className="rounded-lg overflow-hidden border border-white/10">
+                  <img
+                    src={editImageUrl}
+                    alt="preview"
+                    className="w-full h-40 object-cover"
+                  />
+                </div>
+              )}
 
               <label className="flex items-center gap-2 text-sm text-slate-200">
                 <input
