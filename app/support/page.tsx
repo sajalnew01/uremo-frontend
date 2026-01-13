@@ -4,12 +4,18 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 
 export default function SupportPage() {
-  const whatsappNumber = (
-    process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || ""
+  const whatsappConfigured = (
+    process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || "+919749040727"
   ).trim();
-  const whatsappHref = whatsappNumber
-    ? `https://wa.me/${encodeURIComponent(whatsappNumber)}`
+
+  // wa.me expects digits only (no +, spaces, or dashes)
+  const whatsappDigits = whatsappConfigured.replace(/[^\d]/g, "");
+  const whatsappDisplay = whatsappConfigured.startsWith("+")
+    ? whatsappConfigured
+    : whatsappDigits
+    ? `+${whatsappDigits}`
     : "";
+  const whatsappHref = whatsappDigits ? `https://wa.me/${whatsappDigits}` : "";
 
   return (
     <motion.div
@@ -61,48 +67,28 @@ export default function SupportPage() {
           {/* WhatsApp Support - Optional, config-driven */}
           <div className="p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition">
             <div className="flex items-start gap-4">
-              {whatsappNumber ? (
-                <div className="p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition">
-                  <div className="flex items-start gap-4">
-                    <div className="text-2xl">💬</div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-white mb-1">
-                        WhatsApp Support
-                      </h3>
-                      <p className="text-sm text-slate-300 mb-3">
-                        Quick responses via WhatsApp.
-                      </p>
-                      <a
-                        href={whatsappHref}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-2 text-sm text-emerald-300 hover:text-emerald-200 transition font-medium"
-                      >
-                        Contact via WhatsApp{" "}
-                        <span className="text-[#9CA3AF]">→</span>
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
               <div className="text-2xl">💬</div>
               <div className="flex-1">
                 <h3 className="font-semibold text-white mb-1">
                   WhatsApp Support
                 </h3>
                 <p className="text-sm text-slate-300 mb-3">
-                  Quick responses via WhatsApp (when available).
+                  Quick responses via WhatsApp.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    // Config-driven: open WhatsApp or show placeholder
-                    window.open("https://wa.me/1234567890", "_blank");
-                  }}
+                {whatsappDisplay && (
+                  <p className="text-xs text-slate-400 mb-3">
+                    {whatsappDisplay}
+                  </p>
+                )}
+
+                <a
+                  href={whatsappHref}
+                  target="_blank"
+                  rel="noreferrer"
                   className="inline-flex items-center gap-2 text-sm text-emerald-300 hover:text-emerald-200 transition font-medium"
                 >
                   Contact via WhatsApp <span className="text-[#9CA3AF]">→</span>
-                </button>
+                </a>
               </div>
             </div>
           </div>
