@@ -45,15 +45,15 @@ export async function apiRequest<T = any>(
   isFormData: boolean = false
 ): Promise<T> {
   const envBase = process.env.NEXT_PUBLIC_API_URL?.trim();
+  const defaultProdBase = "https://uremo-backend.onrender.com";
   const baseUrl = (
-    envBase || (process.env.NODE_ENV === "development" ? "http://localhost:5000" : "")
+    envBase ||
+    (process.env.NODE_ENV === "development"
+      ? "http://localhost:5000"
+      : defaultProdBase)
   ).replace(/\/+$/, "");
 
-  if (!baseUrl) {
-    throw new Error(
-      "NEXT_PUBLIC_API_URL is not set. Please configure it for this deployment."
-    );
-  }
+  // baseUrl is always non-empty due to fallback.
 
   const headers: Record<string, string> = {};
 

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError, apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Order {
   _id: string;
@@ -37,6 +38,7 @@ export default function OrderDetailsPage({
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const { ready: authReady, isAuthenticated } = useAuth();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -131,8 +133,9 @@ export default function OrderDetailsPage({
   // Poll for new messages (reliability: prevents "stuck" chat)
   useEffect(() => {
     if (!isValidOrderId) return;
+    if (!authReady || !isAuthenticated) return;
 
-    const intervalMs = 7000;
+    const intervalMs = 5000;
     const id = window.setInterval(() => {
       // Avoid spamming while user is actively sending
       if (!sending) {
@@ -141,7 +144,7 @@ export default function OrderDetailsPage({
     }, intervalMs);
 
     return () => window.clearInterval(id);
-  }, [params.id, isValidOrderId, sending]);
+  }, [params.id, isValidOrderId, sending, authReady, isAuthenticated]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });

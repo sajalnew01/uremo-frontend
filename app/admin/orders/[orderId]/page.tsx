@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
+import { useToast } from "@/hooks/useToast";
+import InlineError from "@/components/ui/InlineError";
 
 type StatusLogItem = { text: string; at: string };
 
@@ -32,11 +34,13 @@ type Order = {
 
 export default function AdminOrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
+  const { toast } = useToast();
 
   const [order, setOrder] = useState<Order | null>(null);
   const [messages, setMessages] = useState<OrderMessage[]>([]);
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
 
   const loadOrder = async () => {
@@ -51,7 +55,12 @@ export default function AdminOrderDetailPage() {
       null,
       true
     );
-    setMessages(Array.isArray(data) ? data : []);
+    const list = Array.isArray(data) ? (data as OrderMessage[]) : [];
+    list.sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+    setMessages(list);
   };
 
   useEffect(() => {
@@ -85,9 +94,10 @@ export default function AdminOrderDetailPage() {
     if (!text) return;
 
     setSending(true);
+    setSendError(null);
     try {
       await apiRequest(
-        `/api/admin/orders/${orderId}/reply`,
+        `/api/orders/${orderId}/messages`,
         "POST",
         { message: text },
         true
@@ -95,7 +105,9 @@ export default function AdminOrderDetailPage() {
       setReply("");
       await loadMessages();
     } catch (e: any) {
-      alert(e?.message || "Failed to send reply");
+      const msg = e?.message || "Failed to send reply";
+      setSendError(msg);
+      toast(msg, "error");
     } finally {
       setSending(false);
     }
@@ -195,6 +207,12 @@ export default function AdminOrderDetailPage() {
           </button>
         </div>
 
+        {sendError && (
+          <div className="mt-3">
+            <InlineError title="Couldn’t send reply" message={sendError} />
+          </div>
+        )}
+
         <div className="mt-4 h-[420px] overflow-y-auto rounded-lg border border-white/10 bg-[#020617] p-4 space-y-3">
           {messages.length === 0 ? (
             <p className="text-sm text-[#9CA3AF]">No messages yet.</p>
@@ -229,7 +247,10 @@ export default function AdminOrderDetailPage() {
             className="flex-1 rounded-lg border border-white/10 bg-[#020617] px-3 py-2 text-sm text-white placeholder:text-[#64748B]"
             placeholder="Reply to user…"
             value={reply}
-            onChange={(e) => setReply(e.target.value)}
+            onChange={(e) => {
+              setReply(e.target.value);
+              if (sendError) setSendError(null);
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter") sendReply();
             }}
