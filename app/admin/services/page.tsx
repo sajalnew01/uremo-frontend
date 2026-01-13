@@ -56,14 +56,14 @@ export default function AdminServicesPage() {
       );
       setImages(res.urls);
     } catch (err) {
-      alert("Failed to upload images");
+      toast("Failed to upload images", "error");
     }
   };
 
   // create service
   const createService = async () => {
     if (!title || !category || !description || !price) {
-      alert("Missing required fields");
+      toast("Missing required fields", "error");
       return;
     }
 
@@ -95,9 +95,9 @@ export default function AdminServicesPage() {
       setImageUrl("");
 
       await loadServices();
-      alert("Service added successfully and is now live.");
+      toast("Service added successfully and is now live.", "success");
     } catch (err: any) {
-      alert(err.message || "Failed to create service");
+      toast(err.message || "Failed to create service", "error");
     } finally {
       setLoading(false);
     }
@@ -113,7 +113,7 @@ export default function AdminServicesPage() {
       );
       loadServices();
     } catch (err) {
-      alert("Failed to update service");
+      toast("Failed to update service", "error");
     }
   };
 
@@ -123,7 +123,7 @@ export default function AdminServicesPage() {
       await apiRequest(`/api/admin/services/${id}`, "DELETE", null, true);
       loadServices();
     } catch (err) {
-      alert("Failed to delete service");
+      toast("Failed to delete service", "error");
     }
   };
 

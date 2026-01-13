@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
+import { useToast } from "@/hooks/useToast";
 
 export default function AdminPaymentsPage() {
+  const { toast } = useToast();
   const [methods, setMethods] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -27,7 +29,7 @@ export default function AdminPaymentsPage() {
   // create payment method
   const createMethod = async () => {
     if (!name || !type || !details) {
-      alert("Missing required fields");
+      toast("Missing required fields", "error");
       return;
     }
 
@@ -47,7 +49,7 @@ export default function AdminPaymentsPage() {
 
       loadMethods();
     } catch (err) {
-      alert("Failed to create payment method");
+      toast("Failed to create payment method", "error");
     } finally {
       setLoading(false);
     }

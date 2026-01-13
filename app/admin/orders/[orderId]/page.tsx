@@ -6,6 +6,7 @@ import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import InlineError from "@/components/ui/InlineError";
+import FilePreview from "@/components/FilePreview";
 
 type StatusLogItem = { text: string; at: string };
 
@@ -28,6 +29,8 @@ type Order = {
     methodId?: { name: string };
     reference?: string;
     proofUrl?: string;
+    proofResourceType?: "image" | "raw";
+    proofFormat?: string;
     submittedAt?: string;
   };
 };
@@ -161,14 +164,13 @@ export default function AdminOrderDetailPage() {
             </select>
 
             {order.payment?.proofUrl && (
-              <a
-                href={order.payment.proofUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="px-3 py-2 text-sm rounded bg-white/5 border border-white/10 text-white hover:bg-white/10"
-              >
-                View proof
-              </a>
+              <FilePreview
+                url={order.payment.proofUrl}
+                label="View proof"
+                type={
+                  order.payment.proofResourceType === "raw" ? "raw" : "image"
+                }
+              />
             )}
           </div>
         </Card>

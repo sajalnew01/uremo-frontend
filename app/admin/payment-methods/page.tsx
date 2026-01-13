@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
+import { useToast } from "@/hooks/useToast";
 
 interface PaymentMethod {
   _id: string;
@@ -14,6 +15,7 @@ interface PaymentMethod {
 }
 
 export default function AdminPaymentMethodsPage() {
+  const { toast } = useToast();
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -33,13 +35,13 @@ export default function AdminPaymentMethodsPage() {
       setMethods(data);
     } catch (err) {
       console.error(err);
-      alert("Failed to load payment methods");
+      toast("Failed to load payment methods", "error");
     }
   };
 
   const createMethod = async () => {
     if (!type || !label || !value) {
-      alert("Type, label, and value are required");
+      toast("Type, label, and value are required", "error");
       return;
     }
 
@@ -64,7 +66,7 @@ export default function AdminPaymentMethodsPage() {
       loadMethods();
     } catch (err) {
       console.error(err);
-      alert("Failed to create payment method");
+      toast("Failed to create payment method", "error");
     } finally {
       setLoading(false);
     }
@@ -81,7 +83,7 @@ export default function AdminPaymentMethodsPage() {
       loadMethods();
     } catch (err) {
       console.error(err);
-      alert("Failed to update payment method");
+      toast("Failed to update payment method", "error");
     }
   };
 

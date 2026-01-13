@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
+import { useToast } from "@/hooks/useToast";
 
 type InboxItem = {
   orderId: string;
@@ -16,6 +17,7 @@ type InboxItem = {
 
 export default function AdminInboxPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [items, setItems] = useState<InboxItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,7 +27,7 @@ export default function AdminInboxPage() {
       const data = await apiRequest("/api/admin/messages", "GET", null, true);
       setItems(Array.isArray(data) ? data : []);
     } catch (e: any) {
-      alert(e?.message || "Failed to load inbox");
+      toast(e?.message || "Failed to load inbox", "error");
     } finally {
       setLoading(false);
     }

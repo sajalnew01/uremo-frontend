@@ -46,6 +46,7 @@ export default function OrderDetailsPage() {
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [messageLoadError, setMessageLoadError] = useState<string | null>(null);
+  const [chatGlow, setChatGlow] = useState(false);
   const endRef = useRef<HTMLDivElement | null>(null);
   const chatSectionRef = useRef<HTMLDivElement | null>(null);
   const chatInputRef = useRef<HTMLInputElement | null>(null);
@@ -185,6 +186,9 @@ export default function OrderDetailsPage() {
     if (!order) return;
 
     scrollToChat({ focus: true, behavior: "auto" });
+    setChatGlow(true);
+    const id = window.setTimeout(() => setChatGlow(false), 2000);
+    return () => window.clearTimeout(id);
   }, [searchParams, loading, order]);
 
   const isPendingPayment = order?.status === "payment_pending";
@@ -400,7 +404,9 @@ export default function OrderDetailsPage() {
       {/* Chat */}
       <div
         ref={chatSectionRef}
-        className="border border-[#1F2937] rounded-lg p-6 bg-[#0F172A]"
+        className={`border border-[#1F2937] rounded-lg p-6 bg-[#0F172A] transition-shadow ${
+          chatGlow ? "shadow-[0_0_0_3px_rgba(59,130,246,0.35)]" : ""
+        }`}
       >
         <div className="flex items-center justify-between">
           <div>

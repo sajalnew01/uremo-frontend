@@ -3,8 +3,10 @@
 import { useState } from "react";
 import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
+import { useToast } from "@/hooks/useToast";
 
 export default function PaymentPage() {
+  const { toast } = useToast();
   const [orderId, setOrderId] = useState("");
   const [method, setMethod] = useState("");
   const [tx, setTx] = useState("");
@@ -13,7 +15,7 @@ export default function PaymentPage() {
 
   const submit = async () => {
     if (!orderId || !method || !file) {
-      alert("Order ID, payment method, and proof are required");
+      toast("Order ID, payment method, and proof are required", "error");
       return;
     }
 
@@ -31,10 +33,10 @@ export default function PaymentPage() {
         true,
         true
       );
-      alert("Payment submitted. Manual verification in progress.");
+      toast("Payment submitted. Manual verification in progress.", "success");
       window.location.href = "/orders";
     } catch (err: any) {
-      alert(err.message || "Submission failed");
+      toast(err.message || "Submission failed", "error");
     } finally {
       setLoading(false);
     }

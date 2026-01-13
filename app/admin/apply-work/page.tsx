@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
+import { useToast } from "@/hooks/useToast";
+import FilePreview from "@/components/FilePreview";
 
 interface App {
   _id: string;
@@ -20,6 +22,7 @@ const badge = (s: string) =>
     : "bg-yellow-600";
 
 export default function AdminApplyWork() {
+  const { toast } = useToast();
   const [apps, setApps] = useState<App[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -34,7 +37,7 @@ export default function AdminApplyWork() {
       );
       setApps(data);
     } catch (err: any) {
-      alert(err.message || "Failed to load applications");
+      toast(err.message || "Failed to load applications", "error");
     } finally {
       setLoading(false);
     }
@@ -70,14 +73,9 @@ export default function AdminApplyWork() {
                   {a.message || "No message"}
                 </p>
 
-                <a
-                  href={a.resumeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block mt-2 text-[#3B82F6] text-sm"
-                >
-                  View resume
-                </a>
+                <div className="mt-3">
+                  <FilePreview url={a.resumeUrl} label="Open resume" />
+                </div>
               </div>
 
               <div className="text-right space-y-2">

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
+import { useToast } from "@/hooks/useToast";
+import FilePreview from "@/components/FilePreview";
 
 interface Application {
   _id: string;
@@ -32,6 +34,7 @@ const statusColor = (status: string) => {
 };
 
 export default function AdminApplicationsPage() {
+  const { toast } = useToast();
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
@@ -47,7 +50,7 @@ export default function AdminApplicationsPage() {
       setApplications(data);
     } catch (err) {
       console.error(err);
-      alert("Failed to load applications");
+      toast("Failed to load applications", "error");
     } finally {
       setLoading(false);
     }
@@ -65,7 +68,7 @@ export default function AdminApplicationsPage() {
       loadApplications();
     } catch (err) {
       console.error(err);
-      alert("Failed to update application");
+      toast("Failed to update application", "error");
     } finally {
       setUpdating(null);
     }
@@ -117,15 +120,14 @@ export default function AdminApplicationsPage() {
 
               {/* Resume Link */}
               <div className="border-b border-[#1F2937] pb-3">
-                <a
-                  href={app.resumeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  download={app.resumeOriginalName}
-                  className="text-[#3B82F6] underline text-sm"
-                >
-                  📄 Open / Download Resume
-                </a>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <p className="text-sm text-[#9CA3AF]">Resume</p>
+                  <FilePreview
+                    url={app.resumeUrl}
+                    label="Open resume"
+                    type={app.resumeMimeType?.includes("pdf") ? "raw" : "image"}
+                  />
+                </div>
               </div>
 
               {/* Status & Actions */}

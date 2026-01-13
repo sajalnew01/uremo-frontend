@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/useToast";
 
 export default function PaymentPage() {
   const { orderId } = useParams();
+  const resolvedOrderId = Array.isArray(orderId) ? orderId[0] : orderId;
   const router = useRouter();
   const { toast } = useToast();
 
@@ -16,16 +17,31 @@ export default function PaymentPage() {
   const [reference, setReference] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [faqOpen, setFaqOpen] = useState<number | null>(0);
 
   const loadOrder = async () => {
-    const data = await apiRequest(`/api/orders/${orderId}`, "GET", null, true);
+    const data = await apiRequest(
+      `/api/orders/${resolvedOrderId}`,
+      "GET",
+      null,
+      true
+    );
     setOrder(data);
   };
 
   useEffect(() => {
     loadOrder();
     apiRequest("/api/payments", "GET").then(setMethods);
-  }, [orderId]);
+  }, [resolvedOrderId]);
+
+  const copy = async (value: string, what: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast(`${what} copied`, "success");
+    } catch {
+      toast("Copy failed", "error");
+    }
+  };
 
   const status: string | undefined = order?.status;
   const isExpired =
@@ -66,19 +82,22 @@ export default function PaymentPage() {
       );
 
       await apiRequest(
-        `/api/orders/${orderId}/payment`,
+        `/api/orders/${resolvedOrderId}/payment`,
         "PUT",
         {
           methodId: selectedMethodId,
           reference,
           proofUrl: uploadRes.url,
+          proofPublicId: uploadRes.publicId,
+          proofResourceType: uploadRes.resourceType,
+          proofFormat: uploadRes.format,
         },
         true
       );
 
-      toast("Payment submitted. Await verification.", "success");
+      toast("Proof submitted. Redirecting…", "success");
       setFile(null);
-      await loadOrder();
+      router.push(`/orders/${resolvedOrderId}?chat=1`);
     } catch (e: any) {
       toast(e.message || "Failed to submit proof", "error");
     } finally {
@@ -143,14 +162,35 @@ export default function PaymentPage() {
 
         <div className="mt-4 h-px bg-white/10" />
 
-        <div className="mt-4 flex items-center justify-between text-sm">
-          <p className="text-slate-300">
-            <span className="text-[#9CA3AF]">Service:</span>{" "}
-            {order.serviceId?.title}
-          </p>
-          <p className="text-emerald-300 font-semibold">
-            ${order.serviceId?.price}
-          </p>
+        <div className="mt-4 grid gap-3 md:grid-cols-2 text-sm">
+          <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+            <p className="text-xs text-[#9CA3AF]">Order ID</p>
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <p className="text-slate-200 font-mono text-xs break-all">
+                {String(resolvedOrderId || "")}
+              </p>
+              <button
+                type="button"
+                onClick={() => copy(String(resolvedOrderId || ""), "Order ID")}
+                className="px-3 py-1.5 text-xs rounded bg-white/5 border border-white/10 text-white hover:bg-white/10"
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+            <p className="text-xs text-[#9CA3AF]">Payment summary</p>
+            <div className="mt-1 flex items-center justify-between gap-3">
+              <p className="text-slate-200">{order.serviceId?.title}</p>
+              <p className="text-emerald-300 font-semibold">
+                ${order.serviceId?.price}
+              </p>
+            </div>
+            <p className="mt-1 text-xs text-[#9CA3AF]">
+              Make sure the amount matches your receipt.
+            </p>
+          </div>
         </div>
       </div>
 
@@ -230,8 +270,25 @@ export default function PaymentPage() {
                 }}
                 aria-disabled={!canSubmit}
               >
-                <p className="font-semibold">{m.name}</p>
-                <p className="text-sm text-slate-200 mt-1">{m.details}</p>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold">{m.name}</p>
+                    <p className="text-sm text-slate-200 mt-1 break-all">
+                      {m.details}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copy(String(m.details || ""), "Payment details");
+                    }}
+                    className="px-3 py-1.5 text-xs rounded bg-white/5 border border-white/10 text-white hover:bg-white/10"
+                    disabled={!m.details}
+                  >
+                    Copy
+                  </button>
+                </div>
                 {m.instructions && (
                   <p className="text-xs text-[#9CA3AF] mt-2">
                     {m.instructions}
@@ -294,7 +351,33 @@ export default function PaymentPage() {
                   <input
                     type="file"
                     disabled={!canSubmit}
-                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                    accept="image/*,application/pdf"
+                    onChange={(e) => {
+                      const next = e.target.files?.[0] || null;
+                      if (!next) {
+                        setFile(null);
+                        return;
+                      }
+                      const allowed = [
+                        "image/jpeg",
+                        "image/png",
+                        "image/webp",
+                        "application/pdf",
+                      ];
+                      if (!allowed.includes(next.type)) {
+                        toast("Only PNG/JPG/WEBP/PDF allowed", "error");
+                        e.target.value = "";
+                        setFile(null);
+                        return;
+                      }
+                      if (next.size > 10 * 1024 * 1024) {
+                        toast("File too large (max 10MB)", "error");
+                        e.target.value = "";
+                        setFile(null);
+                        return;
+                      }
+                      setFile(next);
+                    }}
                     className="hidden"
                   />
                 </label>
@@ -341,6 +424,69 @@ export default function PaymentPage() {
         Need help? Open your <span className="text-white">My Orders</span> page
         and use the order chat.
       </p>
+
+      {/* FAQ */}
+      <div className="card">
+        <h3 className="font-semibold">Payment FAQ</h3>
+        <p className="mt-1 text-sm text-[#9CA3AF]">
+          New here? These are the most common questions.
+        </p>
+
+        <div className="mt-4 space-y-2">
+          {[
+            {
+              q: "What should my payment proof include?",
+              a: "A clear screenshot/receipt showing the amount, receiver details, and date/time (if available).",
+            },
+            {
+              q: "How long does verification take?",
+              a: "We verify manually. Most proofs are verified within a few minutes, but it can take longer during peak times.",
+            },
+            {
+              q: "Why was my proof rejected?",
+              a: "Common reasons: wrong amount, wrong receiver, cropped/blurred image, reused proof, or missing transaction details.",
+            },
+            {
+              q: "Can I upload a PDF instead of an image?",
+              a: "Yes. PDFs and images are accepted for proof uploads.",
+            },
+            {
+              q: "What if I used a different payment method than I selected?",
+              a: "Select the method you actually used. If unsure, choose the closest match and tell support in the order chat.",
+            },
+            {
+              q: "I submitted proof — what happens next?",
+              a: "You’ll be redirected to your order details. Support chat opens automatically so you can message us if needed.",
+            },
+          ].map((item, idx) => {
+            const open = faqOpen === idx;
+            return (
+              <div
+                key={idx}
+                className="rounded-xl border border-white/10 bg-white/5"
+              >
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFaqOpen((cur) => (cur === idx ? null : idx))
+                  }
+                  className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left"
+                >
+                  <span className="text-sm font-medium text-slate-200">
+                    {item.q}
+                  </span>
+                  <span className="text-[#9CA3AF]">{open ? "−" : "+"}</span>
+                </button>
+                {open && (
+                  <div className="px-4 pb-4 text-sm text-[#9CA3AF]">
+                    {item.a}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

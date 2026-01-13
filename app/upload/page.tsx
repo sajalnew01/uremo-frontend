@@ -2,15 +2,17 @@
 
 import { useState } from "react";
 import Container from "@/components/Container";
+import { useToast } from "@/hooks/useToast";
 
 export default function Upload() {
+  const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [orderId, setOrderId] = useState("");
   const [loading, setLoading] = useState(false);
 
   const submit = async () => {
     if (!file || !orderId) {
-      alert("Missing info");
+      toast("Missing info", "error");
       return;
     }
 
@@ -35,11 +37,11 @@ export default function Upload() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Upload failed");
 
-      alert("Uploaded successfully");
+      toast("Uploaded successfully", "success");
       setFile(null);
       setOrderId("");
     } catch (err: any) {
-      alert(err.message);
+      toast(err.message || "Upload failed", "error");
     } finally {
       setLoading(false);
     }
