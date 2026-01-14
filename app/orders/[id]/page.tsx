@@ -55,7 +55,6 @@ export default function OrderDetailsPage() {
   const [messages, setMessages] = useState<OrderMessage[]>([]);
   const [messageText, setMessageText] = useState<string>("");
   const [sending, setSending] = useState(false);
-  const [sendError, setSendError] = useState<string | null>(null);
   const [messageLoadError, setMessageLoadError] = useState<string | null>(null);
   const [chatGlow, setChatGlow] = useState(false);
   const endRef = useRef<HTMLDivElement | null>(null);
@@ -92,10 +91,6 @@ export default function OrderDetailsPage() {
     return /^[a-f\d]{24}$/i.test(String(orderId || ""));
   }, [orderId]);
 
-  useEffect(() => {
-    console.log("Chat endpoint:", `/api/orders/${orderId}/messages`);
-  }, [orderId]);
-
   const loadOrder = async () => {
     setLoadError(null);
     setNotFound(false);
@@ -130,7 +125,7 @@ export default function OrderDetailsPage() {
         return;
       }
 
-      setLoadError(apiErr?.message || ui.loadOrderFailedText);
+      setLoadError(ui.loadOrderFailedText);
     } finally {
       setLoading(false);
     }
@@ -162,7 +157,11 @@ export default function OrderDetailsPage() {
       }
 
       const msg = apiErr?.message || ui.loadMessagesFailedText;
-      setMessageLoadError(msg);
+      // Avoid rendering raw server/JS errors in the UI.
+      setMessageLoadError(ui.loadMessagesFailedText);
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("[orders chat] loadMessages failed:", msg);
+      }
     }
   };
 
@@ -216,11 +215,15 @@ export default function OrderDetailsPage() {
     const text = messageText.trim();
     if (!text) return;
 
+    if (!authReady || !isAuthenticated) {
+      toast("Please login to chat", "error");
+      return;
+    }
+
     if (process.env.NODE_ENV !== "production") {
       console.log("sending", orderId, text);
     }
 
-    setSendError(null);
     setSending(true);
     try {
       await apiRequest(
@@ -233,9 +236,18 @@ export default function OrderDetailsPage() {
       await loadMessages();
       toast(ui.messageSentToast, "success");
     } catch (err: any) {
-      const msg = err?.message || ui.sendFailedText;
-      setSendError(msg);
-      toast(msg, "error");
+      const apiErr = err as ApiError;
+      if (apiErr?.status === 401 || apiErr?.status === 403) {
+        toast("Please login to chat", "error");
+        return;
+      }
+
+      const rawMsg = (err as any)?.message;
+      if (process.env.NODE_ENV !== "production" && rawMsg) {
+        console.warn("[orders chat] sendMessage failed:", rawMsg);
+      }
+
+      toast(ui.sendFailedText, "error");
     } finally {
       setSending(false);
     }
@@ -549,7 +561,6 @@ export default function OrderDetailsPage() {
               value={messageText}
               onChange={(e) => {
                 setMessageText(e.target.value);
-                if (sendError) setSendError(null);
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
@@ -562,15 +573,15 @@ export default function OrderDetailsPage() {
             <button
               type="button"
               onClick={sendMessage}
-              disabled={sending || !messageText.trim()}
+              disabled={
+                sending || !messageText.trim() || !authReady || !isAuthenticated
+              }
               className="px-4 py-2 rounded-lg bg-[#3B82F6] text-white text-sm disabled:opacity-50 w-full sm:w-auto"
             >
               {sending ? ui.sendingButtonText : ui.sendButtonText}
             </button>
           </div>
         </div>
-
-        {sendError && <p className="mt-2 text-xs text-red-400">{sendError}</p>}
 
         <p className="mt-3 text-xs text-[#9CA3AF]">{ui.supportRepliesHint}</p>
       </div>
