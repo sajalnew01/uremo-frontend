@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { ApiError, apiRequest } from "@/lib/api";
+import { ApiError, apiRequest, getApiBaseUrl } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -33,6 +33,7 @@ type OrderMessage = {
   senderRole: "user" | "admin";
   message: string;
   createdAt: string;
+  optimistic?: boolean;
 };
 
 export default function OrderDetailsPage() {
@@ -57,9 +58,16 @@ export default function OrderDetailsPage() {
   const [sending, setSending] = useState(false);
   const [messageLoadError, setMessageLoadError] = useState<string | null>(null);
   const [chatGlow, setChatGlow] = useState(false);
+  const [chatConnection, setChatConnection] = useState<
+    "connecting" | "open" | "offline" | "unsupported"
+  >("connecting");
+  const [streamKey, setStreamKey] = useState(0);
   const endRef = useRef<HTMLDivElement | null>(null);
   const chatSectionRef = useRef<HTMLDivElement | null>(null);
   const chatInputRef = useRef<HTMLInputElement | null>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const pollTimerRef = useRef<number | null>(null);
+  const seenMessageIdsRef = useRef<Set<string>>(new Set());
 
   const quickReplies = useMemo(() => {
     const list = settings?.orderSupport?.quickReplies;
@@ -147,6 +155,12 @@ export default function OrderDetailsPage() {
           new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       );
       setMessages(list);
+
+      const nextSeen = new Set<string>();
+      for (const msg of list) {
+        if (msg?._id) nextSeen.add(String(msg._id));
+      }
+      seenMessageIdsRef.current = nextSeen;
     } catch (err) {
       const apiErr = err as ApiError;
       if (apiErr?.status === 401 || apiErr?.status === 403) {
@@ -170,21 +184,106 @@ export default function OrderDetailsPage() {
     loadMessages();
   }, [orderId]);
 
-  // Poll for new messages (reliability: prevents "stuck" chat)
+  const stopPolling = () => {
+    if (pollTimerRef.current) {
+      window.clearInterval(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
+  };
+
+  const startPolling = () => {
+    stopPolling();
+    const intervalMs = 5000;
+    pollTimerRef.current = window.setInterval(() => {
+      if (!sending) loadMessages();
+    }, intervalMs);
+  };
+
+  // Realtime: SSE stream. Fallback to polling when unsupported/offline.
   useEffect(() => {
     if (!isValidOrderId) return;
-    if (!authReady || !isAuthenticated) return;
 
-    const intervalMs = 5000;
-    const id = window.setInterval(() => {
-      // Avoid spamming while user is actively sending
-      if (!sending) {
-        loadMessages();
+    // Tear down existing connections when auth/order changes.
+    const existing = eventSourceRef.current;
+    if (existing) {
+      try {
+        existing.close();
+      } catch {}
+      eventSourceRef.current = null;
+    }
+    stopPolling();
+
+    if (!authReady || !isAuthenticated) {
+      setChatConnection("offline");
+      return;
+    }
+
+    if (typeof window === "undefined") return;
+    if (typeof EventSource === "undefined") {
+      setChatConnection("unsupported");
+      startPolling();
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setChatConnection("offline");
+      startPolling();
+      return;
+    }
+
+    setChatConnection("connecting");
+
+    const url = `${getApiBaseUrl()}/api/orders/${orderId}/messages/stream?token=${encodeURIComponent(
+      token
+    )}`;
+    const es = new EventSource(url);
+    eventSourceRef.current = es;
+
+    es.onopen = () => {
+      setChatConnection("open");
+    };
+
+    es.onmessage = (event) => {
+      try {
+        const parsed = JSON.parse(event.data);
+        const msg = parsed as OrderMessage;
+        const id = msg?._id ? String(msg._id) : null;
+        if (!id) return;
+        if (seenMessageIdsRef.current.has(id)) return;
+
+        seenMessageIdsRef.current.add(id);
+        setMessages((prev) => {
+          if (prev.some((m) => String(m._id) === id)) return prev;
+          const next = [...prev, msg];
+          next.sort(
+            (a, b) =>
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+          return next;
+        });
+      } catch {
+        // Ignore malformed stream packets
       }
-    }, intervalMs);
+    };
 
-    return () => window.clearInterval(id);
-  }, [orderId, isValidOrderId, sending, authReady, isAuthenticated]);
+    es.onerror = () => {
+      setChatConnection("offline");
+      try {
+        es.close();
+      } catch {}
+      if (eventSourceRef.current === es) eventSourceRef.current = null;
+      startPolling();
+    };
+
+    return () => {
+      try {
+        es.close();
+      } catch {}
+      if (eventSourceRef.current === es) eventSourceRef.current = null;
+      stopPolling();
+    };
+  }, [orderId, isValidOrderId, authReady, isAuthenticated, streamKey]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -224,16 +323,51 @@ export default function OrderDetailsPage() {
       console.log("sending", orderId, text);
     }
 
+    const tempId = `temp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const optimisticMessage: OrderMessage = {
+      _id: tempId,
+      senderRole: "user",
+      message: text,
+      createdAt: new Date().toISOString(),
+      optimistic: true,
+    };
+
+    setMessages((prev) => {
+      const next = [...prev, optimisticMessage];
+      next.sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+      return next;
+    });
+    setMessageText("");
+
     setSending(true);
     try {
-      await apiRequest(
+      const created = await apiRequest<OrderMessage>(
         `/api/orders/${orderId}/messages`,
         "POST",
         { message: text },
         true
       );
-      setMessageText("");
-      await loadMessages();
+
+      // Replace optimistic message with server-confirmed message.
+      setMessages((prev) => {
+        const hasConfirmed = prev.some(
+          (m) => String(m._id) === String(created._id)
+        );
+        const withoutTemp = prev.filter((m) => m._id !== tempId);
+        if (hasConfirmed) return withoutTemp;
+        const next = [...withoutTemp, created];
+        next.sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+        return next;
+      });
+      if (created?._id) {
+        seenMessageIdsRef.current.add(String(created._id));
+      }
       toast(ui.messageSentToast, "success");
     } catch (err: any) {
       const apiErr = err as ApiError;
@@ -247,6 +381,8 @@ export default function OrderDetailsPage() {
         console.warn("[orders chat] sendMessage failed:", rawMsg);
       }
 
+      // Remove optimistic message on failure.
+      setMessages((prev) => prev.filter((m) => m._id !== tempId));
       toast(ui.sendFailedText, "error");
     } finally {
       setSending(false);
@@ -464,13 +600,43 @@ export default function OrderDetailsPage() {
             <h3 className="font-semibold text-lg">{ui.chatTitle}</h3>
             <p className="text-xs text-[#9CA3AF] mt-1">{ui.chatSubtitle}</p>
           </div>
-          <button
-            type="button"
-            onClick={loadMessages}
-            className="text-xs text-[#9CA3AF] hover:text-white transition"
-          >
-            {ui.refreshText}
-          </button>
+          <div className="flex items-center gap-3">
+            <span
+              className={`text-[11px] px-2 py-1 rounded-full border ${
+                chatConnection === "open"
+                  ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-200"
+                  : chatConnection === "connecting"
+                  ? "border-blue-500/25 bg-blue-500/10 text-blue-200"
+                  : "border-white/10 bg-white/5 text-[#9CA3AF]"
+              }`}
+            >
+              {chatConnection === "open"
+                ? "Live"
+                : chatConnection === "connecting"
+                ? "Connecting…"
+                : chatConnection === "unsupported"
+                ? "Realtime unavailable"
+                : "Offline"}
+            </span>
+
+            {chatConnection !== "open" && (
+              <button
+                type="button"
+                onClick={() => setStreamKey((k) => k + 1)}
+                className="text-xs text-[#9CA3AF] hover:text-white transition"
+              >
+                Retry
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={loadMessages}
+              className="text-xs text-[#9CA3AF] hover:text-white transition"
+            >
+              {ui.refreshText}
+            </button>
+          </div>
         </div>
 
         {messageLoadError && (

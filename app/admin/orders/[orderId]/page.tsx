@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Card from "@/components/Card";
-import { apiRequest, ApiError } from "@/lib/api";
+import { apiRequest, ApiError, getApiBaseUrl } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import InlineError from "@/components/ui/InlineError";
 import FilePreview from "@/components/FilePreview";
@@ -47,11 +47,31 @@ export default function AdminOrderDetailPage() {
   const [messages, setMessages] = useState<OrderMessage[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(true);
   const [messagesError, setMessagesError] = useState<string | null>(null);
+  const [chatConnection, setChatConnection] = useState<
+    "connecting" | "open" | "offline" | "unsupported"
+  >("connecting");
+  const [streamKey, setStreamKey] = useState(0);
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
   const pollTimerRef = useRef<number | null>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const seenMessageIdsRef = useRef<Set<string>>(new Set());
+
+  const stopPolling = () => {
+    if (pollTimerRef.current) {
+      window.clearInterval(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
+  };
+
+  const startPolling = () => {
+    stopPolling();
+    pollTimerRef.current = window.setInterval(() => {
+      if (!sending) loadMessages();
+    }, 5000);
+  };
 
   const loadOrder = async () => {
     setOrderError(null);
@@ -86,6 +106,13 @@ export default function AdminOrderDetailPage() {
           new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       );
       setMessages(list);
+
+      const nextSeen = new Set<string>();
+      for (const msg of list) {
+        if (msg?._id) nextSeen.add(String(msg._id));
+      }
+      seenMessageIdsRef.current = nextSeen;
+
       setMessagesError(null);
     } catch (err) {
       const apiErr = err as ApiError;
@@ -101,35 +128,99 @@ export default function AdminOrderDetailPage() {
     loadMessages();
 
     return () => {
-      if (pollTimerRef.current) {
-        window.clearInterval(pollTimerRef.current);
-        pollTimerRef.current = null;
+      stopPolling();
+      const existing = eventSourceRef.current;
+      if (existing) {
+        try {
+          existing.close();
+        } catch {}
+        eventSourceRef.current = null;
       }
     };
   }, [orderId]);
 
-  // Start polling only when auth is ready and user is authenticated
+  // Realtime: SSE stream. Fallback to polling when unsupported/offline.
   useEffect(() => {
-    if (!authReady || !isAuthenticated) return;
+    const existing = eventSourceRef.current;
+    if (existing) {
+      try {
+        existing.close();
+      } catch {}
+      eventSourceRef.current = null;
+    }
+    stopPolling();
 
-    if (pollTimerRef.current) {
-      window.clearInterval(pollTimerRef.current);
-      pollTimerRef.current = null;
+    if (!authReady || !isAuthenticated) {
+      setChatConnection("offline");
+      return;
     }
 
-    pollTimerRef.current = window.setInterval(() => {
-      if (!sending) {
-        loadMessages();
-      }
-    }, 5000);
+    if (typeof window === "undefined") return;
+    if (typeof EventSource === "undefined") {
+      setChatConnection("unsupported");
+      startPolling();
+      return;
+    }
 
-    return () => {
-      if (pollTimerRef.current) {
-        window.clearInterval(pollTimerRef.current);
-        pollTimerRef.current = null;
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setChatConnection("offline");
+      startPolling();
+      return;
+    }
+
+    setChatConnection("connecting");
+
+    const url = `${getApiBaseUrl()}/api/orders/${orderId}/messages/stream?token=${encodeURIComponent(
+      token
+    )}`;
+    const es = new EventSource(url);
+    eventSourceRef.current = es;
+
+    es.onopen = () => {
+      setChatConnection("open");
+    };
+
+    es.onmessage = (event) => {
+      try {
+        const parsed = JSON.parse(event.data);
+        const msg = parsed as OrderMessage;
+        const id = msg?._id ? String(msg._id) : null;
+        if (!id) return;
+        if (seenMessageIdsRef.current.has(id)) return;
+
+        seenMessageIdsRef.current.add(id);
+        setMessages((prev) => {
+          if (prev.some((m) => String(m._id) === id)) return prev;
+          const next = [...prev, msg];
+          next.sort(
+            (a, b) =>
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+          return next;
+        });
+      } catch {
+        // Ignore malformed stream packets
       }
     };
-  }, [orderId, authReady, isAuthenticated, sending]);
+
+    es.onerror = () => {
+      setChatConnection("offline");
+      try {
+        es.close();
+      } catch {}
+      if (eventSourceRef.current === es) eventSourceRef.current = null;
+      startPolling();
+    };
+
+    return () => {
+      try {
+        es.close();
+      } catch {}
+      if (eventSourceRef.current === es) eventSourceRef.current = null;
+      stopPolling();
+    };
+  }, [orderId, authReady, isAuthenticated, streamKey]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -173,23 +264,57 @@ export default function AdminOrderDetailPage() {
       return;
     }
 
+    const tempId = `temp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const optimisticMessage: OrderMessage = {
+      _id: tempId,
+      senderRole: "admin",
+      message: text,
+      createdAt: new Date().toISOString(),
+    };
+
+    setMessages((prev) => {
+      const next = [...prev, optimisticMessage];
+      next.sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+      return next;
+    });
+    setReply("");
+
     setSending(true);
     setSendError(null);
     try {
-      await apiRequest(
+      const created = await apiRequest<OrderMessage>(
         `/api/orders/${orderId}/messages`,
         "POST",
         { message: text },
         true
       );
-      setReply("");
-      await loadMessages();
+
+      setMessages((prev) => {
+        const hasConfirmed = prev.some(
+          (m) => String(m._id) === String(created._id)
+        );
+        const withoutTemp = prev.filter((m) => m._id !== tempId);
+        if (hasConfirmed) return withoutTemp;
+        const next = [...withoutTemp, created];
+        next.sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+        return next;
+      });
+      if (created?._id) {
+        seenMessageIdsRef.current.add(String(created._id));
+      }
       toast("Reply sent", "success");
     } catch (err) {
       const apiErr = err as ApiError;
       console.warn("[admin order] sendReply failed:", apiErr?.message);
       // Show safe message, never raw backend errors
       setSendError("Could not send reply. Please retry.");
+      setMessages((prev) => prev.filter((m) => m._id !== tempId));
       toast("Could not send reply. Please retry.", "error");
     } finally {
       setSending(false);
@@ -301,13 +426,43 @@ export default function AdminOrderDetailPage() {
       <Card>
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-lg">Chat</h3>
-          <button
-            type="button"
-            onClick={() => loadMessages()}
-            className="text-sm text-[#9CA3AF] hover:text-white"
-          >
-            Refresh
-          </button>
+          <div className="flex items-center gap-3">
+            <span
+              className={`text-[11px] px-2 py-1 rounded-full border ${
+                chatConnection === "open"
+                  ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-200"
+                  : chatConnection === "connecting"
+                  ? "border-blue-500/25 bg-blue-500/10 text-blue-200"
+                  : "border-white/10 bg-white/5 text-[#9CA3AF]"
+              }`}
+            >
+              {chatConnection === "open"
+                ? "Live"
+                : chatConnection === "connecting"
+                ? "Connecting…"
+                : chatConnection === "unsupported"
+                ? "Realtime unavailable"
+                : "Offline"}
+            </span>
+
+            {chatConnection !== "open" && (
+              <button
+                type="button"
+                onClick={() => setStreamKey((k) => k + 1)}
+                className="text-sm text-[#9CA3AF] hover:text-white"
+              >
+                Retry
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => loadMessages()}
+              className="text-sm text-[#9CA3AF] hover:text-white"
+            >
+              Refresh
+            </button>
+          </div>
         </div>
 
         {sendError && (

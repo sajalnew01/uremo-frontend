@@ -44,14 +44,7 @@ export async function apiRequest<T = any>(
   auth: boolean = false,
   isFormData: boolean = false
 ): Promise<T> {
-  const envBase = process.env.NEXT_PUBLIC_API_URL?.trim();
-  const defaultProdBase = "https://uremo-backend.onrender.com";
-  const baseUrl = (
-    envBase ||
-    (process.env.NODE_ENV === "development"
-      ? "http://localhost:5000"
-      : defaultProdBase)
-  ).replace(/\/+$/, "");
+  const baseUrl = getApiBaseUrl();
 
   // baseUrl is always non-empty due to fallback.
 
@@ -133,4 +126,15 @@ export async function apiRequest<T = any>(
   }
 
   return payload as T;
+}
+
+export function getApiBaseUrl(): string {
+  const envBase = process.env.NEXT_PUBLIC_API_URL?.trim();
+  const defaultProdBase = "https://uremo-backend.onrender.com";
+  return (
+    envBase ||
+    (process.env.NODE_ENV === "development"
+      ? "http://localhost:5000"
+      : defaultProdBase)
+  ).replace(/\/+$/, "");
 }
