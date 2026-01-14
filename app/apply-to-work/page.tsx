@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
@@ -28,12 +27,11 @@ type WorkPosition = {
 export default function ApplyToWorkPage() {
   const { toast } = useToast();
   const { data: settings } = useSiteSettings();
-  const searchParams = useSearchParams();
 
   const ui =
     settings?.applyWork?.ui || DEFAULT_PUBLIC_SITE_SETTINGS.applyWork.ui;
 
-  const requestedPositionId = searchParams?.get("positionId") || "";
+  const [requestedPositionId, setRequestedPositionId] = useState<string>("");
 
   const [positions, setPositions] = useState<WorkPosition[]>([]);
   const [positionsLoading, setPositionsLoading] = useState(true);
@@ -47,6 +45,16 @@ export default function ApplyToWorkPage() {
   const [loading, setLoading] = useState(false);
   const [existing, setExisting] = useState<Application | null>(null);
   const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      setRequestedPositionId(params.get("positionId") || "");
+    } catch {
+      setRequestedPositionId("");
+    }
+  }, []);
 
   const applyFaq =
     settings?.applyWork?.faq && settings.applyWork.faq.length
@@ -113,6 +121,14 @@ export default function ApplyToWorkPage() {
       setPositionsLoading(false);
     }
   };
+
+  useEffect(() => {
+    const preferredId = requestedPositionId.trim();
+    if (!preferredId) return;
+    if (positions.some((p) => p._id === preferredId)) {
+      setPositionId(preferredId);
+    }
+  }, [requestedPositionId, positions]);
 
   const submit = async () => {
     const selected = positionId ? positionsById.get(positionId) : null;

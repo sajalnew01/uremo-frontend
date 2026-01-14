@@ -852,6 +852,7 @@ const mergeWithDefaults = (input: any): PublicSiteSettings => {
   const paymentFaq = normalizeFaq(input?.payment?.faq || input?.faq?.payment);
 
   const paymentUi = input?.payment?.ui || {};
+  const paymentValidation = paymentUi?.validationTexts || {};
   const paymentUiMerged = {
     title: String(paymentUi.title || "").trim(),
     loadingText: String(paymentUi.loadingText || "").trim(),
@@ -864,7 +865,9 @@ const mergeWithDefaults = (input: any): PublicSiteSettings => {
     wizardStep3Subtitle: String(paymentUi.wizardStep3Subtitle || "").trim(),
     orderIdLabel: String(paymentUi.orderIdLabel || "").trim(),
     copyButtonText: String(paymentUi.copyButtonText || "").trim(),
-    copyFailedText: String(paymentUi.copyFailedText || "").trim(),
+    copyFailedText: String(
+      paymentUi.copyFailedText || paymentValidation.copyFailedText || ""
+    ).trim(),
     paymentSummaryLabel: String(paymentUi.paymentSummaryLabel || "").trim(),
     paymentSummaryHint: String(paymentUi.paymentSummaryHint || "").trim(),
     expiredTitle: String(paymentUi.expiredTitle || "").trim(),
@@ -879,17 +882,31 @@ const mergeWithDefaults = (input: any): PublicSiteSettings => {
     paymentMethodHelp: String(paymentUi.paymentMethodHelp || "").trim(),
     noPaymentMethodsText: String(paymentUi.noPaymentMethodsText || "").trim(),
     paymentDetailsCopiedText: String(
-      paymentUi.paymentDetailsCopiedText || ""
+      paymentUi.paymentDetailsCopiedText ||
+        paymentValidation.paymentDetailsCopiedText ||
+        ""
     ).trim(),
     referenceLabel: String(paymentUi.referenceLabel || "").trim(),
     referencePlaceholder: String(paymentUi.referencePlaceholder || "").trim(),
     selectMethodRequiredText: String(
-      paymentUi.selectMethodRequiredText || ""
+      paymentUi.selectMethodRequiredText ||
+        paymentValidation.selectMethodRequiredText ||
+        ""
     ).trim(),
-    proofRequiredText: String(paymentUi.proofRequiredText || "").trim(),
-    invalidFileTypeText: String(paymentUi.invalidFileTypeText || "").trim(),
-    fileTooLargeText: String(paymentUi.fileTooLargeText || "").trim(),
-    submitFailedText: String(paymentUi.submitFailedText || "").trim(),
+    proofRequiredText: String(
+      paymentUi.proofRequiredText || paymentValidation.proofRequiredText || ""
+    ).trim(),
+    invalidFileTypeText: String(
+      paymentUi.invalidFileTypeText ||
+        paymentValidation.invalidFileTypeText ||
+        ""
+    ).trim(),
+    fileTooLargeText: String(
+      paymentUi.fileTooLargeText || paymentValidation.fileTooLargeText || ""
+    ).trim(),
+    submitFailedText: String(
+      paymentUi.submitFailedText || paymentValidation.submitFailedText || ""
+    ).trim(),
     uploadProofTitle: String(paymentUi.uploadProofTitle || "").trim(),
     allowedTypesText: String(paymentUi.allowedTypesText || "").trim(),
     selectedFileLabel: String(paymentUi.selectedFileLabel || "").trim(),
@@ -997,6 +1014,7 @@ const mergeWithDefaults = (input: any): PublicSiteSettings => {
     loadFailedText: String(ordersList.loadFailedText || "").trim(),
   };
 
+  const ordersChat = ordersDetails?.chat || {};
   const ordersDetailsMerged = {
     loadingText: String(ordersDetails.loadingText || "").trim(),
     notFoundTitle: String(ordersDetails.notFoundTitle || "").trim(),
@@ -1028,14 +1046,27 @@ const mergeWithDefaults = (input: any): PublicSiteSettings => {
     chatTitle: String(ordersDetails.chatTitle || "").trim(),
     chatSubtitle: String(ordersDetails.chatSubtitle || "").trim(),
     refreshText: String(ordersDetails.refreshText || "").trim(),
-    chatInputPlaceholder: String(ordersDetails.chatInputPlaceholder || "").trim(),
-    sendButtonText: String(ordersDetails.sendButtonText || "").trim(),
-    sendingButtonText: String(ordersDetails.sendingButtonText || "").trim(),
+    chatInputPlaceholder: String(
+      ordersDetails.chatInputPlaceholder || ordersChat.inputPlaceholder || ""
+    ).trim(),
+    sendButtonText: String(
+      ordersDetails.sendButtonText || ordersChat.sendButtonText || ""
+    ).trim(),
+    sendingButtonText: String(
+      ordersDetails.sendingButtonText || ordersChat.sendingButtonText || ""
+    ).trim(),
     emptyChatTitle: String(ordersDetails.emptyChatTitle || "").trim(),
-    emptyChatSubtitle: String(ordersDetails.emptyChatSubtitle || "").trim(),
+    emptyChatSubtitle: String(
+      ordersDetails.emptyChatSubtitle ||
+        ordersChat.emptyStateText ||
+        ordersChat.emptySubtitle ||
+        ""
+    ).trim(),
     youLabel: String(ordersDetails.youLabel || "").trim(),
     supportLabel: String(ordersDetails.supportLabel || "").trim(),
-    supportRepliesHint: String(ordersDetails.supportRepliesHint || "").trim(),
+    supportRepliesHint: String(
+      ordersDetails.supportRepliesHint || ordersChat.hintText || ""
+    ).trim(),
     messageSentToast: String(ordersDetails.messageSentToast || "").trim(),
     sendFailedText: String(ordersDetails.sendFailedText || "").trim(),
     loadMessagesFailedText: String(
@@ -1045,7 +1076,9 @@ const mergeWithDefaults = (input: any): PublicSiteSettings => {
   };
 
   const quickReplies = normalizeStringArray(input?.orderSupport?.quickReplies);
-  const supportGuidelines = String(input?.orderSupport?.supportGuidelines || "").trim();
+  const supportGuidelines = String(
+    input?.orderSupport?.supportGuidelines || input?.orderSupport?.guidelinesText || ""
+  ).trim();
 
   const applyWorkFaq = normalizeFaq(input?.applyWork?.faq || input?.faq?.applyWork);
 

@@ -3,7 +3,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
-import type { FaqItem, TitleDesc } from "@/hooks/useSiteSettings";
+import {
+  DEFAULT_PUBLIC_SITE_SETTINGS,
+  type FaqItem,
+  type TitleDesc,
+} from "@/hooks/useSiteSettings";
 
 type AdminSettingsDoc = {
   _id?: string;
@@ -29,10 +33,39 @@ type AdminSettingsDoc = {
     acceptedProofText?: string;
     successRedirectText?: string;
     faq?: FaqItem[];
+    ui?: {
+      loadingText?: string;
+      validationTexts?: {
+        copyFailedText?: string;
+        paymentDetailsCopiedText?: string;
+        selectMethodRequiredText?: string;
+        proofRequiredText?: string;
+        invalidFileTypeText?: string;
+        fileTooLargeText?: string;
+        submitFailedText?: string;
+      };
+    };
+  };
+  orders?: {
+    details?: {
+      chat?: {
+        inputPlaceholder?: string;
+        sendButtonText?: string;
+        sendingButtonText?: string;
+        hintText?: string;
+        emptyStateText?: string;
+        emptyTitle?: string;
+        emptySubtitle?: string;
+      };
+    };
   };
   services?: { globalFaq?: FaqItem[]; trustBlockText?: string };
-  orderSupport?: { quickReplies?: string[]; supportGuidelines?: string };
-  applyWork?: { faq?: FaqItem[] };
+  orderSupport?: {
+    quickReplies?: string[];
+    supportGuidelines?: string;
+    guidelinesText?: string;
+  };
+  applyWork?: { faq?: FaqItem[]; ui?: { faqTitle?: string } };
   updatedAt?: string;
   updatedBy?: any;
 };
@@ -108,6 +141,16 @@ export default function AdminCmsSettingsPage() {
   const [acceptedProofText, setAcceptedProofText] = useState("");
   const [successRedirectText, setSuccessRedirectText] = useState("");
   const [paymentFaq, setPaymentFaq] = useState<FaqItem[]>([]);
+  const [paymentLoadingText, setPaymentLoadingText] = useState("");
+  const [paymentCopyFailedText, setPaymentCopyFailedText] = useState("");
+  const [paymentDetailsCopiedText, setPaymentDetailsCopiedText] = useState("");
+  const [paymentSelectMethodRequiredText, setPaymentSelectMethodRequiredText] =
+    useState("");
+  const [paymentProofRequiredText, setPaymentProofRequiredText] = useState("");
+  const [paymentInvalidFileTypeText, setPaymentInvalidFileTypeText] =
+    useState("");
+  const [paymentFileTooLargeText, setPaymentFileTooLargeText] = useState("");
+  const [paymentSubmitFailedText, setPaymentSubmitFailedText] = useState("");
 
   // Services
   const [trustBlockText, setTrustBlockText] = useState("");
@@ -115,10 +158,20 @@ export default function AdminCmsSettingsPage() {
 
   // Order Support
   const [quickReplies, setQuickReplies] = useState<string[]>([]);
-  const [supportGuidelines, setSupportGuidelines] = useState("");
+  const [guidelinesText, setGuidelinesText] = useState("");
+  const [orderChatInputPlaceholder, setOrderChatInputPlaceholder] =
+    useState("");
+  const [orderChatSendButtonText, setOrderChatSendButtonText] = useState("");
+  const [orderChatSendingButtonText, setOrderChatSendingButtonText] =
+    useState("");
+  const [orderChatHintText, setOrderChatHintText] = useState("");
+  const [orderChatEmptyStateText, setOrderChatEmptyStateText] = useState("");
+  const [orderChatEmptyTitle, setOrderChatEmptyTitle] = useState("");
+  const [orderChatEmptySubtitle, setOrderChatEmptySubtitle] = useState("");
 
   // Apply Work
   const [applyWorkFaq, setApplyWorkFaq] = useState<FaqItem[]>([]);
+  const [applyWorkFaqTitle, setApplyWorkFaqTitle] = useState("");
 
   // Footer
   const [disclaimer, setDisclaimer] = useState("");
@@ -155,13 +208,80 @@ export default function AdminCmsSettingsPage() {
       setSuccessRedirectText(String(doc?.payment?.successRedirectText || ""));
       setPaymentFaq(normalizeFaq(doc?.payment?.faq));
 
+      const paymentUi = doc?.payment?.ui || {};
+      const paymentVt = paymentUi?.validationTexts || {};
+      setPaymentLoadingText(String(paymentUi?.loadingText || ""));
+      setPaymentCopyFailedText(
+        String(
+          paymentVt?.copyFailedText || (paymentUi as any)?.copyFailedText || ""
+        )
+      );
+      setPaymentDetailsCopiedText(
+        String(
+          paymentVt?.paymentDetailsCopiedText ||
+            (paymentUi as any)?.paymentDetailsCopiedText ||
+            ""
+        )
+      );
+      setPaymentSelectMethodRequiredText(
+        String(
+          paymentVt?.selectMethodRequiredText ||
+            (paymentUi as any)?.selectMethodRequiredText ||
+            ""
+        )
+      );
+      setPaymentProofRequiredText(
+        String(
+          paymentVt?.proofRequiredText ||
+            (paymentUi as any)?.proofRequiredText ||
+            ""
+        )
+      );
+      setPaymentInvalidFileTypeText(
+        String(
+          paymentVt?.invalidFileTypeText ||
+            (paymentUi as any)?.invalidFileTypeText ||
+            ""
+        )
+      );
+      setPaymentFileTooLargeText(
+        String(
+          paymentVt?.fileTooLargeText ||
+            (paymentUi as any)?.fileTooLargeText ||
+            ""
+        )
+      );
+      setPaymentSubmitFailedText(
+        String(
+          paymentVt?.submitFailedText ||
+            (paymentUi as any)?.submitFailedText ||
+            ""
+        )
+      );
+
       setTrustBlockText(String(doc?.services?.trustBlockText || ""));
       setGlobalFaq(normalizeFaq(doc?.services?.globalFaq));
 
       setQuickReplies(normalizeStringArray(doc?.orderSupport?.quickReplies));
-      setSupportGuidelines(String(doc?.orderSupport?.supportGuidelines || ""));
+      setGuidelinesText(
+        String(
+          doc?.orderSupport?.guidelinesText ||
+            doc?.orderSupport?.supportGuidelines ||
+            ""
+        )
+      );
+
+      const chat = doc?.orders?.details?.chat || {};
+      setOrderChatInputPlaceholder(String(chat?.inputPlaceholder || ""));
+      setOrderChatSendButtonText(String(chat?.sendButtonText || ""));
+      setOrderChatSendingButtonText(String(chat?.sendingButtonText || ""));
+      setOrderChatHintText(String(chat?.hintText || ""));
+      setOrderChatEmptyStateText(String(chat?.emptyStateText || ""));
+      setOrderChatEmptyTitle(String(chat?.emptyTitle || ""));
+      setOrderChatEmptySubtitle(String(chat?.emptySubtitle || ""));
 
       setApplyWorkFaq(normalizeFaq(doc?.applyWork?.faq));
+      setApplyWorkFaqTitle(String(doc?.applyWork?.ui?.faqTitle || ""));
 
       setDisclaimer(String(doc?.footer?.disclaimer || ""));
       setDataSafetyNote(String(doc?.footer?.dataSafetyNote || ""));
@@ -248,6 +368,31 @@ export default function AdminCmsSettingsPage() {
           acceptedProofText: acceptedProofText.trim(),
           successRedirectText: successRedirectText.trim(),
           faq: sanitizeFaqBeforeSave(paymentFaq),
+          ui: {
+            loadingText: paymentLoadingText.trim(),
+            validationTexts: {
+              copyFailedText: paymentCopyFailedText.trim(),
+              paymentDetailsCopiedText: paymentDetailsCopiedText.trim(),
+              selectMethodRequiredText: paymentSelectMethodRequiredText.trim(),
+              proofRequiredText: paymentProofRequiredText.trim(),
+              invalidFileTypeText: paymentInvalidFileTypeText.trim(),
+              fileTooLargeText: paymentFileTooLargeText.trim(),
+              submitFailedText: paymentSubmitFailedText.trim(),
+            },
+          },
+        },
+        orders: {
+          details: {
+            chat: {
+              inputPlaceholder: orderChatInputPlaceholder.trim(),
+              sendButtonText: orderChatSendButtonText.trim(),
+              sendingButtonText: orderChatSendingButtonText.trim(),
+              hintText: orderChatHintText.trim(),
+              emptyStateText: orderChatEmptyStateText.trim(),
+              emptyTitle: orderChatEmptyTitle.trim(),
+              emptySubtitle: orderChatEmptySubtitle.trim(),
+            },
+          },
         },
         services: {
           trustBlockText: trustBlockText.trim(),
@@ -255,10 +400,14 @@ export default function AdminCmsSettingsPage() {
         },
         orderSupport: {
           quickReplies: sanitizeStringArrayBeforeSave(quickReplies),
-          supportGuidelines: supportGuidelines.trim(),
+          guidelinesText: guidelinesText.trim(),
+          supportGuidelines: guidelinesText.trim(),
         },
         applyWork: {
           faq: sanitizeFaqBeforeSave(applyWorkFaq),
+          ui: {
+            faqTitle: applyWorkFaqTitle.trim(),
+          },
         },
       };
 
@@ -471,6 +620,32 @@ export default function AdminCmsSettingsPage() {
 
       {tab === "payment" && (
         <div className="space-y-6">
+          <div className="flex justify-end">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => {
+                const d = DEFAULT_PUBLIC_SITE_SETTINGS.payment;
+                setAcceptedProofText(d.acceptedProofText);
+                setSuccessRedirectText(d.successRedirectText);
+                setBeginnerSteps(d.beginnerSteps);
+                setPaymentFaq(d.faq);
+                setPaymentLoadingText(d.ui.loadingText);
+                setPaymentCopyFailedText(d.ui.copyFailedText);
+                setPaymentDetailsCopiedText(d.ui.paymentDetailsCopiedText);
+                setPaymentSelectMethodRequiredText(
+                  d.ui.selectMethodRequiredText
+                );
+                setPaymentProofRequiredText(d.ui.proofRequiredText);
+                setPaymentInvalidFileTypeText(d.ui.invalidFileTypeText);
+                setPaymentFileTooLargeText(d.ui.fileTooLargeText);
+                setPaymentSubmitFailedText(d.ui.submitFailedText);
+              }}
+            >
+              Reset payment defaults
+            </button>
+          </div>
+
           <div className="grid gap-6 lg:grid-cols-2">
             <div className="card">
               <h2 className="font-semibold">Payment copy</h2>
@@ -507,6 +682,111 @@ export default function AdminCmsSettingsPage() {
             items={paymentFaq}
             onChange={setPaymentFaq}
           />
+
+          <div className="card">
+            <h2 className="font-semibold">Payment UI strings</h2>
+            <p className="text-xs text-[#9CA3AF] mt-1">
+              Used for loading + validation/toast messages on the payment page.
+            </p>
+
+            <label className="block text-xs text-[#9CA3AF] mt-4">
+              Loading text
+            </label>
+            <input
+              className="u-input mt-2"
+              value={paymentLoadingText}
+              onChange={(e) => setPaymentLoadingText(e.target.value)}
+              placeholder="Loading…"
+            />
+
+            <div className="grid gap-4 lg:grid-cols-2 mt-4">
+              <div>
+                <label className="block text-xs text-[#9CA3AF]">
+                  Copy failed
+                </label>
+                <input
+                  className="u-input mt-2"
+                  value={paymentCopyFailedText}
+                  onChange={(e) => setPaymentCopyFailedText(e.target.value)}
+                  placeholder="Copy failed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs text-[#9CA3AF]">
+                  Payment details copied
+                </label>
+                <input
+                  className="u-input mt-2"
+                  value={paymentDetailsCopiedText}
+                  onChange={(e) => setPaymentDetailsCopiedText(e.target.value)}
+                  placeholder="Payment details copied"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs text-[#9CA3AF]">
+                  Select method required
+                </label>
+                <input
+                  className="u-input mt-2"
+                  value={paymentSelectMethodRequiredText}
+                  onChange={(e) =>
+                    setPaymentSelectMethodRequiredText(e.target.value)
+                  }
+                  placeholder="Please select a payment method"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs text-[#9CA3AF]">
+                  Proof required
+                </label>
+                <input
+                  className="u-input mt-2"
+                  value={paymentProofRequiredText}
+                  onChange={(e) => setPaymentProofRequiredText(e.target.value)}
+                  placeholder="Please upload payment proof"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs text-[#9CA3AF]">
+                  Invalid file type
+                </label>
+                <input
+                  className="u-input mt-2"
+                  value={paymentInvalidFileTypeText}
+                  onChange={(e) =>
+                    setPaymentInvalidFileTypeText(e.target.value)
+                  }
+                  placeholder="Only PNG/JPG/WEBP/PDF allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs text-[#9CA3AF]">
+                  File too large
+                </label>
+                <input
+                  className="u-input mt-2"
+                  value={paymentFileTooLargeText}
+                  onChange={(e) => setPaymentFileTooLargeText(e.target.value)}
+                  placeholder="File too large (max 10MB)"
+                />
+              </div>
+            </div>
+
+            <label className="block text-xs text-[#9CA3AF] mt-4">
+              Submit failed
+            </label>
+            <input
+              className="u-input mt-2"
+              value={paymentSubmitFailedText}
+              onChange={(e) => setPaymentSubmitFailedText(e.target.value)}
+              placeholder="Failed to submit proof"
+            />
+          </div>
         </div>
       )}
 
@@ -535,6 +815,32 @@ export default function AdminCmsSettingsPage() {
 
       {tab === "orderSupport" && (
         <div className="space-y-6">
+          <div className="flex justify-end">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => {
+                const d = DEFAULT_PUBLIC_SITE_SETTINGS;
+                setQuickReplies(d.orderSupport.quickReplies);
+                setGuidelinesText(d.orderSupport.supportGuidelines);
+
+                setOrderChatInputPlaceholder(
+                  d.orders.details.chatInputPlaceholder
+                );
+                setOrderChatSendButtonText(d.orders.details.sendButtonText);
+                setOrderChatSendingButtonText(
+                  d.orders.details.sendingButtonText
+                );
+                setOrderChatHintText(d.orders.details.supportRepliesHint);
+                setOrderChatEmptyTitle(d.orders.details.emptyChatTitle);
+                setOrderChatEmptySubtitle(d.orders.details.emptyChatSubtitle);
+                setOrderChatEmptyStateText("");
+              }}
+            >
+              Reset order support defaults
+            </button>
+          </div>
+
           <StringListEditor
             title="Quick replies"
             hint="Shown as one-tap buttons in order chat. Max 10 items."
@@ -550,16 +856,137 @@ export default function AdminCmsSettingsPage() {
             </p>
             <textarea
               className="u-input mt-3 min-h-[110px]"
-              value={supportGuidelines}
-              onChange={(e) => setSupportGuidelines(e.target.value)}
+              value={guidelinesText}
+              onChange={(e) => setGuidelinesText(e.target.value)}
               placeholder="Share your order issue and any relevant proof…"
             />
+          </div>
+
+          <div className="card">
+            <h2 className="font-semibold">Order chat strings</h2>
+            <p className="text-xs text-[#9CA3AF] mt-1">
+              Controls the text shown in the Order Details chat section.
+            </p>
+
+            <div className="grid gap-4 lg:grid-cols-2 mt-4">
+              <div>
+                <label className="block text-xs text-[#9CA3AF]">
+                  Input placeholder
+                </label>
+                <input
+                  className="u-input mt-2"
+                  value={orderChatInputPlaceholder}
+                  onChange={(e) => setOrderChatInputPlaceholder(e.target.value)}
+                  placeholder="Type a message…"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs text-[#9CA3AF]">
+                  Hint text
+                </label>
+                <input
+                  className="u-input mt-2"
+                  value={orderChatHintText}
+                  onChange={(e) => setOrderChatHintText(e.target.value)}
+                  placeholder="Support replies from admin will appear here."
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs text-[#9CA3AF]">
+                  Send button text
+                </label>
+                <input
+                  className="u-input mt-2"
+                  value={orderChatSendButtonText}
+                  onChange={(e) => setOrderChatSendButtonText(e.target.value)}
+                  placeholder="Send"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs text-[#9CA3AF]">
+                  Sending button text
+                </label>
+                <input
+                  className="u-input mt-2"
+                  value={orderChatSendingButtonText}
+                  onChange={(e) =>
+                    setOrderChatSendingButtonText(e.target.value)
+                  }
+                  placeholder="Sending…"
+                />
+              </div>
+            </div>
+
+            <label className="block text-xs text-[#9CA3AF] mt-4">
+              Empty state text (optional)
+            </label>
+            <input
+              className="u-input mt-2"
+              value={orderChatEmptyStateText}
+              onChange={(e) => setOrderChatEmptyStateText(e.target.value)}
+              placeholder="Use a quick reply to start the conversation."
+            />
+
+            <div className="grid gap-4 lg:grid-cols-2 mt-4">
+              <div>
+                <label className="block text-xs text-[#9CA3AF]">
+                  Empty title
+                </label>
+                <input
+                  className="u-input mt-2"
+                  value={orderChatEmptyTitle}
+                  onChange={(e) => setOrderChatEmptyTitle(e.target.value)}
+                  placeholder="No messages yet. Support will reply here."
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[#9CA3AF]">
+                  Empty subtitle
+                </label>
+                <input
+                  className="u-input mt-2"
+                  value={orderChatEmptySubtitle}
+                  onChange={(e) => setOrderChatEmptySubtitle(e.target.value)}
+                  placeholder="Use a quick reply to start the conversation."
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {tab === "applyWork" && (
         <div className="space-y-6">
+          <div className="flex justify-end">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => {
+                const d = DEFAULT_PUBLIC_SITE_SETTINGS.applyWork;
+                setApplyWorkFaq(d.faq);
+                setApplyWorkFaqTitle(d.ui.faqTitle);
+              }}
+            >
+              Reset apply-work defaults
+            </button>
+          </div>
+
+          <div className="card">
+            <h2 className="font-semibold">Apply-to-work UI</h2>
+            <label className="block text-xs text-[#9CA3AF] mt-3">
+              FAQ section title
+            </label>
+            <input
+              className="u-input mt-2"
+              value={applyWorkFaqTitle}
+              onChange={(e) => setApplyWorkFaqTitle(e.target.value)}
+              placeholder="Apply-to-work FAQ"
+            />
+          </div>
+
           <FaqEditor
             title="Apply-to-work FAQ"
             items={applyWorkFaq}
