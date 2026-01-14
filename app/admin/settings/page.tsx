@@ -3,8 +3,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
+import { useAuth } from "@/hooks/useAuth";
 import {
   DEFAULT_PUBLIC_SITE_SETTINGS,
+  markSiteSettingsUpdated,
   type FaqItem,
   type TitleDesc,
 } from "@/hooks/useSiteSettings";
@@ -105,6 +107,7 @@ const setAt = <T,>(list: T[], idx: number, patch: Partial<T>): T[] => {
 
 export default function AdminCmsSettingsPage() {
   const { toast } = useToast();
+  const { isAdmin, ready: authReady } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -117,6 +120,7 @@ export default function AdminCmsSettingsPage() {
     | "orderSupport"
     | "applyWork"
     | "footer"
+    | "advanced"
   >("global");
 
   // Global
@@ -176,6 +180,11 @@ export default function AdminCmsSettingsPage() {
   // Footer
   const [disclaimer, setDisclaimer] = useState("");
   const [dataSafetyNote, setDataSafetyNote] = useState("");
+
+  // Advanced (raw JSON)
+  const [rawJsonText, setRawJsonText] = useState<string>("");
+  const [rawBusy, setRawBusy] = useState(false);
+  const [confirmReplace, setConfirmReplace] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -297,8 +306,8 @@ export default function AdminCmsSettingsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const tabs = useMemo(
-    () => [
+  const tabs = useMemo(() => {
+    const base = [
       { key: "global" as const, label: "Global" },
       { key: "landing" as const, label: "Landing" },
       { key: "payment" as const, label: "Payment" },
@@ -306,9 +315,147 @@ export default function AdminCmsSettingsPage() {
       { key: "orderSupport" as const, label: "Order Support" },
       { key: "applyWork" as const, label: "Apply Work" },
       { key: "footer" as const, label: "Footer" },
-    ],
-    []
-  );
+    ];
+    return isAdmin
+      ? [...base, { key: "advanced" as const, label: "Advanced" }]
+      : base;
+  }, [isAdmin]);
+
+  const parseJsonWithLocation = (
+    input: string
+  ):
+    | { ok: true; value: any }
+    | { ok: false; message: string; line?: number; col?: number } => {
+    try {
+      const value = JSON.parse(input);
+      return { ok: true, value };
+    } catch (e: any) {
+      const msg = String(e?.message || "Invalid JSON");
+
+      // Try to extract position (V8: "... at position 123")
+      const m = msg.match(/position\s+(\d+)/i);
+      if (m) {
+        const pos = Number(m[1]);
+        if (!Number.isNaN(pos) && pos >= 0) {
+          const before = input.slice(0, pos);
+          const line = before.split("\n").length;
+          const lastNl = before.lastIndexOf("\n");
+          const col = pos - (lastNl === -1 ? 0 : lastNl + 1) + 1;
+          return { ok: false, message: msg, line, col };
+        }
+      }
+      return { ok: false, message: msg };
+    }
+  };
+
+  const loadRawFromServer = async () => {
+    setRawBusy(true);
+    try {
+      const resp = await apiRequest<{ settings: any }>(
+        "/api/admin/settings/raw",
+        "GET",
+        null,
+        true
+      );
+      setRawJsonText(JSON.stringify(resp?.settings ?? {}, null, 2));
+      toast("Loaded settings JSON", "success");
+    } catch (e: any) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[cms advanced] load raw failed", e);
+      }
+      toast("Failed to load settings JSON", "error");
+    } finally {
+      setRawBusy(false);
+    }
+  };
+
+  const validateRawJson = () => {
+    const result = parseJsonWithLocation(rawJsonText);
+    if (result.ok) {
+      toast("Valid JSON ✅", "success");
+      return;
+    }
+    const loc =
+      typeof result.line === "number" && typeof result.col === "number"
+        ? ` (line ${result.line}, col ${result.col})`
+        : "";
+    toast(`Invalid JSON ❌${loc}`, "error");
+  };
+
+  const copyRawJson = async () => {
+    try {
+      await navigator.clipboard.writeText(rawJsonText || "");
+      toast("Copied JSON", "success");
+    } catch (e) {
+      toast("Copy failed", "error");
+    }
+  };
+
+  const downloadRawJson = () => {
+    try {
+      const blob = new Blob([rawJsonText || "{}"], {
+        type: "application/json;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `site-settings-${new Date()
+        .toISOString()
+        .slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast("Downloaded JSON", "success");
+    } catch {
+      toast("Download failed", "error");
+    }
+  };
+
+  const saveRawJson = async (mode: "merge" | "replace") => {
+    const result = parseJsonWithLocation(rawJsonText);
+    if (!result.ok) {
+      const loc =
+        typeof result.line === "number" && typeof result.col === "number"
+          ? ` (line ${result.line}, col ${result.col})`
+          : "";
+      toast(`Invalid JSON ❌${loc}`, "error");
+      return;
+    }
+
+    if (mode === "replace" && !confirmReplace) {
+      setConfirmReplace(true);
+      return;
+    }
+
+    setRawBusy(true);
+    try {
+      await apiRequest(
+        "/api/admin/settings/raw",
+        "PUT",
+        { mode, settings: result.value },
+        true
+      );
+      toast("Settings updated", "success");
+      setConfirmReplace(false);
+
+      // Force refresh settings in this browser/session.
+      markSiteSettingsUpdated();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("site-settings-force-refresh"));
+      }
+
+      // Reload the normal editor fields too.
+      await load();
+    } catch (e: any) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[cms advanced] save raw failed", e);
+      }
+      toast("Save failed", "error");
+    } finally {
+      setRawBusy(false);
+    }
+  };
 
   const sanitizeFaqBeforeSave = (list: FaqItem[]): FaqItem[] => {
     return list
@@ -1017,6 +1164,137 @@ export default function AdminCmsSettingsPage() {
               onChange={(e) => setDataSafetyNote(e.target.value)}
               placeholder="Data safety / privacy note"
             />
+          </div>
+        </div>
+      )}
+
+      {tab === "advanced" && isAdmin && (
+        <div className="space-y-6">
+          <div className="card">
+            <h2 className="font-semibold">Advanced JSON / Import</h2>
+            <p className="text-xs text-[#9CA3AF] mt-1">
+              Edit the full SiteSettings document as raw JSON. Use Merge for
+              safe updates.
+            </p>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={loadRawFromServer}
+                disabled={rawBusy}
+              >
+                {rawBusy ? "Loading…" : "Load from server"}
+              </button>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={copyRawJson}
+                disabled={!rawJsonText}
+              >
+                Copy JSON
+              </button>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={downloadRawJson}
+                disabled={!rawJsonText}
+              >
+                Download JSON
+              </button>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={validateRawJson}
+                disabled={!rawJsonText}
+              >
+                Validate JSON
+              </button>
+
+              <label className="btn-secondary cursor-pointer">
+                Import JSON
+                <input
+                  type="file"
+                  accept="application/json,.json"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      setRawJsonText(String(reader.result || ""));
+                      toast("Imported JSON file", "success");
+                    };
+                    reader.onerror = () => toast("Import failed", "error");
+                    reader.readAsText(file);
+
+                    // allow importing the same file again
+                    e.currentTarget.value = "";
+                  }}
+                />
+              </label>
+            </div>
+
+            <textarea
+              className="u-input mt-4 min-h-[420px] font-mono text-xs"
+              value={rawJsonText}
+              onChange={(e) => setRawJsonText(e.target.value)}
+              placeholder={
+                authReady && isAdmin
+                  ? "Click 'Load from server'…"
+                  : "Admin only"
+              }
+              disabled={!authReady || !isAdmin || rawBusy}
+            />
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => saveRawJson("merge")}
+                disabled={!rawJsonText || rawBusy || !authReady || !isAdmin}
+              >
+                Save JSON (Merge)
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 rounded-lg border border-red-500/40 bg-red-500/10 text-red-200 text-sm hover:bg-red-500/15 disabled:opacity-60"
+                onClick={() => saveRawJson("replace")}
+                disabled={!rawJsonText || rawBusy || !authReady || !isAdmin}
+              >
+                Save JSON (Replace)
+              </button>
+            </div>
+
+            {confirmReplace && (
+              <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4">
+                <p className="text-sm text-red-100 font-medium">
+                  Replace mode will overwrite the entire settings document.
+                </p>
+                <p className="text-xs text-red-200/80 mt-1">
+                  This is dangerous and can break the site if your JSON is
+                  incomplete.
+                </p>
+                <div className="mt-3 flex gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm"
+                    onClick={() => saveRawJson("replace")}
+                    disabled={rawBusy}
+                  >
+                    Yes, replace settings
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => setConfirmReplace(false)}
+                    disabled={rawBusy}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

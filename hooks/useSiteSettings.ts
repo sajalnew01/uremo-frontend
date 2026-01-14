@@ -712,6 +712,20 @@ let cached: PublicSiteSettings | null = null;
 let cachedAt = 0;
 const CACHE_TTL_MS = 60_000;
 
+const SITE_SETTINGS_REFRESH_EVENT = "site-settings-force-refresh";
+const SITE_SETTINGS_LAST_UPDATE_KEY = "site-settings:lastAdminUpdateTs";
+let lastAdminUpdateSeen = 0;
+
+export function markSiteSettingsUpdated() {
+  try {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(SITE_SETTINGS_LAST_UPDATE_KEY, String(Date.now()));
+    window.dispatchEvent(new Event(SITE_SETTINGS_REFRESH_EVENT));
+  } catch {
+    // ignore
+  }
+}
+
 const normalizeFaq = (value: unknown): FaqItem[] => {
   if (!Array.isArray(value)) return [];
   const out: FaqItem[] = [];
@@ -1729,7 +1743,8 @@ export function useSiteSettings() {
   const [error, setError] = useState<string | null>(null);
 
   const refreshInFlight = useRef<Promise<void> | null>(null);
-  const refresh = async () => {
+  const refresh = async (opts?: { force?: boolean }) => {
+    const force = !!opts?.force;
     try {
       setError(null);
       if (refreshInFlight.current) {
@@ -1738,10 +1753,30 @@ export function useSiteSettings() {
       }
 
       refreshInFlight.current = (async () => {
-        const raw = await apiRequest("/api/settings/public", "GET");
+        let lastAdminUpdateTs = 0;
+        try {
+          lastAdminUpdateTs = Number(
+            localStorage.getItem(SITE_SETTINGS_LAST_UPDATE_KEY) || 0
+          );
+        } catch {
+          // ignore
+        }
+
+        const shouldBust =
+          force ||
+          (lastAdminUpdateTs > 0 &&
+            (!lastAdminUpdateSeen || lastAdminUpdateTs > lastAdminUpdateSeen));
+        const url = shouldBust
+          ? `/api/settings/public?ts=${Date.now()}`
+          : "/api/settings/public";
+
+        const raw = await apiRequest(url, "GET");
         const merged = mergeWithDefaults(raw);
         cached = merged;
         cachedAt = Date.now();
+        if (lastAdminUpdateTs > 0) {
+          lastAdminUpdateSeen = Math.max(lastAdminUpdateSeen, lastAdminUpdateTs);
+        }
         setData(merged);
       })();
 
@@ -1782,13 +1817,26 @@ export function useSiteSettings() {
       refresh();
     };
 
+    const onForceRefresh = () => {
+      refresh({ force: true });
+    };
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === SITE_SETTINGS_LAST_UPDATE_KEY) {
+        refresh({ force: true });
+      }
+    };
+
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("focus", onFocus);
+    window.addEventListener(SITE_SETTINGS_REFRESH_EVENT, onForceRefresh);
+    window.addEventListener("storage", onStorage);
 
     return () => {
       window.clearInterval(intervalId);
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("focus", onFocus);
+      window.removeEventListener(SITE_SETTINGS_REFRESH_EVENT, onForceRefresh);
+      window.removeEventListener("storage", onStorage);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
