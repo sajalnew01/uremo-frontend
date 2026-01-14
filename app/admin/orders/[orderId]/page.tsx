@@ -315,6 +315,11 @@ export default function AdminOrderDetailPage() {
       // Show safe message, never raw backend errors
       setSendError("Could not send reply. Please retry.");
       setMessages((prev) => prev.filter((m) => m._id !== tempId));
+      if (apiErr?.status === 401 || apiErr?.status === 403) {
+        setReply(text);
+        toast("Please login to send messages", "error");
+        return;
+      }
       toast("Could not send reply. Please retry.", "error");
     } finally {
       setSending(false);

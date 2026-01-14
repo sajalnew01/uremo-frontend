@@ -372,6 +372,9 @@ export default function OrderDetailsPage() {
     } catch (err: any) {
       const apiErr = err as ApiError;
       if (apiErr?.status === 401 || apiErr?.status === 403) {
+        // Remove optimistic message and restore input.
+        setMessages((prev) => prev.filter((m) => m._id !== tempId));
+        setMessageText(text);
         toast("Please login to chat", "error");
         return;
       }

@@ -100,8 +100,9 @@ export async function apiRequest<T = any>(
     clearTimeout(timeoutId);
   }
 
-  // If auth fails, clear potentially stale tokens to prevent repeated bad state.
-  if (typeof window !== "undefined" && (res.status === 401 || res.status === 403)) {
+  // If auth fails due to invalid/expired token, clear potentially stale tokens.
+  // NOTE: do NOT clear on 403; a valid session can be forbidden for a route.
+  if (typeof window !== "undefined" && res.status === 401) {
     clearAuthSession();
   }
 
