@@ -7,6 +7,7 @@ import Footer from "@/components/Footer";
 import { SidebarProvider } from "@/components/sidebar/SidebarProvider";
 import { ToastProvider } from "@/hooks/useToast";
 import ToastViewport from "@/components/ToastViewport";
+import JarvisWidget from "@/components/jarvisx/JarvisWidget";
 
 export const metadata: Metadata = {
   title: "UREMO — Verified Digital Onboarding & Marketplace",
@@ -96,6 +97,7 @@ export default function RootLayout({
             </div>
 
             <Footer />
+            <JarvisWidget />
           </SidebarProvider>
         </ToastProvider>
       </body>

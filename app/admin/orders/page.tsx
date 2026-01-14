@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, Suspense, useEffect, useMemo, useState } from "react";
 import Card from "@/components/Card";
 import FilePreview from "@/components/FilePreview";
 import { apiRequest } from "@/lib/api";
@@ -46,6 +46,14 @@ const statusBadge = (status: string) => {
 };
 
 export default function AdminOrdersPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-[#9CA3AF]">Loading…</div>}>
+      <AdminOrdersContent />
+    </Suspense>
+  );
+}
+
+function AdminOrdersContent() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");

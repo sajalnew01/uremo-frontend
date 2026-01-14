@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ApiError, apiRequest, getApiBaseUrl } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
@@ -37,6 +37,14 @@ type OrderMessage = {
 };
 
 export default function OrderDetailsPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-[#9CA3AF]">Loading…</div>}>
+      <OrderDetailsContent />
+    </Suspense>
+  );
+}
+
+function OrderDetailsContent() {
   const { id: orderId } = useParams<{ id: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
