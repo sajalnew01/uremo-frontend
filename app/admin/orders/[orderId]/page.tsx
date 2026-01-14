@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Card from "@/components/Card";
-import { apiRequest } from "@/lib/api";
+import { apiRequest, ApiError } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import InlineError from "@/components/ui/InlineError";
 import FilePreview from "@/components/FilePreview";
+import { useAuth } from "@/hooks/useAuth";
 
 type StatusLogItem = { text: string; at: string };
 
@@ -38,9 +39,14 @@ type Order = {
 export default function AdminOrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const { toast } = useToast();
+  const { ready: authReady, isAuthenticated } = useAuth();
 
   const [order, setOrder] = useState<Order | null>(null);
+  const [orderLoading, setOrderLoading] = useState(true);
+  const [orderError, setOrderError] = useState<string | null>(null);
   const [messages, setMessages] = useState<OrderMessage[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(true);
+  const [messagesError, setMessagesError] = useState<string | null>(null);
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -48,37 +54,51 @@ export default function AdminOrderDetailPage() {
   const pollTimerRef = useRef<number | null>(null);
 
   const loadOrder = async () => {
-    const data = await apiRequest(`/api/orders/${orderId}`, "GET", null, true);
-    setOrder(data);
+    setOrderError(null);
+    try {
+      const data = await apiRequest(
+        `/api/orders/${orderId}`,
+        "GET",
+        null,
+        true
+      );
+      setOrder(data);
+    } catch (err) {
+      const apiErr = err as ApiError;
+      console.warn("[admin order] loadOrder failed:", apiErr?.message);
+      setOrderError("Unable to load order");
+    } finally {
+      setOrderLoading(false);
+    }
   };
 
   const loadMessages = async () => {
-    const data = await apiRequest(
-      `/api/orders/${orderId}/messages`,
-      "GET",
-      null,
-      true
-    );
-    const list = Array.isArray(data) ? (data as OrderMessage[]) : [];
-    list.sort(
-      (a, b) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    );
-    setMessages(list);
+    try {
+      const data = await apiRequest(
+        `/api/orders/${orderId}/messages`,
+        "GET",
+        null,
+        true
+      );
+      const list = Array.isArray(data) ? (data as OrderMessage[]) : [];
+      list.sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+      setMessages(list);
+      setMessagesError(null);
+    } catch (err) {
+      const apiErr = err as ApiError;
+      console.warn("[admin order] loadMessages failed:", apiErr?.message);
+      setMessagesError("Unable to load chat");
+    } finally {
+      setMessagesLoading(false);
+    }
   };
 
   useEffect(() => {
-    loadOrder().catch(() => null);
-    loadMessages().catch(() => null);
-
-    if (pollTimerRef.current) {
-      window.clearInterval(pollTimerRef.current);
-      pollTimerRef.current = null;
-    }
-
-    pollTimerRef.current = window.setInterval(() => {
-      loadMessages().catch(() => null);
-    }, 5000);
+    loadOrder();
+    loadMessages();
 
     return () => {
       if (pollTimerRef.current) {
@@ -87,6 +107,29 @@ export default function AdminOrderDetailPage() {
       }
     };
   }, [orderId]);
+
+  // Start polling only when auth is ready and user is authenticated
+  useEffect(() => {
+    if (!authReady || !isAuthenticated) return;
+
+    if (pollTimerRef.current) {
+      window.clearInterval(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
+
+    pollTimerRef.current = window.setInterval(() => {
+      if (!sending) {
+        loadMessages();
+      }
+    }, 5000);
+
+    return () => {
+      if (pollTimerRef.current) {
+        window.clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+    };
+  }, [orderId, authReady, isAuthenticated, sending]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -105,13 +148,30 @@ export default function AdminOrderDetailPage() {
 
   const updateStatus = async (status: string) => {
     if (!order) return;
-    await apiRequest(`/api/admin/orders/${order._id}`, "PUT", { status }, true);
-    await loadOrder();
+    try {
+      await apiRequest(
+        `/api/admin/orders/${order._id}`,
+        "PUT",
+        { status },
+        true
+      );
+      await loadOrder();
+      toast("Status updated", "success");
+    } catch (err) {
+      const apiErr = err as ApiError;
+      console.warn("[admin order] updateStatus failed:", apiErr?.message);
+      toast("Failed to update status", "error");
+    }
   };
 
   const sendReply = async () => {
     const text = reply.trim();
     if (!text) return;
+
+    if (!authReady || !isAuthenticated) {
+      toast("Please login to send messages", "error");
+      return;
+    }
 
     setSending(true);
     setSendError(null);
@@ -125,17 +185,40 @@ export default function AdminOrderDetailPage() {
       setReply("");
       await loadMessages();
       toast("Reply sent", "success");
-    } catch (e: any) {
-      const msg = e?.message || "Failed to send reply";
-      setSendError(msg);
-      toast(msg, "error");
+    } catch (err) {
+      const apiErr = err as ApiError;
+      console.warn("[admin order] sendReply failed:", apiErr?.message);
+      // Show safe message, never raw backend errors
+      setSendError("Could not send reply. Please retry.");
+      toast("Could not send reply. Please retry.", "error");
     } finally {
       setSending(false);
     }
   };
 
+  if (orderLoading) {
+    return <div className="p-6 text-sm text-[#9CA3AF]">Loading order…</div>;
+  }
+
+  if (orderError) {
+    return (
+      <div className="p-6 space-y-3">
+        <p className="text-sm text-red-400">{orderError}</p>
+        <button
+          onClick={() => {
+            setOrderLoading(true);
+            loadOrder();
+          }}
+          className="btn-primary"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   if (!order) {
-    return <div className="p-6 text-sm text-[#9CA3AF]">Loading…</div>;
+    return <div className="p-6 text-sm text-[#9CA3AF]">Order not found</div>;
   }
 
   return (
@@ -220,7 +303,7 @@ export default function AdminOrderDetailPage() {
           <h3 className="font-semibold text-lg">Chat</h3>
           <button
             type="button"
-            onClick={() => loadMessages().catch(() => null)}
+            onClick={() => loadMessages()}
             className="text-sm text-[#9CA3AF] hover:text-white"
           >
             Refresh
@@ -234,7 +317,19 @@ export default function AdminOrderDetailPage() {
         )}
 
         <div className="mt-4 h-[420px] overflow-y-auto rounded-lg border border-white/10 bg-[#020617] p-4 space-y-3">
-          {messages.length === 0 ? (
+          {messagesLoading ? (
+            <p className="text-sm text-[#9CA3AF]">Loading chat…</p>
+          ) : messagesError ? (
+            <div className="flex flex-col items-center justify-center h-full gap-2">
+              <p className="text-sm text-red-400">{messagesError}</p>
+              <button
+                onClick={() => loadMessages()}
+                className="text-xs text-blue-400 hover:underline"
+              >
+                Tap to refresh
+              </button>
+            </div>
+          ) : messages.length === 0 ? (
             <p className="text-sm text-[#9CA3AF]">No messages yet.</p>
           ) : (
             messages.map((m) => (
@@ -275,14 +370,19 @@ export default function AdminOrderDetailPage() {
               if (sendError) setSendError(null);
             }}
             onKeyDown={(e) => {
-              if (e.key === "Enter") sendReply();
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendReply();
+              }
             }}
             disabled={sending}
           />
           <button
             type="button"
             onClick={sendReply}
-            disabled={sending || !reply.trim()}
+            disabled={
+              sending || !reply.trim() || !authReady || !isAuthenticated
+            }
             className="px-4 py-2 rounded-lg bg-[#3B82F6] text-white text-sm disabled:opacity-50"
           >
             {sending ? "Sending…" : "Send"}
