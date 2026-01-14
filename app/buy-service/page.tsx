@@ -3,6 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiRequest } from "@/lib/api";
 import Link from "next/link";
+import { withCacheBust } from "@/lib/cacheBust";
+import {
+  DEFAULT_PUBLIC_SITE_SETTINGS,
+  useSiteSettings,
+} from "@/hooks/useSiteSettings";
 
 type Service = {
   _id: string;
@@ -15,15 +20,23 @@ type Service = {
   currency?: string;
   images?: string[];
   imageUrl?: string;
+  updatedAt?: string;
   active?: boolean;
 };
 
 export default function BuyServicePage() {
+  const { data: settings } = useSiteSettings();
+  const servicesCopy =
+    settings?.services?.list || DEFAULT_PUBLIC_SITE_SETTINGS.services.list;
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string>("all");
   const [activeOnly, setActiveOnly] = useState(true);
+
+  const introText =
+    (settings?.services?.trustBlockText || "").trim() ||
+    DEFAULT_PUBLIC_SITE_SETTINGS.services.trustBlockText;
 
   useEffect(() => {
     let mounted = true;
@@ -77,17 +90,16 @@ export default function BuyServicePage() {
         <div className="flex items-end justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold mb-2">
-              Choose a service
+              {servicesCopy.title}
             </h1>
-            <p className="text-slate-300 max-w-2xl">
-              Premium manual operations for onboarding, verification, and
-              account support.
-            </p>
+            <p className="text-slate-300 max-w-2xl">{introText}</p>
           </div>
           <div className="hidden md:flex items-center gap-2 text-xs text-[#9CA3AF]">
-            <span className="u-pill text-slate-200">Manual processing</span>
-            <span className="u-pill text-slate-200">Order chat</span>
-            <span className="u-pill text-slate-200">Status tracking</span>
+            {(servicesCopy.highlightPills || []).slice(0, 6).map((pill) => (
+              <span key={pill} className="u-pill text-slate-200">
+                {pill}
+              </span>
+            ))}
           </div>
         </div>
 
@@ -96,7 +108,7 @@ export default function BuyServicePage() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search services (title, category, description)…"
+              placeholder={servicesCopy.searchPlaceholder}
               className="u-input placeholder:text-slate-400"
             />
           </div>
@@ -108,7 +120,7 @@ export default function BuyServicePage() {
           >
             {categories.map((c) => (
               <option key={c} value={c}>
-                {c === "all" ? "All categories" : c}
+                {c === "all" ? servicesCopy.allCategoriesText : c}
               </option>
             ))}
           </select>
@@ -122,7 +134,9 @@ export default function BuyServicePage() {
                 : "bg-white/5 border-white/10 text-slate-200 hover:bg-white/10"
             }`}
           >
-            {activeOnly ? "Active only" : "Show all"}
+            {activeOnly
+              ? servicesCopy.activeOnlyText
+              : servicesCopy.showAllText}
           </button>
         </div>
       </div>
@@ -140,9 +154,9 @@ export default function BuyServicePage() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="card">
-          <h3 className="text-lg font-semibold">No services found</h3>
+          <h3 className="text-lg font-semibold">{servicesCopy.emptyTitle}</h3>
           <p className="text-sm text-slate-300 mt-2">
-            Try a different search, switch category, or show all services.
+            {servicesCopy.emptySubtitle}
           </p>
           <div className="mt-4 flex flex-col sm:flex-row gap-3">
             <button
@@ -154,10 +168,10 @@ export default function BuyServicePage() {
               }}
               className="btn-secondary w-full sm:w-auto"
             >
-              Reset filters
+              {servicesCopy.resetFiltersText}
             </button>
             <Link href="/signup" className="btn-primary w-full sm:w-auto">
-              Get Started
+              {servicesCopy.getStartedText}
             </Link>
           </div>
         </div>
@@ -174,7 +188,10 @@ export default function BuyServicePage() {
                   <div className="mb-4 overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-blue-500/15 via-white/5 to-emerald-500/10">
                     {s.imageUrl || (Array.isArray(s.images) && s.images[0]) ? (
                       <img
-                        src={s.imageUrl || s.images?.[0]}
+                        src={withCacheBust(
+                          s.imageUrl || s.images?.[0],
+                          s.updatedAt || s._id
+                        )}
                         alt={s.title}
                         className="h-44 w-full object-cover opacity-90 group-hover:opacity-100 transition"
                         loading="lazy"
@@ -196,7 +213,7 @@ export default function BuyServicePage() {
 
                   <div className="absolute top-3 left-3">
                     <span className="px-3 py-1 rounded-full text-xs border border-white/10 bg-white/5 text-slate-200">
-                      Manual
+                      {servicesCopy.manualBadgeText}
                     </span>
                   </div>
                 </div>
@@ -218,13 +235,17 @@ export default function BuyServicePage() {
                         </span>
                       )}
                       {s.active === false && (
-                        <span className="u-pill text-slate-200">Inactive</span>
+                        <span className="u-pill text-slate-200">
+                          {servicesCopy.inactiveBadgeText}
+                        </span>
                       )}
                     </div>
                   </div>
 
                   <div className="text-right shrink-0">
-                    <p className="text-xs text-[#9CA3AF]">from</p>
+                    <p className="text-xs text-[#9CA3AF]">
+                      {servicesCopy.fromLabel}
+                    </p>
                     <p className="text-2xl font-bold text-emerald-300">
                       ${s.price}
                     </p>
@@ -237,7 +258,8 @@ export default function BuyServicePage() {
 
                 <div className="mt-6 flex justify-end">
                   <span className="inline-flex items-center gap-2 text-sm text-slate-200 group-hover:text-white transition">
-                    View details <span className="text-[#9CA3AF]">→</span>
+                    {servicesCopy.viewDetailsText}{" "}
+                    <span className="text-[#9CA3AF]">→</span>
                   </span>
                 </div>
               </div>

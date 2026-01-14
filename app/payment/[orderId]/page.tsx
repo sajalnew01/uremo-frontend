@@ -16,6 +16,16 @@ export default function PaymentPage() {
   const { toast } = useToast();
   const { data: settings } = useSiteSettings();
 
+  const ui = settings?.payment?.ui || DEFAULT_PUBLIC_SITE_SETTINGS.payment.ui;
+
+  const acceptedProofText =
+    (settings?.payment?.acceptedProofText || "").trim() ||
+    DEFAULT_PUBLIC_SITE_SETTINGS.payment.acceptedProofText;
+
+  const successRedirectText =
+    (settings?.payment?.successRedirectText || "").trim() ||
+    DEFAULT_PUBLIC_SITE_SETTINGS.payment.successRedirectText;
+
   const [order, setOrder] = useState<any>(null);
   const [methods, setMethods] = useState<any[]>([]);
   const [selectedMethodId, setSelectedMethodId] = useState<string>("");
@@ -25,9 +35,9 @@ export default function PaymentPage() {
   const [faqOpen, setFaqOpen] = useState<number | null>(0);
 
   const paymentFaq =
-    settings?.faq?.payment && settings.faq.payment.length
-      ? settings.faq.payment
-      : DEFAULT_PUBLIC_SITE_SETTINGS.faq.payment;
+    settings?.payment?.faq && settings.payment.faq.length
+      ? settings.payment.faq
+      : DEFAULT_PUBLIC_SITE_SETTINGS.payment.faq;
 
   const loadOrder = async () => {
     const data = await apiRequest(
@@ -44,12 +54,12 @@ export default function PaymentPage() {
     apiRequest("/api/payments", "GET").then(setMethods);
   }, [resolvedOrderId]);
 
-  const copy = async (value: string, what: string) => {
+  const copy = async (value: string) => {
     try {
       await navigator.clipboard.writeText(value);
-      toast(`${what} copied`, "success");
+      toast(ui.paymentDetailsCopiedText, "success");
     } catch {
-      toast("Copy failed", "error");
+      toast(ui.copyFailedText, "error");
     }
   };
 
@@ -70,11 +80,11 @@ export default function PaymentPage() {
   const submitProof = async () => {
     if (!canSubmit) return;
     if (!selectedMethodId) {
-      toast("Please select a payment method", "error");
+      toast(ui.selectMethodRequiredText, "error");
       return;
     }
     if (!file) {
-      toast("Please upload payment proof", "error");
+      toast(ui.proofRequiredText, "error");
       return;
     }
 
@@ -105,28 +115,28 @@ export default function PaymentPage() {
         true
       );
 
-      toast("Proof submitted. Redirecting...", "success");
+      toast(successRedirectText, "success");
       setFile(null);
       router.push(`/orders/${resolvedOrderId}?chat=1`);
     } catch (e: any) {
-      toast(e.message || "Failed to submit proof", "error");
+      toast(e.message || ui.submitFailedText, "error");
     } finally {
       setLoading(false);
     }
   };
 
-  if (!order) return <p className="p-6">Loading...</p>;
+  if (!order) return <p className="p-6">{ui.loadingText}</p>;
 
   return (
     <div className="u-container max-w-3xl space-y-6">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold">Payment</h1>
+        <h1 className="text-3xl font-bold">{ui.title}</h1>
         <button
           type="button"
           onClick={() => router.push("/orders")}
           className="text-sm text-[#9CA3AF] hover:text-white transition"
         >
-          View orders
+          {ui.viewOrdersText}
         </button>
       </div>
 
@@ -152,17 +162,17 @@ export default function PaymentPage() {
                 <div className="text-sm">
                   <p className="text-white font-medium">
                     {n === 1
-                      ? "Select method"
+                      ? ui.wizardStep1Title
                       : n === 2
-                      ? "Upload proof"
-                      : "Await verification"}
+                      ? ui.wizardStep2Title
+                      : ui.wizardStep3Title}
                   </p>
                   <p className="text-xs text-[#9CA3AF]">
                     {n === 1
-                      ? "Choose where you paid"
+                      ? ui.wizardStep1Subtitle
                       : n === 2
-                      ? "Attach receipt/screenshot"
-                      : "We verify payments manually"}
+                      ? ui.wizardStep2Subtitle
+                      : ui.wizardStep3Subtitle}
                   </p>
                 </div>
               </div>
@@ -174,23 +184,23 @@ export default function PaymentPage() {
 
         <div className="mt-4 grid gap-3 md:grid-cols-2 text-sm">
           <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-            <p className="text-xs text-[#9CA3AF]">Order ID</p>
+            <p className="text-xs text-[#9CA3AF]">{ui.orderIdLabel}</p>
             <div className="mt-1 flex items-center justify-between gap-2">
               <p className="text-slate-200 font-mono text-xs break-all">
                 {String(resolvedOrderId || "")}
               </p>
               <button
                 type="button"
-                onClick={() => copy(String(resolvedOrderId || ""), "Order ID")}
+                onClick={() => copy(String(resolvedOrderId || ""))}
                 className="px-3 py-1.5 text-xs rounded bg-white/5 border border-white/10 text-white hover:bg-white/10"
               >
-                Copy
+                {ui.copyButtonText}
               </button>
             </div>
           </div>
 
           <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-            <p className="text-xs text-[#9CA3AF]">Payment summary</p>
+            <p className="text-xs text-[#9CA3AF]">{ui.paymentSummaryLabel}</p>
             <div className="mt-1 flex items-center justify-between gap-3">
               <p className="text-slate-200">{order.serviceId?.title}</p>
               <p className="text-emerald-300 font-semibold">
@@ -198,7 +208,7 @@ export default function PaymentPage() {
               </p>
             </div>
             <p className="mt-1 text-xs text-[#9CA3AF]">
-              Make sure the amount matches your receipt.
+              {ui.paymentSummaryHint}
             </p>
           </div>
         </div>
@@ -206,37 +216,36 @@ export default function PaymentPage() {
 
       {isExpired && (
         <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-200">
-          <p className="font-semibold">Reservation expired</p>
-          <p className="text-sm opacity-90 mt-1">
-            This order was reserved for 24 hours and has expired. Please buy the
-            service again.
-          </p>
+          <p className="font-semibold">{ui.expiredTitle}</p>
+          <p className="text-sm opacity-90 mt-1">{ui.expiredBody}</p>
           <button
             type="button"
             onClick={() => router.push("/buy-service")}
             className="mt-3 inline-flex items-center justify-center rounded-lg bg-red-500/20 px-3 py-2 text-sm hover:bg-red-500/25"
           >
-            Go to services
+            {ui.goToServicesText}
           </button>
         </div>
       )}
 
       {isSubmitted && (
         <div className="card border border-emerald-500/30 bg-emerald-500/10">
-          <p className="font-semibold text-emerald-100">Payment submitted</p>
+          <p className="font-semibold text-emerald-100">
+            {ui.paymentSubmittedTitle}
+          </p>
           <p className="text-sm text-emerald-200/90 mt-1">
-            Your proof is in our queue. We'll verify it and update your order
-            status.
+            {ui.paymentSubmittedBody}
           </p>
         </div>
       )}
 
       {status === "rejected" && (
         <div className="card border border-orange-500/30 bg-orange-500/10">
-          <p className="font-semibold text-orange-100">Payment rejected</p>
+          <p className="font-semibold text-orange-100">
+            {ui.paymentRejectedTitle}
+          </p>
           <p className="text-sm text-orange-200/90 mt-1">
-            Your previous proof was rejected. Select a method and submit a new
-            proof.
+            {ui.paymentRejectedBody}
           </p>
         </div>
       )}
@@ -245,19 +254,19 @@ export default function PaymentPage() {
         {/* Methods */}
         <div className="card">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="font-semibold">Payment method</h3>
+            <h3 className="font-semibold">{ui.paymentMethodTitle}</h3>
             {!canSubmit && (
-              <span className="text-xs text-[#9CA3AF]">Locked</span>
+              <span className="text-xs text-[#9CA3AF]">{ui.lockedText}</span>
             )}
           </div>
 
-          <p className="mt-1 text-sm text-[#9CA3AF]">
-            Select the exact method you used for this payment.
-          </p>
+          <p className="mt-1 text-sm text-[#9CA3AF]">{ui.paymentMethodHelp}</p>
 
           <div className="mt-4 space-y-3">
             {methods.length === 0 && (
-              <p className="text-[#9CA3AF] text-sm">No payment methods yet.</p>
+              <p className="text-[#9CA3AF] text-sm">
+                {ui.noPaymentMethodsText}
+              </p>
             )}
 
             {methods.map((m) => (
@@ -291,12 +300,12 @@ export default function PaymentPage() {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      copy(String(m.details || ""), "Payment details");
+                      copy(String(m.details || ""));
                     }}
                     className="px-3 py-1.5 text-xs rounded bg-white/5 border border-white/10 text-white hover:bg-white/10"
                     disabled={!m.details}
                   >
-                    Copy
+                    {ui.copyButtonText}
                   </button>
                 </div>
                 {m.instructions && (
@@ -310,11 +319,11 @@ export default function PaymentPage() {
 
           <div className="mt-5">
             <label className="block mb-2 text-sm font-medium">
-              Reference (optional)
+              {ui.referenceLabel}
             </label>
             <input
               className="u-input"
-              placeholder="Transaction ID / note you used"
+              placeholder={ui.referencePlaceholder}
               value={reference}
               onChange={(e) => setReference(e.target.value)}
               disabled={!canSubmit}
@@ -325,21 +334,21 @@ export default function PaymentPage() {
         {/* Proof */}
         <div className="card">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="font-semibold">Upload proof</h3>
-            <span className="text-xs text-[#9CA3AF]">PNG/JPG/PDF</span>
+            <h3 className="font-semibold">{ui.uploadProofTitle}</h3>
+            <span className="text-xs text-[#9CA3AF]">
+              {ui.allowedTypesText}
+            </span>
           </div>
-          <p className="mt-1 text-sm text-[#9CA3AF]">
-            Upload a screenshot/receipt showing the amount and receiver details.
-          </p>
+          <p className="mt-1 text-sm text-[#9CA3AF]">{acceptedProofText}</p>
 
           <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div>
                 <p className="text-sm text-slate-200 font-medium">
-                  Selected file
+                  {ui.selectedFileLabel}
                 </p>
                 <p className="text-xs text-[#9CA3AF] mt-1">
-                  {file ? file.name : "No file selected"}
+                  {file ? file.name : ui.noFileSelectedText}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -349,7 +358,7 @@ export default function PaymentPage() {
                     onClick={() => setFile(null)}
                     className="btn-secondary"
                   >
-                    Remove
+                    {ui.removeFileText}
                   </button>
                 )}
                 <label
@@ -357,7 +366,7 @@ export default function PaymentPage() {
                     !canSubmit ? "opacity-50 pointer-events-none" : ""
                   }`}
                 >
-                  Choose file
+                  {ui.chooseFileText}
                   <input
                     type="file"
                     disabled={!canSubmit}
@@ -375,13 +384,13 @@ export default function PaymentPage() {
                         "application/pdf",
                       ];
                       if (!allowed.includes(next.type)) {
-                        toast("Only PNG/JPG/WEBP/PDF allowed", "error");
+                        toast(ui.invalidFileTypeText, "error");
                         e.target.value = "";
                         setFile(null);
                         return;
                       }
                       if (next.size > 10 * 1024 * 1024) {
-                        toast("File too large (max 10MB)", "error");
+                        toast(ui.fileTooLargeText, "error");
                         e.target.value = "";
                         setFile(null);
                         return;
@@ -394,17 +403,15 @@ export default function PaymentPage() {
               </div>
             </div>
 
-            <p className="mt-3 text-xs text-[#9CA3AF]">
-              Tip: include both amount + receiver details in the screenshot.
-            </p>
+            <p className="mt-3 text-xs text-[#9CA3AF]">{ui.tipText}</p>
           </div>
 
           <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
-            <p className="text-sm font-medium text-white">Safety & trust</p>
+            <p className="text-sm font-medium text-white">{ui.safetyTitle}</p>
             <ul className="mt-2 space-y-2 text-xs text-[#9CA3AF]">
-              <li>• We never ask for your password or login codes.</li>
-              <li>• Payments are verified manually to prevent fraud.</li>
-              <li>• Fake or reused proofs will be rejected.</li>
+              {ui.safetyBullets.map((b) => (
+                <li key={b}>• {b}</li>
+              ))}
             </ul>
           </div>
         </div>
@@ -416,31 +423,27 @@ export default function PaymentPage() {
         className="btn-primary disabled:opacity-50 w-full"
       >
         {isSubmitted
-          ? "Submitted"
+          ? ui.submitButtonSubmitted
           : status === "rejected"
-          ? "Resubmit proof"
-          : "Submit proof"}
+          ? ui.submitButtonResubmit
+          : ui.submitButtonSubmit}
       </button>
 
       {!isSubmitted && canSubmit && (
         <p className="text-xs text-[#9CA3AF]">
-          Status: {hasMethod ? "method selected" : "select a method"}
+          {ui.statusLinePrefix}{" "}
+          {hasMethod ? ui.statusLineMethodSelected : ui.statusLineSelectMethod}
           {" • "}
-          {hasProof ? "proof attached" : "attach proof"}
+          {hasProof ? ui.statusLineProofAttached : ui.statusLineAttachProof}
         </p>
       )}
 
-      <p className="text-xs text-[#9CA3AF]">
-        Need help? Open your <span className="text-white">My Orders</span> page
-        and use the order chat.
-      </p>
+      <p className="text-xs text-[#9CA3AF]">{ui.needHelpText}</p>
 
       {/* FAQ */}
       <div className="card">
-        <h3 className="font-semibold">Payment FAQ</h3>
-        <p className="mt-1 text-sm text-[#9CA3AF]">
-          New here? These are the most common questions.
-        </p>
+        <h3 className="font-semibold">{ui.faqTitle}</h3>
+        <p className="mt-1 text-sm text-[#9CA3AF]">{ui.faqSubtitle}</p>
 
         <div className="mt-4 space-y-2">
           {paymentFaq.map((item, idx) => {

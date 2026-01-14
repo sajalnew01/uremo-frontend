@@ -1,18 +1,12 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
 import StatusBanner from "@/components/StatusBanner";
+import Footer from "@/components/Footer";
 import { SidebarProvider } from "@/components/sidebar/SidebarProvider";
 import { ToastProvider } from "@/hooks/useToast";
 import ToastViewport from "@/components/ToastViewport";
-
-const inter = Inter({
-  variable: "--font-sans",
-  subsets: ["latin"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "UREMO — Verified Digital Onboarding & Marketplace",
@@ -54,9 +48,13 @@ export const metadata: Metadata = {
     images: ["/brand/og.png"],
   },
   icons: {
-    icon: [{ url: "/brand/favicon.png", type: "image/png" }],
-    apple: [{ url: "/brand/apple-touch.png", type: "image/png" }],
-    other: [{ rel: "icon", url: "/icon.png", type: "image/png" }],
+    icon: [
+      { url: "/brand/favicon.png", type: "image/png" },
+      { url: "/brand/icon.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [
+      { url: "/brand/apple-touch.png", type: "image/png", sizes: "180x180" },
+    ],
   },
   robots: {
     index: true,
@@ -78,7 +76,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} overflow-x-hidden`}>
+      <body className="overflow-x-hidden">
         <ToastProvider>
           <SidebarProvider>
             <Navbar />
@@ -96,6 +94,8 @@ export default function RootLayout({
 
               <Sidebar />
             </div>
+
+            <Footer />
           </SidebarProvider>
         </ToastProvider>
       </body>

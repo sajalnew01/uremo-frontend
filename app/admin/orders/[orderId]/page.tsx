@@ -45,6 +45,7 @@ export default function AdminOrderDetailPage() {
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
+  const pollTimerRef = useRef<number | null>(null);
 
   const loadOrder = async () => {
     const data = await apiRequest(`/api/orders/${orderId}`, "GET", null, true);
@@ -69,6 +70,22 @@ export default function AdminOrderDetailPage() {
   useEffect(() => {
     loadOrder().catch(() => null);
     loadMessages().catch(() => null);
+
+    if (pollTimerRef.current) {
+      window.clearInterval(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
+
+    pollTimerRef.current = window.setInterval(() => {
+      loadMessages().catch(() => null);
+    }, 5000);
+
+    return () => {
+      if (pollTimerRef.current) {
+        window.clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+    };
   }, [orderId]);
 
   useEffect(() => {
@@ -107,6 +124,7 @@ export default function AdminOrderDetailPage() {
       );
       setReply("");
       await loadMessages();
+      toast("Reply sent", "success");
     } catch (e: any) {
       const msg = e?.message || "Failed to send reply";
       setSendError(msg);
@@ -233,9 +251,12 @@ export default function AdminOrderDetailPage() {
                       : "bg-white/5 border-white/10 text-slate-200"
                   }`}
                 >
+                  <p className="text-[11px] text-[#9CA3AF] mb-1">
+                    {m.senderRole === "admin" ? "You" : "User"}
+                  </p>
                   <p className="whitespace-pre-wrap">{m.message}</p>
                   <p className="mt-1 text-[11px] text-[#9CA3AF]">
-                    {new Date(m.createdAt).toLocaleString()} — {m.senderRole}
+                    {new Date(m.createdAt).toLocaleString()}
                   </p>
                 </div>
               </div>

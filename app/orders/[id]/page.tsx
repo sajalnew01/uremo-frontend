@@ -9,7 +9,6 @@ import {
   DEFAULT_PUBLIC_SITE_SETTINGS,
   useSiteSettings,
 } from "@/hooks/useSiteSettings";
-import FaqAccordion from "@/components/ui/FaqAccordion";
 
 interface Order {
   _id: string;
@@ -43,6 +42,12 @@ export default function OrderDetailsPage() {
   const { toast } = useToast();
   const { ready: authReady, isAuthenticated } = useAuth();
   const { data: settings } = useSiteSettings();
+
+  const ui =
+    settings?.orders?.details || DEFAULT_PUBLIC_SITE_SETTINGS.orders.details;
+  const expiresPrefix =
+    (settings?.orders?.list?.expiresPrefix || "").trim() ||
+    DEFAULT_PUBLIC_SITE_SETTINGS.orders.list.expiresPrefix;
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -57,19 +62,16 @@ export default function OrderDetailsPage() {
   const chatSectionRef = useRef<HTMLDivElement | null>(null);
   const chatInputRef = useRef<HTMLInputElement | null>(null);
 
-  const orderSupportFaq =
-    settings?.faq?.orderSupport && settings.faq.orderSupport.length
-      ? settings.faq.orderSupport
-      : DEFAULT_PUBLIC_SITE_SETTINGS.faq.orderSupport;
+  const quickReplies = useMemo(() => {
+    const list = settings?.orderSupport?.quickReplies;
+    return Array.isArray(list) && list.length
+      ? list
+      : DEFAULT_PUBLIC_SITE_SETTINGS.orderSupport.quickReplies;
+  }, [settings?.orderSupport?.quickReplies]);
 
-  const quickReplies = useMemo(
-    () => [
-      "I have paid, please verify.",
-      "When will my service be delivered?",
-      "I need urgent delivery.",
-    ],
-    []
-  );
+  const supportGuidelines =
+    (settings?.orderSupport?.supportGuidelines || "").trim() ||
+    DEFAULT_PUBLIC_SITE_SETTINGS.orderSupport.supportGuidelines;
 
   const scrollToChat = (opts?: {
     focus?: boolean;
@@ -128,7 +130,7 @@ export default function OrderDetailsPage() {
         return;
       }
 
-      setLoadError(apiErr?.message || "Failed to load order");
+      setLoadError(apiErr?.message || ui.loadOrderFailedText);
     } finally {
       setLoading(false);
     }
@@ -159,7 +161,7 @@ export default function OrderDetailsPage() {
         return;
       }
 
-      const msg = apiErr?.message || "Failed to load messages";
+      const msg = apiErr?.message || ui.loadMessagesFailedText;
       setMessageLoadError(msg);
     }
   };
@@ -207,7 +209,7 @@ export default function OrderDetailsPage() {
   const expiresText = useMemo(() => {
     if (!isPendingPayment || !order?.expiresAt) return null;
     const expiresAt = new Date(order.expiresAt);
-    return `Expires: ${expiresAt.toLocaleString()}`;
+    return `${expiresPrefix} ${expiresAt.toLocaleString()}`;
   }, [isPendingPayment, order?.expiresAt]);
 
   const sendMessage = async () => {
@@ -229,8 +231,9 @@ export default function OrderDetailsPage() {
       );
       setMessageText("");
       await loadMessages();
+      toast(ui.messageSentToast, "success");
     } catch (err: any) {
-      const msg = err?.message || "Failed to send message";
+      const msg = err?.message || ui.sendFailedText;
       setSendError(msg);
       toast(msg, "error");
     } finally {
@@ -239,21 +242,19 @@ export default function OrderDetailsPage() {
   };
 
   if (loading) {
-    return <div className="p-6">Loading order...</div>;
+    return <div className="p-6">{ui.loadingText}</div>;
   }
 
   if (notFound) {
     return (
       <div className="p-6 max-w-3xl space-y-3">
-        <h1 className="text-xl font-semibold">Order not found</h1>
-        <p className="text-sm text-[#9CA3AF]">
-          This order doesn’t exist, or you don’t have access.
-        </p>
+        <h1 className="text-xl font-semibold">{ui.notFoundTitle}</h1>
+        <p className="text-sm text-[#9CA3AF]">{ui.notFoundBody}</p>
         <button
           onClick={() => router.push("/orders")}
           className="btn-secondary w-fit"
         >
-          Back to Orders
+          {ui.backToOrdersText}
         </button>
       </div>
     );
@@ -262,7 +263,7 @@ export default function OrderDetailsPage() {
   if (loadError) {
     return (
       <div className="p-6 max-w-3xl space-y-3">
-        <h1 className="text-xl font-semibold">Couldn’t load order</h1>
+        <h1 className="text-xl font-semibold">{ui.loadErrorTitle}</h1>
         <p className="text-sm text-[#9CA3AF]">{loadError}</p>
         <div className="flex flex-col sm:flex-row gap-2 flex-wrap">
           <button
@@ -272,13 +273,13 @@ export default function OrderDetailsPage() {
             }}
             className="btn-primary w-full sm:w-fit"
           >
-            Retry
+            {ui.loadErrorRetryText}
           </button>
           <button
             onClick={() => router.push("/orders")}
             className="btn-secondary w-full sm:w-fit"
           >
-            Back to Orders
+            {ui.backToOrdersText}
           </button>
         </div>
       </div>
@@ -288,12 +289,12 @@ export default function OrderDetailsPage() {
   if (!order) {
     return (
       <div className="p-6 max-w-3xl space-y-3">
-        <h1 className="text-xl font-semibold">Order unavailable</h1>
+        <h1 className="text-xl font-semibold">{ui.unavailableTitle}</h1>
         <button
           onClick={() => router.push("/orders")}
           className="btn-secondary w-fit"
         >
-          Back to Orders
+          {ui.backToOrdersText}
         </button>
       </div>
     );
@@ -306,9 +307,9 @@ export default function OrderDetailsPage() {
           onClick={() => router.push("/orders")}
           className="text-[#3B82F6] underline text-sm mb-4"
         >
-          ← Back to Orders
+          {ui.backToOrdersText}
         </button>
-        <h1 className="text-3xl font-bold">Order Details</h1>
+        <h1 className="text-3xl font-bold">{ui.title}</h1>
       </div>
 
       {/* Support banner */}
@@ -316,14 +317,15 @@ export default function OrderDetailsPage() {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <p className="text-sm font-semibold text-white">
-              Need faster delivery?
+              {ui.supportBannerTitle}
             </p>
             <p className="mt-1 text-sm text-slate-200">
-              Chat with UREMO support for verification & delivery updates.
+              {ui.supportBannerBody}
             </p>
             <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs border border-emerald-500/25 bg-emerald-500/10 text-emerald-200">
-              🟢 Support active <span className="text-emerald-200/70">•</span>
-              Replies usually within 5–10 minutes
+              {ui.supportActivePill}{" "}
+              <span className="text-emerald-200/70">•</span>{" "}
+              {ui.supportActiveHint}
             </div>
           </div>
 
@@ -332,7 +334,7 @@ export default function OrderDetailsPage() {
             onClick={() => scrollToChat({ focus: true })}
             className="btn-primary w-full sm:w-auto"
           >
-            Chat Now
+            {ui.chatNowText}
           </button>
         </div>
       </div>
@@ -341,31 +343,31 @@ export default function OrderDetailsPage() {
       <div className="border border-[#1F2937] rounded-lg p-6 bg-[#0F172A]">
         <div className="space-y-3">
           <div>
-            <p className="text-[#9CA3AF] text-sm">Order ID</p>
+            <p className="text-[#9CA3AF] text-sm">{ui.orderIdLabel}</p>
             <p className="font-mono text-sm">{order._id}</p>
           </div>
 
           <div>
-            <p className="text-[#9CA3AF] text-sm">Service</p>
+            <p className="text-[#9CA3AF] text-sm">{ui.serviceLabel}</p>
             <p className="text-lg font-semibold">{order.serviceId?.title}</p>
           </div>
 
           <div>
-            <p className="text-[#9CA3AF] text-sm">Amount</p>
+            <p className="text-[#9CA3AF] text-sm">{ui.amountLabel}</p>
             <p className="text-2xl font-bold text-[#22C55E]">
               ${order.serviceId?.price}
             </p>
           </div>
 
           <div>
-            <p className="text-[#9CA3AF] text-sm">Status</p>
+            <p className="text-[#9CA3AF] text-sm">{ui.statusLabel}</p>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="inline-block px-3 py-1 rounded bg-[#1F2937] text-sm">
                 {order.status.replace(/_/g, " ")}
               </span>
               {isPaymentVerified && (
                 <span className="inline-block px-3 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-200 text-sm">
-                  Payment verified ✅
+                  {ui.paymentVerifiedText}
                 </span>
               )}
             </div>
@@ -380,7 +382,7 @@ export default function OrderDetailsPage() {
                 onClick={() => router.push(`/payment/${order._id}`)}
                 className="inline-flex items-center justify-center px-4 py-2 rounded bg-[#3B82F6] text-white text-sm hover:bg-blue-500 transition"
               >
-                Complete payment
+                {ui.completePaymentText}
               </button>
             </div>
           )}
@@ -389,7 +391,7 @@ export default function OrderDetailsPage() {
 
       {/* Timeline */}
       <div className="border border-[#1F2937] rounded-lg p-6 bg-[#0F172A]">
-        <h3 className="font-semibold text-lg mb-4">Timeline</h3>
+        <h3 className="font-semibold text-lg mb-4">{ui.timelineTitle}</h3>
 
         <div className="space-y-3">
           {order.statusLog && order.statusLog.length > 0 ? (
@@ -407,7 +409,7 @@ export default function OrderDetailsPage() {
               </div>
             ))
           ) : (
-            <p className="text-[#9CA3AF] text-sm">No timeline events yet.</p>
+            <p className="text-[#9CA3AF] text-sm">{ui.noTimelineText}</p>
           )}
         </div>
       </div>
@@ -416,9 +418,11 @@ export default function OrderDetailsPage() {
         <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 p-5">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
-              <p className="text-sm font-semibold text-white">Support Guide</p>
+              <p className="text-sm font-semibold text-white">
+                {ui.supportGuideTitle}
+              </p>
               <p className="mt-1 text-sm text-slate-200">
-                Quick tips to get faster help.
+                {ui.supportGuideSubtitle}
               </p>
             </div>
             <button
@@ -426,11 +430,14 @@ export default function OrderDetailsPage() {
               onClick={() => scrollToChat({ focus: true })}
               className="btn-secondary w-full sm:w-auto"
             >
-              Open chat
+              {ui.openChatText}
             </button>
           </div>
         </div>
-        <FaqAccordion items={orderSupportFaq} defaultOpenIndex={null} />
+        <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
+          <p className="text-sm font-semibold">{ui.supportGuidelinesTitle}</p>
+          <p className="mt-2 text-xs text-[#9CA3AF]">{supportGuidelines}</p>
+        </div>
       </div>
 
       {/* Chat */}
@@ -442,17 +449,15 @@ export default function OrderDetailsPage() {
       >
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-semibold text-lg">Order Support Chat</h3>
-            <p className="text-xs text-[#9CA3AF] mt-1">
-              Message support for payment verification and delivery updates.
-            </p>
+            <h3 className="font-semibold text-lg">{ui.chatTitle}</h3>
+            <p className="text-xs text-[#9CA3AF] mt-1">{ui.chatSubtitle}</p>
           </div>
           <button
             type="button"
             onClick={loadMessages}
             className="text-xs text-[#9CA3AF] hover:text-white transition"
           >
-            Refresh
+            {ui.refreshText}
           </button>
         </div>
 
@@ -468,10 +473,10 @@ export default function OrderDetailsPage() {
                   ✦
                 </div>
                 <p className="mt-3 text-sm text-slate-200 font-medium">
-                  No messages yet. Support will reply here.
+                  {ui.emptyChatTitle}
                 </p>
                 <p className="mt-1 text-xs text-[#9CA3AF]">
-                  Use a quick reply to start the conversation.
+                  {ui.emptyChatSubtitle}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2 justify-center">
                   {quickReplies.map((q) => (
@@ -506,7 +511,7 @@ export default function OrderDetailsPage() {
                   }`}
                 >
                   <p className="text-[11px] text-[#9CA3AF] mb-1">
-                    {m.senderRole === "user" ? "You" : "Support"}
+                    {m.senderRole === "user" ? ui.youLabel : ui.supportLabel}
                   </p>
                   <p className="whitespace-pre-wrap">{m.message}</p>
                   <p className="mt-1 text-[11px] text-[#9CA3AF]">
@@ -540,7 +545,7 @@ export default function OrderDetailsPage() {
             <input
               ref={chatInputRef}
               className="w-full sm:flex-1 rounded-lg border border-[#1F2937] bg-[#020617] px-3 py-2 text-sm text-white placeholder:text-[#64748B]"
-              placeholder="Type a message..."
+              placeholder={ui.chatInputPlaceholder}
               value={messageText}
               onChange={(e) => {
                 setMessageText(e.target.value);
@@ -560,16 +565,14 @@ export default function OrderDetailsPage() {
               disabled={sending || !messageText.trim()}
               className="px-4 py-2 rounded-lg bg-[#3B82F6] text-white text-sm disabled:opacity-50 w-full sm:w-auto"
             >
-              {sending ? "Sending..." : "Send"}
+              {sending ? ui.sendingButtonText : ui.sendButtonText}
             </button>
           </div>
         </div>
 
         {sendError && <p className="mt-2 text-xs text-red-400">{sendError}</p>}
 
-        <p className="mt-3 text-xs text-[#9CA3AF]">
-          Support replies from admin will appear here.
-        </p>
+        <p className="mt-3 text-xs text-[#9CA3AF]">{ui.supportRepliesHint}</p>
       </div>
     </div>
   );

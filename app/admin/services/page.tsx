@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
+import { withCacheBust } from "@/lib/cacheBust";
 
 export default function AdminServicesPage() {
   const { toast } = useToast();
@@ -19,6 +20,9 @@ export default function AdminServicesPage() {
   const [editActive, setEditActive] = useState(true);
   const [editImageUrl, setEditImageUrl] = useState("");
   const [editSaving, setEditSaving] = useState(false);
+  const [editImagePreviewBust, setEditImagePreviewBust] = useState<number>(() =>
+    Date.now()
+  );
 
   // form state
   const [title, setTitle] = useState("");
@@ -29,6 +33,17 @@ export default function AdminServicesPage() {
   const [deliveryType, setDeliveryType] = useState("manual");
   const [images, setImages] = useState<string[]>([]);
   const [imageUrl, setImageUrl] = useState("");
+  const [imagePreviewBust, setImagePreviewBust] = useState<number>(() =>
+    Date.now()
+  );
+
+  useEffect(() => {
+    if (imageUrl) setImagePreviewBust(Date.now());
+  }, [imageUrl]);
+
+  useEffect(() => {
+    if (editImageUrl) setEditImagePreviewBust(Date.now());
+  }, [editImageUrl]);
 
   // load services
   const loadServices = async () => {
@@ -274,7 +289,7 @@ export default function AdminServicesPage() {
         {imageUrl && (
           <div className="rounded-lg overflow-hidden border border-white/10">
             <img
-              src={imageUrl}
+              src={withCacheBust(imageUrl, imagePreviewBust)}
               alt="preview"
               className="w-full h-40 object-cover"
             />
@@ -481,7 +496,7 @@ export default function AdminServicesPage() {
               {editImageUrl && (
                 <div className="rounded-lg overflow-hidden border border-white/10">
                   <img
-                    src={editImageUrl}
+                    src={withCacheBust(editImageUrl, editImagePreviewBust)}
                     alt="preview"
                     className="w-full h-40 object-cover"
                   />

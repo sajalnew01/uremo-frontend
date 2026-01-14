@@ -7,18 +7,27 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSidebar } from "@/hooks/useSidebar";
 import ProfileMenu from "@/components/ProfileMenu";
+import {
+  DEFAULT_PUBLIC_SITE_SETTINGS,
+  useSiteSettings,
+} from "@/hooks/useSiteSettings";
 
 export default function Navbar() {
   const { ready, user, isAuthenticated, logout } = useAuth();
   const { toggleSidebar } = useSidebar();
   const pathname = usePathname();
   const [logoFailed, setLogoFailed] = useState(false);
+  const { data: settings } = useSiteSettings();
+
+  const nav = settings?.nav || DEFAULT_PUBLIC_SITE_SETTINGS.nav;
+  const site = settings?.site || DEFAULT_PUBLIC_SITE_SETTINGS.site;
+  const supportEmail =
+    settings?.support?.supportEmail ||
+    DEFAULT_PUBLIC_SITE_SETTINGS.support.supportEmail;
 
   if (!ready) {
     return (
-      <div className="px-6 py-4 border-b border-white/10 text-slate-400">
-        Loading...
-      </div>
+      <div className="px-6 py-4 border-b border-white/10" aria-busy="true" />
     );
   }
 
@@ -50,7 +59,7 @@ export default function Navbar() {
                   <>
                     <Image
                       src="/brand/logo-mark.png"
-                      alt="UREMO"
+                      alt={site.brandName || ""}
                       width={30}
                       height={30}
                       priority
@@ -59,7 +68,7 @@ export default function Navbar() {
                     />
                     <Image
                       src="/brand/logo-full.png"
-                      alt="UREMO"
+                      alt={site.brandName || ""}
                       width={120}
                       height={36}
                       priority
@@ -69,7 +78,8 @@ export default function Navbar() {
                   </>
                 ) : (
                   <span className="text-lg md:text-xl font-bold truncate">
-                    UREMO
+                    {site.brandName ||
+                      DEFAULT_PUBLIC_SITE_SETTINGS.site.brandName}
                   </span>
                 )}
               </Link>
@@ -80,26 +90,32 @@ export default function Navbar() {
                     href="/dashboard"
                     className="hover:text-white/90 transition"
                   >
-                    Dashboard
+                    {nav.authedDashboardText}
                   </Link>
                   <Link
                     href="/buy-service"
                     className="hover:text-white/90 transition"
                   >
-                    Services
+                    {nav.authedServicesText}
                   </Link>
                   <Link
                     href="/orders"
                     className="hover:text-white/90 transition"
                   >
-                    My Orders
+                    {nav.authedOrdersText}
                   </Link>
                   <Link
                     href="/apply-to-work"
                     className="hover:text-white/90 transition"
                   >
-                    Apply to Work
+                    {nav.authedApplyToWorkText}
                   </Link>
+                  <a
+                    href={`mailto:${supportEmail}`}
+                    className="hover:text-white/90 transition"
+                  >
+                    {nav.supportLinkText}
+                  </a>
                 </div>
               )}
             </div>
@@ -109,10 +125,10 @@ export default function Navbar() {
             {!isAuthenticated && pathname === "/" && (
               <>
                 <Link href="/signup" className="btn-primary">
-                  Get Started
+                  {nav.guestPrimaryCtaText}
                 </Link>
                 <Link href="/buy-service" className="btn-secondary">
-                  Browse Services
+                  {nav.guestSecondaryCtaText}
                 </Link>
               </>
             )}
@@ -120,11 +136,17 @@ export default function Navbar() {
             {!isAuthenticated && pathname !== "/" && (
               <div className="flex items-center gap-3 text-sm text-slate-200">
                 <Link href="/signup" className="hover:text-white/90 transition">
-                  Sign up
+                  {nav.guestSignupText}
                 </Link>
                 <Link href="/login" className="hover:text-white/90 transition">
-                  Login
+                  {nav.guestLoginText}
                 </Link>
+                <a
+                  href={`mailto:${supportEmail}`}
+                  className="hover:text-white/90 transition"
+                >
+                  {nav.supportLinkText}
+                </a>
               </div>
             )}
 

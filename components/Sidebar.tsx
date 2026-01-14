@@ -128,6 +128,7 @@ export default function Sidebar() {
   const adminLinks = [
     { name: "Admin", href: "/admin" },
     { name: "CMS Settings", href: "/admin/settings" },
+    { name: "Work Positions", href: "/admin/work-positions" },
     { name: "Inbox", href: "/admin/messages" },
     { name: "Applications", href: "/admin/applications" },
     { name: "Email Campaigns", href: "/admin/email" },
