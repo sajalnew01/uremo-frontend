@@ -295,7 +295,7 @@ export default function JarvisWidget() {
         role: "assistant",
         text:
           String(res?.reply || "").trim() ||
-          "I’m not fully sure yet. Please open Order Support Chat or contact WhatsApp support.",
+          "I can help with services, payments, and interview support. What do you need?",
         meta: {
           sources: Array.isArray(res?.usedSources) ? res.usedSources : [],
           actions: Array.isArray(res?.suggestedActions)
@@ -316,7 +316,7 @@ export default function JarvisWidget() {
         {
           id: uuid(),
           role: "assistant",
-          text: "I’m not fully sure yet. Please open Order Support Chat or contact WhatsApp support.",
+          text: "I hit a technical issue. Please try again in a moment.",
         },
       ]);
     } finally {

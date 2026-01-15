@@ -321,7 +321,7 @@ export default function AdminJarvisXCommandCenter() {
           id: uuid(),
           role: "assistant",
           text: isApiKeyError
-            ? "JarvisX AI is not configured yet. Add API key in Render/Vercel env to enable AI mode."
+            ? "JarvisX AI is not configured yet. Set GROQ_API_KEY in your server environment to enable AI mode."
             : "Got it, boss. I’ll look into that.",
         },
       ]);
@@ -636,8 +636,7 @@ export default function AdminJarvisXCommandCenter() {
                   ⚠️ JarvisX AI is not configured yet.
                 </p>
                 <p className="text-xs text-slate-400">
-                  Add JARVISX_API_KEY in Render/Vercel env to enable AI
-                  responses.
+                  Add GROQ_API_KEY in Render/Vercel env to enable AI responses.
                   <br />
                   For now, rule-based responses will be used.
                 </p>

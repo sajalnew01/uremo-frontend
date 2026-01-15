@@ -249,11 +249,11 @@ export default function AdminJarvisXWritePage() {
         >
           <p className="font-semibold">
             {health.llm.configured
-              ? `LLM Connected: ${health.llm.model}`
-              : "LLM Not Configured"}
+              ? "🟢 Groq Connected: llama-3.3-70b"
+              : "⚠️ Groq API key required (GROQ_API_KEY)"}
           </p>
           <p className="text-xs opacity-80 mt-1">
-            Provider: {health.llm.provider || "—"}
+            Provider: {health.llm.provider || "groq"}
           </p>
         </div>
       )}
