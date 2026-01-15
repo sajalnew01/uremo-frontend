@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build --webpack",
+    "build:win": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-win.ps1",
     "start": "next start",
     "lint": "eslint"
   },
