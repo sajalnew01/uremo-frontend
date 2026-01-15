@@ -44,29 +44,34 @@ export default function ProfileMenu() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition"
+        className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 hover:from-indigo-400 hover:to-purple-400 transition-all shadow-lg shadow-indigo-500/20"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Account"
       >
-        <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-white/10 border border-white/10 text-white font-semibold">
-          {avatarLetter}
-        </span>
+        <span className="text-white font-semibold text-sm">{avatarLetter}</span>
       </button>
 
       {open && (
         <div
           role="menu"
           aria-label="Profile menu"
-          className="absolute right-0 mt-2 w-[280px] rounded-2xl border border-white/10 bg-[#020617]/95 backdrop-blur shadow-[0_18px_60px_rgba(0,0,0,0.45)] overflow-hidden z-[9999]"
+          className="absolute right-0 mt-2 w-[280px] rounded-2xl border border-white/10 bg-slate-900/98 backdrop-blur-xl shadow-2xl overflow-hidden z-[9999]"
         >
-          <div className="p-4 border-b border-white/10">
-            <p className="text-[11px] tracking-widest text-slate-400">
-              SIGNED IN AS
-            </p>
-            <p className="text-sm text-white mt-1 truncate">
-              {maskEmail(email) || "—"}
-            </p>
+          <div className="p-4 border-b border-white/10 bg-gradient-to-r from-indigo-500/10 to-purple-500/10">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold">
+                {avatarLetter}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white truncate">
+                  {user?.name || "User"}
+                </p>
+                <p className="text-xs text-slate-400 truncate">
+                  {maskEmail(email) || "—"}
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="p-2">
@@ -74,8 +79,9 @@ export default function ProfileMenu() {
               role="menuitem"
               href="/profile"
               onClick={() => setOpen(false)}
-              className="block rounded-xl px-3 py-2 text-sm text-slate-200 hover:bg-white/5"
+              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-200 hover:bg-white/5 transition-colors"
             >
+              <span className="text-base">👤</span>
               Profile
             </Link>
 
@@ -83,20 +89,45 @@ export default function ProfileMenu() {
               role="menuitem"
               href="/orders"
               onClick={() => setOpen(false)}
-              className="block rounded-xl px-3 py-2 text-sm text-slate-200 hover:bg-white/5"
+              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-200 hover:bg-white/5 transition-colors"
             >
+              <span className="text-base">📦</span>
               My Orders
             </Link>
 
+            <Link
+              role="menuitem"
+              href="/apply-to-work"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-200 hover:bg-white/5 transition-colors"
+            >
+              <span className="text-base">💼</span>
+              Apply to Work
+            </Link>
+
+            <Link
+              role="menuitem"
+              href="/support"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-200 hover:bg-white/5 transition-colors"
+            >
+              <span className="text-base">💬</span>
+              Support
+            </Link>
+
             {isAdmin && (
-              <Link
-                role="menuitem"
-                href="/admin"
-                onClick={() => setOpen(false)}
-                className="block rounded-xl px-3 py-2 text-sm text-slate-200 hover:bg-white/5"
-              >
-                Admin Panel
-              </Link>
+              <>
+                <div className="my-2 h-px bg-white/10" />
+                <Link
+                  role="menuitem"
+                  href="/admin"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-amber-300 hover:bg-amber-500/10 transition-colors"
+                >
+                  <span className="text-base">⚡</span>
+                  Admin Panel
+                </Link>
+              </>
             )}
 
             <div className="my-2 h-px bg-white/10" />
@@ -108,9 +139,10 @@ export default function ProfileMenu() {
                 setOpen(false);
                 logout();
               }}
-              className="w-full text-left rounded-xl px-3 py-2 text-sm text-red-200 hover:bg-red-500/10"
+              className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
             >
-              Logout
+              <span className="text-base">🚪</span>
+              Sign Out
             </button>
           </div>
         </div>

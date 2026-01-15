@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
-import Sidebar from "@/components/Sidebar";
 import StatusBanner from "@/components/StatusBanner";
 import Footer from "@/components/Footer";
-import { SidebarProvider } from "@/components/sidebar/SidebarProvider";
 import { ToastProvider } from "@/hooks/useToast";
 import ToastViewport from "@/components/ToastViewport";
 import JarvisWidget from "@/components/jarvisx/JarvisWidget";
@@ -77,28 +75,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="overflow-x-hidden">
+      <body className="overflow-x-hidden bg-[#020617]">
         <ToastProvider>
-          <SidebarProvider>
-            <Navbar />
-            <ToastViewport />
-            <div className="pt-12 lg:pt-14">
-              <div className="lg:grid lg:grid-cols-[260px_1fr] min-h-[calc(100vh-48px)] lg:min-h-[calc(100vh-56px)]">
-                <div className="hidden lg:block" />
-                <main className="min-w-0 relative z-10 u-page">
-                  <div className="hidden lg:block">
-                    <StatusBanner />
-                  </div>
-                  {children}
-                </main>
-              </div>
+          <Navbar />
+          <ToastViewport />
+          <div className="pt-14 min-h-[calc(100vh-56px)]">
+            <StatusBanner />
+            <main className="min-w-0 relative z-10 u-page">{children}</main>
+          </div>
 
-              <Sidebar />
-            </div>
-
-            <Footer />
-            <JarvisWidget />
-          </SidebarProvider>
+          <Footer />
+          <JarvisWidget />
         </ToastProvider>
       </body>
     </html>

@@ -3,9 +3,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useSidebar } from "@/hooks/useSidebar";
 import ProfileMenu from "@/components/ProfileMenu";
 import {
   DEFAULT_PUBLIC_SITE_SETTINGS,
@@ -14,9 +13,9 @@ import {
 
 export default function Navbar() {
   const { ready, user, isAuthenticated, logout } = useAuth();
-  const { toggleSidebar } = useSidebar();
   const pathname = usePathname();
   const [logoFailed, setLogoFailed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { data: settings } = useSiteSettings();
 
   const nav = settings?.nav || DEFAULT_PUBLIC_SITE_SETTINGS.nav;
@@ -25,31 +24,80 @@ export default function Navbar() {
     settings?.support?.supportEmail ||
     DEFAULT_PUBLIC_SITE_SETTINGS.support.supportEmail;
 
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileMenuOpen]);
+
+  const userLinks = [
+    { href: "/dashboard", label: nav.authedDashboardText, icon: "🏠" },
+    { href: "/buy-service", label: nav.authedServicesText, icon: "🛒" },
+    { href: "/orders", label: nav.authedOrdersText, icon: "📦" },
+    { href: "/apply-to-work", label: nav.authedApplyToWorkText, icon: "💼" },
+  ];
+
+  const adminLinks = [
+    { href: "/admin", label: "Admin Dashboard", icon: "⚡" },
+    { href: "/admin/services", label: "Services", icon: "📋" },
+    { href: "/admin/orders", label: "Orders", icon: "📦" },
+    { href: "/admin/payments", label: "Payments", icon: "💳" },
+    { href: "/admin/work-applications", label: "Applications", icon: "📝" },
+    { href: "/admin/work-positions", label: "Work Positions", icon: "👥" },
+    { href: "/admin/settings", label: "CMS Settings", icon: "⚙️" },
+  ];
+
   if (!ready) {
     return (
-      <div className="px-6 py-4 border-b border-white/10" aria-busy="true" />
+      <div
+        className="px-6 py-4 border-b border-white/10 h-14"
+        aria-busy="true"
+      />
     );
   }
 
   return (
-    <nav className="fixed top-0 inset-x-0 z-[9999] pointer-events-auto h-12 lg:h-14 border-b border-white/10 bg-black/10 backdrop-blur">
-      <div className="h-12 lg:h-14 px-3 lg:px-6 flex items-center">
-        <div className="flex items-center w-full">
-          <div className="w-1/3 flex items-center">
-            {isAuthenticated && (
-              <button
-                type="button"
-                onClick={toggleSidebar}
-                className="lg:hidden inline-flex items-center justify-center w-10 h-10 rounded-xl border border-white/10 hover:border-white/20"
-                aria-label="Open menu"
-              >
-                <span className="text-lg">☰</span>
-              </button>
-            )}
-          </div>
+    <>
+      <nav className="fixed top-0 inset-x-0 z-[9999] pointer-events-auto h-14 border-b border-white/10 bg-slate-900/95 backdrop-blur-xl">
+        <div className="h-14 px-4 lg:px-6 flex items-center max-w-7xl mx-auto">
+          <div className="flex items-center w-full">
+            {/* Left section - Hamburger on mobile */}
+            <div className="flex items-center gap-4">
+              {isAuthenticated && (
+                <button
+                  type="button"
+                  onClick={() => setMobileMenuOpen(true)}
+                  className="lg:hidden inline-flex items-center justify-center w-10 h-10 rounded-xl border border-white/10 hover:border-white/20 hover:bg-white/5 transition-all"
+                  aria-label="Open menu"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 6h16M4 12h16M4 18h16"
+                    />
+                  </svg>
+                </button>
+              )}
 
-          <div className="w-1/3 flex justify-center min-w-0">
-            <div className="flex items-center gap-5 min-w-0">
+              {/* Logo */}
               <Link
                 href="/"
                 className="inline-flex items-center gap-2 min-w-0"
@@ -60,8 +108,8 @@ export default function Navbar() {
                     <Image
                       src="/brand/logo-mark.png"
                       alt={site.brandName || ""}
-                      width={30}
-                      height={30}
+                      width={32}
+                      height={32}
                       priority
                       className="lg:hidden"
                       onError={() => setLogoFailed(true)}
@@ -83,77 +131,223 @@ export default function Navbar() {
                   </span>
                 )}
               </Link>
-
-              {isAuthenticated && (
-                <div className="hidden lg:flex items-center gap-3 text-sm text-slate-200">
-                  <Link
-                    href="/dashboard"
-                    className="hover:text-white/90 transition"
-                  >
-                    {nav.authedDashboardText}
-                  </Link>
-                  <Link
-                    href="/buy-service"
-                    className="hover:text-white/90 transition"
-                  >
-                    {nav.authedServicesText}
-                  </Link>
-                  <Link
-                    href="/orders"
-                    className="hover:text-white/90 transition"
-                  >
-                    {nav.authedOrdersText}
-                  </Link>
-                  <Link
-                    href="/apply-to-work"
-                    className="hover:text-white/90 transition"
-                  >
-                    {nav.authedApplyToWorkText}
-                  </Link>
-                  <a
-                    href={`mailto:${supportEmail}`}
-                    className="hover:text-white/90 transition"
-                  >
-                    {nav.supportLinkText}
-                  </a>
-                </div>
-              )}
             </div>
-          </div>
 
-          <div className="w-1/3 flex gap-2 md:gap-3 items-center justify-end">
-            {!isAuthenticated && pathname === "/" && (
-              <>
-                <Link href="/signup" className="btn-primary">
-                  {nav.guestPrimaryCtaText}
-                </Link>
-                <Link href="/buy-service" className="btn-secondary">
-                  {nav.guestSecondaryCtaText}
-                </Link>
-              </>
-            )}
-
-            {!isAuthenticated && pathname !== "/" && (
-              <div className="flex items-center gap-3 text-sm text-slate-200">
-                <Link href="/signup" className="hover:text-white/90 transition">
-                  {nav.guestSignupText}
-                </Link>
-                <Link href="/login" className="hover:text-white/90 transition">
-                  {nav.guestLoginText}
-                </Link>
+            {/* Center section - Desktop navigation */}
+            {isAuthenticated && (
+              <div className="hidden lg:flex items-center gap-1 ml-8">
+                {userLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                      pathname === link.href
+                        ? "bg-white/10 text-white"
+                        : "text-slate-300 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
                 <a
                   href={`mailto:${supportEmail}`}
-                  className="hover:text-white/90 transition"
+                  className="px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-all"
                 >
                   {nav.supportLinkText}
                 </a>
               </div>
             )}
 
-            {isAuthenticated && <ProfileMenu />}
+            {/* Right section */}
+            <div className="ml-auto flex gap-2 md:gap-3 items-center">
+              {!isAuthenticated && pathname === "/" && (
+                <>
+                  <Link href="/signup" className="btn-primary">
+                    {nav.guestPrimaryCtaText}
+                  </Link>
+                  <Link
+                    href="/buy-service"
+                    className="btn-secondary hidden sm:inline-flex"
+                  >
+                    {nav.guestSecondaryCtaText}
+                  </Link>
+                </>
+              )}
+
+              {!isAuthenticated && pathname !== "/" && (
+                <div className="flex items-center gap-3 text-sm text-slate-300">
+                  <Link href="/signup" className="hover:text-white transition">
+                    {nav.guestSignupText}
+                  </Link>
+                  <Link href="/login" className="hover:text-white transition">
+                    {nav.guestLoginText}
+                  </Link>
+                  <a
+                    href={`mailto:${supportEmail}`}
+                    className="hidden sm:inline hover:text-white transition"
+                  >
+                    {nav.supportLinkText}
+                  </a>
+                </div>
+              )}
+
+              {isAuthenticated && <ProfileMenu />}
+            </div>
           </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+
+      {/* Mobile Menu Drawer */}
+      {isAuthenticated && (
+        <>
+          {/* Overlay */}
+          <div
+            className={`fixed inset-0 z-[10000] bg-black/60 backdrop-blur-sm transition-opacity lg:hidden ${
+              mobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+            }`}
+            onClick={() => setMobileMenuOpen(false)}
+          />
+
+          {/* Drawer */}
+          <div
+            className={`fixed inset-y-0 left-0 z-[10001] w-80 max-w-[85vw] bg-slate-900 border-r border-white/10 shadow-2xl transform transition-transform duration-300 lg:hidden ${
+              mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+            }`}
+          >
+            {/* Drawer Header */}
+            <div className="h-14 px-4 flex items-center justify-between border-b border-white/10">
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {!logoFailed ? (
+                  <Image
+                    src="/brand/logo-full.png"
+                    alt={site.brandName || ""}
+                    width={100}
+                    height={30}
+                    priority
+                    onError={() => setLogoFailed(true)}
+                  />
+                ) : (
+                  <span className="text-lg font-bold">
+                    {site.brandName ||
+                      DEFAULT_PUBLIC_SITE_SETTINGS.site.brandName}
+                  </span>
+                )}
+              </Link>
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                className="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-white/10 hover:border-white/20 hover:bg-white/5 transition-all"
+                aria-label="Close menu"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Drawer Content */}
+            <div className="flex-1 overflow-y-auto py-4">
+              {/* User Links */}
+              <div className="px-3 mb-4">
+                <p className="px-3 mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Menu
+                </p>
+                <div className="space-y-1">
+                  {userLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                        pathname === link.href
+                          ? "bg-gradient-to-r from-indigo-500/20 to-purple-500/20 text-white border border-indigo-500/30"
+                          : "text-slate-300 hover:text-white hover:bg-white/5"
+                      }`}
+                    >
+                      <span className="text-lg">{link.icon}</span>
+                      {link.label}
+                    </Link>
+                  ))}
+                  <a
+                    href={`mailto:${supportEmail}`}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-all"
+                  >
+                    <span className="text-lg">💬</span>
+                    {nav.supportLinkText}
+                  </a>
+                </div>
+              </div>
+
+              {/* Admin Links */}
+              {user?.role === "admin" && (
+                <div className="px-3 pt-4 border-t border-white/10">
+                  <p className="px-3 mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    Admin
+                  </p>
+                  <div className="space-y-1">
+                    {adminLinks.map((link) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                          pathname === link.href ||
+                          pathname.startsWith(link.href + "/")
+                            ? "bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-white border border-amber-500/30"
+                            : "text-slate-300 hover:text-white hover:bg-white/5"
+                        }`}
+                      >
+                        <span className="text-lg">{link.icon}</span>
+                        {link.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Drawer Footer - User Info */}
+            <div className="p-4 border-t border-white/10">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold">
+                  {user?.name?.charAt(0)?.toUpperCase() || "U"}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white truncate">
+                    {user?.name}
+                  </p>
+                  <p className="text-xs text-slate-400 truncate">
+                    {user?.email}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  logout();
+                }}
+                className="w-full px-4 py-2.5 rounded-xl text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/20 transition-all"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </>
   );
 }
