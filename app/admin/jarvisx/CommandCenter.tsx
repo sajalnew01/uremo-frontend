@@ -76,17 +76,17 @@ type MemoryItem = {
 };
 
 type HealthReport = {
-  generatedAt: string;
-  llm?: { configured: boolean; provider: string; model: string };
-  services: { total: number; active: number; missingHeroCount: number };
-  workPositions: { total: number; active: number };
-  serviceRequests: { total: number; new: number; draft: number };
-  orders: { paymentProofPendingCount: number };
-  settings: { missingKeys: string[] };
-  jarvisx: {
-    chatTotal24h: number;
-    chatOk24h: number;
-    chatErrorRate24h: number;
+  generatedAt?: string;
+  llm?: { configured?: boolean; provider?: string; model?: string };
+  services?: { total?: number; active?: number; missingHeroCount?: number };
+  workPositions?: { total?: number; active?: number };
+  serviceRequests?: { total?: number; new?: number; draft?: number };
+  orders?: { paymentProofPendingCount?: number };
+  settings?: { missingKeys?: string[] };
+  jarvisx?: {
+    chatTotal24h?: number;
+    chatOk24h?: number;
+    chatErrorRate24h?: number;
   };
 };
 
@@ -255,7 +255,37 @@ export default function AdminJarvisXCommandCenter() {
         null,
         true
       );
-      setHealth(data);
+      // Ensure safe defaults for all nested objects to prevent crashes
+      const safeHealth: HealthReport = {
+        generatedAt: data?.generatedAt ?? new Date().toISOString(),
+        llm: data?.llm ?? { configured: false, provider: "", model: "" },
+        services: {
+          total: data?.services?.total ?? 0,
+          active: data?.services?.active ?? 0,
+          missingHeroCount: data?.services?.missingHeroCount ?? 0,
+        },
+        workPositions: {
+          total: data?.workPositions?.total ?? 0,
+          active: data?.workPositions?.active ?? 0,
+        },
+        serviceRequests: {
+          total: data?.serviceRequests?.total ?? 0,
+          new: data?.serviceRequests?.new ?? 0,
+          draft: data?.serviceRequests?.draft ?? 0,
+        },
+        orders: {
+          paymentProofPendingCount: data?.orders?.paymentProofPendingCount ?? 0,
+        },
+        settings: {
+          missingKeys: data?.settings?.missingKeys ?? [],
+        },
+        jarvisx: {
+          chatTotal24h: data?.jarvisx?.chatTotal24h ?? 0,
+          chatOk24h: data?.jarvisx?.chatOk24h ?? 0,
+          chatErrorRate24h: data?.jarvisx?.chatErrorRate24h ?? 0,
+        },
+      };
+      setHealth(safeHealth);
     } catch {
       setHealth(null);
     } finally {
@@ -618,31 +648,34 @@ export default function AdminJarvisXCommandCenter() {
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-slate-200">
                 <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
                   <p className="text-xs text-slate-500">Services</p>
-                  <p>Total: {health.services.total}</p>
-                  <p>Active: {health.services.active}</p>
-                  <p>Missing hero: {health.services.missingHeroCount}</p>
+                  <p>Total: {health?.services?.total ?? 0}</p>
+                  <p>Active: {health?.services?.active ?? 0}</p>
+                  <p>Missing hero: {health?.services?.missingHeroCount ?? 0}</p>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
                   <p className="text-xs text-slate-500">Work Positions</p>
-                  <p>Total: {health.workPositions.total}</p>
-                  <p>Active: {health.workPositions.active}</p>
+                  <p>Total: {health?.workPositions?.total ?? 0}</p>
+                  <p>Active: {health?.workPositions?.active ?? 0}</p>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
                   <p className="text-xs text-slate-500">Service Requests</p>
-                  <p>Total: {health.serviceRequests.total}</p>
-                  <p>New: {health.serviceRequests.new}</p>
-                  <p>Draft: {health.serviceRequests.draft}</p>
+                  <p>Total: {health?.serviceRequests?.total ?? 0}</p>
+                  <p>New: {health?.serviceRequests?.new ?? 0}</p>
+                  <p>Draft: {health?.serviceRequests?.draft ?? 0}</p>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
                   <p className="text-xs text-slate-500">JarvisX</p>
-                  <p>Chats 24h: {health.jarvisx.chatTotal24h}</p>
+                  <p>Chats 24h: {health?.jarvisx?.chatTotal24h ?? 0}</p>
                   <p>
                     Error rate:{" "}
-                    {(health.jarvisx.chatErrorRate24h * 100).toFixed(2)}%
+                    {((health?.jarvisx?.chatErrorRate24h ?? 0) * 100).toFixed(
+                      2
+                    )}
+                    %
                   </p>
                   <p className="text-xs text-slate-500 mt-2">
                     Pending payment proofs:{" "}
-                    {health.orders.paymentProofPendingCount}
+                    {health?.orders?.paymentProofPendingCount ?? 0}
                   </p>
                 </div>
               </div>
