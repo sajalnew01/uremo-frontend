@@ -130,7 +130,6 @@ export default function Sidebar() {
     { name: "Admin", href: "/admin" },
     { name: "CMS Settings", href: "/admin/settings" },
     { name: "JarvisX", href: "/admin/jarvisx" },
-    { name: "JarvisX Write", href: "/admin/jarvisx-write" },
     { name: "Work Positions", href: "/admin/work-positions" },
     { name: "Inbox", href: "/admin/messages" },
     { name: "Applications", href: "/admin/applications" },

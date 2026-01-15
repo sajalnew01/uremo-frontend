@@ -39,7 +39,7 @@ export function clearAuthSession() {
 
 export async function apiRequest<T = any>(
   endpoint: string,
-  method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" = "GET",
   body: any = null,
   auth: boolean = false,
   isFormData: boolean = false

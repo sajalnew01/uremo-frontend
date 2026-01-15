@@ -36,6 +36,12 @@ function uuid() {
 export default function JarvisWidget() {
   const pathname = usePathname();
 
+  const inferredOrderId = useMemo(() => {
+    const p = String(pathname || "");
+    const m = p.match(/^\/orders\/([a-f0-9]{24})(?:\/|$)/i);
+    return m?.[1] ? String(m[1]) : "";
+  }, [pathname]);
+
   // Hide on auth pages and admin pages (admin has its own command center).
   const shouldHide = useMemo(() => {
     const p = String(pathname || "");
@@ -137,6 +143,7 @@ export default function JarvisWidget() {
         mode: "public",
         meta: {
           page: pathname || "",
+          orderId: inferredOrderId || undefined,
           leadCapture: leadRequestId ? { requestId: leadRequestId } : undefined,
         },
       });
