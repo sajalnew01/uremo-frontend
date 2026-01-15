@@ -8,10 +8,13 @@ type JarvisSuggestedAction = { label: string; url: string };
 
 type JarvisReply = {
   reply: string;
-  confidence: number;
-  usedSources: string[];
-  suggestedActions: JarvisSuggestedAction[];
+  confidence?: number;
+  usedSources?: string[];
+  suggestedActions?: JarvisSuggestedAction[];
   leadCapture?: { requestId?: string; step?: string };
+  intent?: string;
+  quickReplies?: string[];
+  didCreateRequest?: boolean;
 };
 
 type JarvisContextPublic = {
@@ -32,7 +35,12 @@ type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   text: string;
-  meta?: { sources?: string[]; actions?: JarvisSuggestedAction[] };
+  meta?: {
+    sources?: string[];
+    actions?: JarvisSuggestedAction[];
+    quickReplies?: string[];
+    intent?: string;
+  };
 };
 
 function uuid() {
@@ -230,8 +238,8 @@ export default function JarvisWidget() {
     return `${brand} support brain is ready.`;
   }, [context, loadingContext]);
 
-  const send = async () => {
-    const text = input.trim();
+  const sendText = async (rawText: string) => {
+    const text = String(rawText || "").trim();
     if (!text || sending) return;
 
     setInput("");
@@ -293,6 +301,10 @@ export default function JarvisWidget() {
           actions: Array.isArray(res?.suggestedActions)
             ? res.suggestedActions
             : [],
+          quickReplies: Array.isArray(res?.quickReplies)
+            ? res.quickReplies
+            : [],
+          intent: String(res?.intent || "").trim() || undefined,
         },
       };
 
@@ -310,6 +322,24 @@ export default function JarvisWidget() {
     } finally {
       setSending(false);
     }
+  };
+
+  const send = async () => sendText(input);
+
+  const onQuickReply = (messageId: string, replyText: string) => {
+    // Prevent double-clicks while sending.
+    if (sending) return;
+
+    // Hide quick replies on the message once used.
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === messageId
+          ? { ...m, meta: { ...(m.meta || {}), quickReplies: [] } }
+          : m
+      )
+    );
+
+    sendText(replyText);
   };
 
   if (shouldHide) return null;
@@ -386,6 +416,24 @@ export default function JarvisWidget() {
                           >
                             {a.label}
                           </a>
+                        ))}
+                      </div>
+                    )}
+
+                  {m.role === "assistant" &&
+                    m.meta?.quickReplies &&
+                    m.meta.quickReplies.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {m.meta.quickReplies.slice(0, 6).map((qr) => (
+                          <button
+                            key={`${m.id}-qr-${qr}`}
+                            type="button"
+                            disabled={sending}
+                            onClick={() => onQuickReply(m.id, qr)}
+                            className="text-xs rounded-full border border-white/10 bg-white/10 hover:bg-white/15 px-3 py-1 text-white transition disabled:opacity-60 disabled:cursor-not-allowed"
+                          >
+                            {qr}
+                          </button>
                         ))}
                       </div>
                     )}
