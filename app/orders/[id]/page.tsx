@@ -30,7 +30,12 @@ interface Order {
 
 type OrderMessage = {
   _id: string;
-  senderRole: "user" | "admin";
+  senderRole?: "user" | "admin" | string;
+  role?: string;
+  from?: string;
+  isAdmin?: boolean;
+  userId?: string;
+  senderId?: string;
   message: string;
   createdAt: string;
   optimistic?: boolean;
@@ -49,8 +54,35 @@ function OrderDetailsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { ready: authReady, isAuthenticated } = useAuth();
+  const { ready: authReady, isAuthenticated, user } = useAuth();
   const { data: settings } = useSiteSettings();
+
+  const loggedInUserId = useMemo(() => {
+    const maybeId = (user as any)?.id || (user as any)?._id;
+    return maybeId ? String(maybeId) : null;
+  }, [user]);
+
+  const getMessageSenderRole = useMemo(() => {
+    return (m: OrderMessage): "user" | "admin" => {
+      const roleRaw = (m?.senderRole || m?.role || m?.from || "").toString();
+      const role = roleRaw.trim().toLowerCase();
+
+      if (role === "user") return "user";
+      if (role === "admin" || role === "support") return "admin";
+
+      if (typeof m?.isAdmin === "boolean") {
+        return m.isAdmin ? "admin" : "user";
+      }
+
+      // Fallback: if role is missing, infer based on sender id.
+      const senderId = m?.userId || m?.senderId;
+      if (senderId && loggedInUserId && String(senderId) === loggedInUserId) {
+        return "user";
+      }
+
+      return "admin";
+    };
+  }, [loggedInUserId]);
 
   const ui =
     settings?.orders?.details || DEFAULT_PUBLIC_SITE_SETTINGS.orders.details;
@@ -689,21 +721,41 @@ function OrderDetailsContent() {
               <div
                 key={m._id}
                 className={`flex ${
-                  m.senderRole === "user" ? "justify-end" : "justify-start"
+                  getMessageSenderRole(m) === "user"
+                    ? "justify-end"
+                    : "justify-start"
                 }`}
               >
                 <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm border ${
-                    m.senderRole === "user"
-                      ? "bg-blue-600/20 border-blue-500/30 text-white"
-                      : "bg-white/5 border-white/10 text-slate-200"
-                  }`}
+                  className={`flex flex-col gap-1 ${
+                    getMessageSenderRole(m) === "user"
+                      ? "items-end"
+                      : "items-start"
+                  } max-w-[80%] md:max-w-[60%]`}
                 >
-                  <p className="text-[11px] text-[#9CA3AF] mb-1">
-                    {m.senderRole === "user" ? ui.youLabel : ui.supportLabel}
+                  <p className="text-[11px] text-slate-400">
+                    {getMessageSenderRole(m) === "user"
+                      ? ui.youLabel
+                      : ui.supportLabel}
                   </p>
-                  <p className="whitespace-pre-wrap">{m.message}</p>
-                  <p className="mt-1 text-[11px] text-[#9CA3AF]">
+                  <div
+                    className={`rounded-2xl px-4 py-2 text-sm ${
+                      getMessageSenderRole(m) === "user"
+                        ? "bg-blue-600 text-white"
+                        : "bg-slate-800 text-slate-100 border border-slate-700"
+                    }`}
+                  >
+                    <p className="whitespace-pre-wrap break-words">
+                      {m.message}
+                    </p>
+                  </div>
+                  <p
+                    className={`text-xs text-slate-400 ${
+                      getMessageSenderRole(m) === "user"
+                        ? "text-right"
+                        : "text-left"
+                    }`}
+                  >
                     {new Date(m.createdAt).toLocaleString()}
                   </p>
                 </div>
