@@ -176,16 +176,16 @@ export default function BuyServicePage() {
           </div>
         </div>
       ) : (
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filtered.map((s) => (
             <Link
               key={s._id}
               href={`/services/${s._id}`}
               className="block group"
             >
-              <div className="card cursor-pointer overflow-hidden">
+              <div className="card cursor-pointer overflow-hidden h-full flex flex-col hover:border-blue-500/30 hover:shadow-[0_0_30px_rgba(59,130,246,0.15)] transition-all duration-300">
                 <div className="relative">
-                  <div className="mb-4 overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-blue-500/15 via-white/5 to-emerald-500/10">
+                  <div className="mb-4 overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-blue-500/15 via-white/5 to-emerald-500/10 aspect-video">
                     {s.imageUrl || (Array.isArray(s.images) && s.images[0]) ? (
                       <img
                         src={withCacheBust(
@@ -193,11 +193,11 @@ export default function BuyServicePage() {
                           s.updatedAt || s._id
                         )}
                         alt={s.title}
-                        className="h-44 w-full object-cover opacity-90 group-hover:opacity-100 transition"
+                        className="h-full w-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300"
                         loading="lazy"
                       />
                     ) : (
-                      <div className="h-44 w-full flex items-center justify-center text-white/70">
+                      <div className="h-full w-full flex items-center justify-center text-white/70">
                         <div className="w-12 h-12 rounded-2xl border border-white/10 bg-white/5 flex items-center justify-center text-xl">
                           ✦
                         </div>
@@ -218,8 +218,8 @@ export default function BuyServicePage() {
                   </div>
                 </div>
 
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
+                <div className="flex items-start justify-between gap-4 flex-1">
+                  <div className="min-w-0 flex-1">
                     <h3 className="text-xl font-semibold text-white truncate">
                       {s.title}
                     </h3>
@@ -252,14 +252,16 @@ export default function BuyServicePage() {
                   </div>
                 </div>
 
-                <p className="text-sm text-slate-300 mt-4 line-clamp-3">
+                <p className="text-sm text-slate-300 mt-4 line-clamp-2 flex-1">
                   {s.shortDescription || s.description}
                 </p>
 
-                <div className="mt-6 flex justify-end">
+                <div className="mt-auto pt-4 flex justify-end">
                   <span className="inline-flex items-center gap-2 text-sm text-slate-200 group-hover:text-white transition">
                     {servicesCopy.viewDetailsText}{" "}
-                    <span className="text-[#9CA3AF]">→</span>
+                    <span className="text-[#9CA3AF] group-hover:translate-x-1 transition-transform">
+                      →
+                    </span>
                   </span>
                 </div>
               </div>

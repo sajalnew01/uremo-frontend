@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSidebar } from "@/hooks/useSidebar";
+import { maskEmail } from "@/lib/maskEmail";
 
 function SidebarUserMenu(props: { onNavigate?: () => void }) {
   const { user, logout } = useAuth();
@@ -59,7 +60,7 @@ function SidebarUserMenu(props: { onNavigate?: () => void }) {
               Account
             </p>
             <p className="text-xs text-slate-400 truncate leading-tight">
-              {email || "—"}
+              {maskEmail(email) || "—"}
             </p>
           </div>
         </div>

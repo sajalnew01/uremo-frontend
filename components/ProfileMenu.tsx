@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { maskEmail } from "@/lib/maskEmail";
 
 export default function ProfileMenu() {
   const { user, logout, isAdmin } = useAuth();
@@ -63,7 +64,9 @@ export default function ProfileMenu() {
             <p className="text-[11px] tracking-widest text-slate-400">
               SIGNED IN AS
             </p>
-            <p className="text-sm text-white mt-1 truncate">{email || "—"}</p>
+            <p className="text-sm text-white mt-1 truncate">
+              {maskEmail(email) || "—"}
+            </p>
           </div>
 
           <div className="p-2">

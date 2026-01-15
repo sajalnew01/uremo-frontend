@@ -6,6 +6,7 @@ import FilePreview from "@/components/FilePreview";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import { useRouter, useSearchParams } from "next/navigation";
+import { maskEmail } from "@/lib/maskEmail";
 
 interface Order {
   _id: string;
@@ -218,7 +219,27 @@ function AdminOrdersContent() {
                         rowIdx % 2 === 0 ? "bg-white/[0.02]" : "bg-transparent"
                       }`}
                     >
-                      <td className="p-3">{o.userId?.email}</td>
+                      <td className="p-3">
+                        <div className="group relative inline-flex items-center gap-2">
+                          <span className="text-sm">
+                            {maskEmail(o.userId?.email)}
+                          </span>
+                          {o.userId?.email && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(o.userId!.email);
+                                toast("Email copied", "success");
+                              }}
+                              className="opacity-0 group-hover:opacity-100 transition text-xs text-slate-400 hover:text-white px-2 py-1 rounded border border-white/10 bg-white/5"
+                              title={o.userId.email}
+                            >
+                              Copy
+                            </button>
+                          )}
+                        </div>
+                      </td>
                       <td className="p-3">{o.serviceId?.title}</td>
 
                       <td className="p-3 space-y-1">

@@ -68,6 +68,10 @@ export default function OrdersPage() {
     const previewText =
       lastStatus?.text || lastTimeline?.message || copy.noUpdatesText;
 
+    // Check if last message was from admin (unread indicator)
+    const lastMessage = o.lastMessage;
+    const hasUnread = lastMessage?.senderRole === "admin";
+
     return (
       <div className="card">
         <div className="flex justify-between items-start gap-4">
@@ -80,9 +84,16 @@ export default function OrdersPage() {
             </p>
           </div>
 
-          <span className={statusBadge(o.status)}>
-            {String(o.status).replace(/_/g, " ")}
-          </span>
+          <div className="flex items-center gap-2">
+            {hasUnread && (
+              <span className="px-2 py-1 rounded-full text-[10px] font-semibold border border-blue-500/30 bg-blue-500/20 text-blue-200 animate-pulse">
+                New reply
+              </span>
+            )}
+            <span className={statusBadge(o.status)}>
+              {String(o.status).replace(/_/g, " ")}
+            </span>
+          </div>
         </div>
 
         <div className="mt-4 rounded-xl border border-white/10 bg-black/10 p-3">

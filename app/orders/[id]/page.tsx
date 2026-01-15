@@ -686,20 +686,20 @@ function OrderDetailsContent() {
           <p className="mt-2 text-xs text-red-400">{messageLoadError}</p>
         )}
 
-        <div className="mt-4 h-[360px] overflow-y-auto rounded-lg border border-[#1F2937] bg-[#020617] p-4 space-y-3">
+        <div className="mt-4 h-[360px] overflow-y-auto rounded-xl border border-slate-700/50 bg-gradient-to-b from-slate-900/80 via-slate-900/60 to-slate-800/40 p-4 space-y-4">
           {messages.length === 0 ? (
             <div className="h-full flex items-center justify-center">
               <div className="text-center max-w-sm">
-                <div className="mx-auto w-12 h-12 rounded-2xl border border-white/10 bg-white/5 flex items-center justify-center text-xl text-white/80">
-                  ✦
+                <div className="mx-auto w-14 h-14 rounded-2xl border border-blue-500/20 bg-blue-500/10 flex items-center justify-center text-2xl text-blue-300">
+                  💬
                 </div>
-                <p className="mt-3 text-sm text-slate-200 font-medium">
+                <p className="mt-4 text-sm text-slate-200 font-medium">
                   {ui.emptyChatTitle}
                 </p>
-                <p className="mt-1 text-xs text-[#9CA3AF]">
+                <p className="mt-1 text-xs text-slate-400">
                   {ui.emptyChatSubtitle}
                 </p>
-                <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                <div className="mt-5 flex flex-wrap gap-2 justify-center">
                   {quickReplies.map((q) => (
                     <button
                       key={q}
@@ -708,7 +708,7 @@ function OrderDetailsContent() {
                         setMessageText(q);
                         scrollToChat({ focus: true });
                       }}
-                      className="px-3 py-1.5 rounded-full text-xs border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+                      className="px-3 py-1.5 rounded-full text-xs border border-blue-500/20 bg-blue-500/10 text-blue-200 hover:bg-blue-500/20 transition"
                     >
                       {q}
                     </button>

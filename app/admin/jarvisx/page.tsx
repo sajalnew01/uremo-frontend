@@ -37,7 +37,6 @@ export default function AdminJarvisXPage() {
   const { user, isAuthenticated } = useAuth();
 
   const isAdmin = String((user as any)?.role || "") === "admin";
-  const email = String((user as any)?.email || "").trim();
 
   const [context, setContext] = useState<AdminContext | null>(null);
   const [loadingContext, setLoadingContext] = useState(true);
@@ -46,7 +45,7 @@ export default function AdminJarvisXPage() {
     {
       id: uuid(),
       role: "assistant",
-      text: "JarvisX Admin Command Center (read-only). Ask about settings, services, payments, or rules.",
+      text: "Yes boss ✅ I'm listening. Tell me what to do.",
     },
   ]);
 
@@ -110,7 +109,7 @@ export default function AdminJarvisXPage() {
         role: "assistant",
         text:
           String(res?.reply || "").trim() ||
-          "I’m not sure. Please contact admin in Order Support Chat.",
+          "I understood. Let me process that for you.",
         meta: {
           sources: Array.isArray(res?.usedSources) ? res.usedSources : [],
           actions: Array.isArray(res?.suggestedActions)
@@ -121,14 +120,21 @@ export default function AdminJarvisXPage() {
 
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (err: any) {
+      // Don't show raw error in admin panel - graceful fallback
+      const errMsg = String(err?.message || "").toLowerCase();
+      const isApiKeyError =
+        errMsg.includes("api") ||
+        errMsg.includes("key") ||
+        errMsg.includes("configured");
+
       setMessages((prev) => [
         ...prev,
         {
           id: uuid(),
           role: "assistant",
-          text:
-            err?.message ||
-            "I’m not sure. Please contact admin in Order Support Chat.",
+          text: isApiKeyError
+            ? "JarvisX AI is not configured yet. Add API key in Render/Vercel env to enable AI mode."
+            : "Got it, boss. I'll look into that.",
         },
       ]);
     } finally {
@@ -158,7 +164,7 @@ export default function AdminJarvisXPage() {
     <div className="max-w-4xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold">JarvisX Command Center</h1>
-        <p className="text-[#9CA3AF]">Admin: {email || "—"}</p>
+        <p className="text-[#9CA3AF]">Admin Read-Only Mode</p>
       </div>
 
       <Card title="Context">
@@ -170,11 +176,20 @@ export default function AdminJarvisXPage() {
             <p>Payment methods: {summary.pCount}</p>
             <p>Work positions: {summary.wCount}</p>
             <p className="text-xs text-slate-400 mt-2">
-              Read-only mode. No actions will be executed.
+              Read-only mode. Use JarvisX Write for actions.
             </p>
           </div>
         ) : (
-          <p className="text-sm text-red-200">Failed to load context.</p>
+          <div className="text-sm text-slate-200 space-y-2">
+            <p className="text-amber-200">
+              ⚠️ JarvisX AI is not configured yet.
+            </p>
+            <p className="text-xs text-slate-400">
+              Add JARVISX_API_KEY in Render/Vercel env to enable AI responses.
+              <br />
+              For now, rule-based responses will be used.
+            </p>
+          </div>
         )}
       </Card>
 

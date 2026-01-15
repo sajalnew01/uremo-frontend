@@ -301,8 +301,73 @@ export default function AdminWorkPositionsPage() {
       {loading ? (
         <div className="text-slate-400">Loading…</div>
       ) : positions.length === 0 ? (
-        <div className="card">
-          <p className="text-sm text-[#9CA3AF]">No positions yet.</p>
+        <div className="card text-center py-12">
+          <div className="mx-auto w-16 h-16 rounded-2xl border border-blue-500/20 bg-blue-500/10 flex items-center justify-center text-3xl text-blue-300 mb-4">
+            💼
+          </div>
+          <h3 className="text-lg font-semibold text-white">No positions yet</h3>
+          <p className="text-sm text-slate-400 mt-2 max-w-md mx-auto">
+            Create work positions that will appear on the Apply-to-Work page for
+            candidates.
+          </p>
+          <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+            <button type="button" onClick={openCreate} className="btn-primary">
+              + New Position
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                const samplePositions = [
+                  {
+                    title: "KYC / Onboarding Assistant",
+                    category: "operations_support",
+                    description:
+                      "Help verify customer documents and assist with onboarding processes.",
+                    requirements:
+                      "• Detail-oriented\n• Good communication\n• Experience with document verification",
+                    active: true,
+                    sortOrder: 1,
+                  },
+                  {
+                    title: "Customer Support Agent",
+                    category: "customer_support",
+                    description:
+                      "Provide friendly and efficient support to customers via chat and email.",
+                    requirements:
+                      "• Excellent written communication\n• Problem-solving skills\n• Available for flexible hours",
+                    active: true,
+                    sortOrder: 2,
+                  },
+                  {
+                    title: "Social Media Manager",
+                    category: "marketing",
+                    description:
+                      "Manage social media accounts and create engaging content.",
+                    requirements:
+                      "• Creative mindset\n• Social media expertise\n• Basic design skills",
+                    active: true,
+                    sortOrder: 3,
+                  },
+                ];
+
+                for (const pos of samplePositions) {
+                  try {
+                    await apiRequest(
+                      "/api/admin/work-positions",
+                      "POST",
+                      pos,
+                      true
+                    );
+                  } catch {}
+                }
+                toast("Sample positions created!", "success");
+                await load();
+              }}
+              className="btn-secondary"
+            >
+              Create Sample Defaults
+            </button>
+          </div>
         </div>
       ) : visiblePositions.length === 0 ? (
         <div className="card">
