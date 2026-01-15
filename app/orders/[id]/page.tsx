@@ -2,13 +2,18 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { ApiError, apiRequest, getApiBaseUrl } from "@/lib/api";
+import { ApiError, apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import { useAuth } from "@/hooks/useAuth";
 import {
   DEFAULT_PUBLIC_SITE_SETTINGS,
   useSiteSettings,
 } from "@/hooks/useSiteSettings";
+import {
+  useChatSocket,
+  ChatMessage,
+  MessageStatus,
+} from "@/hooks/useChatSocket";
 
 interface Order {
   _id: string;
@@ -28,18 +33,7 @@ interface Order {
   }>;
 }
 
-type OrderMessage = {
-  _id: string;
-  senderRole?: "user" | "admin" | string;
-  role?: string;
-  from?: string;
-  isAdmin?: boolean;
-  userId?: string;
-  senderId?: string;
-  message: string;
-  createdAt: string;
-  optimistic?: boolean;
-};
+type OrderMessage = ChatMessage;
 
 export default function OrderDetailsPage() {
   return (
@@ -64,18 +58,14 @@ function OrderDetailsContent() {
 
   const getMessageSenderRole = useMemo(() => {
     return (m: OrderMessage): "user" | "admin" => {
-      const roleRaw = (m?.senderRole || m?.role || m?.from || "").toString();
+      const roleRaw = (m?.senderRole || "").toString();
       const role = roleRaw.trim().toLowerCase();
 
       if (role === "user") return "user";
       if (role === "admin" || role === "support") return "admin";
 
-      if (typeof m?.isAdmin === "boolean") {
-        return m.isAdmin ? "admin" : "user";
-      }
-
       // Fallback: if role is missing, infer based on sender id.
-      const senderId = m?.userId || m?.senderId;
+      const senderId = m?.senderId;
       if (senderId && loggedInUserId && String(senderId) === loggedInUserId) {
         return "user";
       }
@@ -93,21 +83,39 @@ function OrderDetailsContent() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
-  const [messages, setMessages] = useState<OrderMessage[]>([]);
   const [messageText, setMessageText] = useState<string>("");
-  const [sending, setSending] = useState(false);
-  const [messageLoadError, setMessageLoadError] = useState<string | null>(null);
   const [chatGlow, setChatGlow] = useState(false);
-  const [chatConnection, setChatConnection] = useState<
-    "connecting" | "open" | "offline" | "unsupported"
-  >("connecting");
-  const [streamKey, setStreamKey] = useState(0);
   const endRef = useRef<HTMLDivElement | null>(null);
   const chatSectionRef = useRef<HTMLDivElement | null>(null);
   const chatInputRef = useRef<HTMLInputElement | null>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const pollTimerRef = useRef<number | null>(null);
-  const seenMessageIdsRef = useRef<Set<string>>(new Set());
+
+  // Socket.io realtime chat
+  const {
+    connected,
+    connecting,
+    messages,
+    typingUsers,
+    sendMessage: socketSendMessage,
+    retryMessage,
+    markSeen,
+    startTyping,
+    reconnect,
+  } = useChatSocket({
+    orderId: orderId || null,
+    enabled: authReady && isAuthenticated && Boolean(orderId),
+    onError: (err) => {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("[Socket] Error:", err);
+      }
+    },
+  });
+
+  // Chat connection status
+  const chatConnection = useMemo(() => {
+    if (connecting) return "connecting";
+    if (connected) return "open";
+    return "offline";
+  }, [connected, connecting]);
 
   const quickReplies = useMemo(() => {
     const list = settings?.orderSupport?.quickReplies;
@@ -179,155 +187,23 @@ function OrderDetailsContent() {
     }
   };
 
-  const loadMessages = async () => {
-    setMessageLoadError(null);
-    try {
-      const data = await apiRequest(
-        `/api/orders/${orderId}/messages`,
-        "GET",
-        null,
-        true
-      );
-      const list = Array.isArray(data) ? (data as OrderMessage[]) : [];
-      // Defensive sort (backend already sorts, but keep UI stable).
-      list.sort(
-        (a, b) =>
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      );
-      setMessages(list);
-
-      const nextSeen = new Set<string>();
-      for (const msg of list) {
-        if (msg?._id) nextSeen.add(String(msg._id));
-      }
-      seenMessageIdsRef.current = nextSeen;
-    } catch (err) {
-      const apiErr = err as ApiError;
-      if (apiErr?.status === 401 || apiErr?.status === 403) {
-        router.replace(
-          `/login?next=${encodeURIComponent(`/orders/${orderId}`)}`
-        );
-        return;
-      }
-
-      const msg = apiErr?.message || ui.loadMessagesFailedText;
-      // Avoid rendering raw server/JS errors in the UI.
-      setMessageLoadError(ui.loadMessagesFailedText);
-      if (process.env.NODE_ENV !== "production") {
-        console.warn("[orders chat] loadMessages failed:", msg);
-      }
-    }
-  };
-
   useEffect(() => {
     loadOrder();
-    loadMessages();
   }, [orderId]);
-
-  const stopPolling = () => {
-    if (pollTimerRef.current) {
-      window.clearInterval(pollTimerRef.current);
-      pollTimerRef.current = null;
-    }
-  };
-
-  const startPolling = () => {
-    stopPolling();
-    const intervalMs = 5000;
-    pollTimerRef.current = window.setInterval(() => {
-      if (!sending) loadMessages();
-    }, intervalMs);
-  };
-
-  // Realtime: SSE stream. Fallback to polling when unsupported/offline.
-  useEffect(() => {
-    if (!isValidOrderId) return;
-
-    // Tear down existing connections when auth/order changes.
-    const existing = eventSourceRef.current;
-    if (existing) {
-      try {
-        existing.close();
-      } catch {}
-      eventSourceRef.current = null;
-    }
-    stopPolling();
-
-    if (!authReady || !isAuthenticated) {
-      setChatConnection("offline");
-      return;
-    }
-
-    if (typeof window === "undefined") return;
-    if (typeof EventSource === "undefined") {
-      setChatConnection("unsupported");
-      startPolling();
-      return;
-    }
-
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setChatConnection("offline");
-      startPolling();
-      return;
-    }
-
-    setChatConnection("connecting");
-
-    const url = `${getApiBaseUrl()}/api/orders/${orderId}/messages/stream?token=${encodeURIComponent(
-      token
-    )}`;
-    const es = new EventSource(url);
-    eventSourceRef.current = es;
-
-    es.onopen = () => {
-      setChatConnection("open");
-    };
-
-    es.onmessage = (event) => {
-      try {
-        const parsed = JSON.parse(event.data);
-        const msg = parsed as OrderMessage;
-        const id = msg?._id ? String(msg._id) : null;
-        if (!id) return;
-        if (seenMessageIdsRef.current.has(id)) return;
-
-        seenMessageIdsRef.current.add(id);
-        setMessages((prev) => {
-          if (prev.some((m) => String(m._id) === id)) return prev;
-          const next = [...prev, msg];
-          next.sort(
-            (a, b) =>
-              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          );
-          return next;
-        });
-      } catch {
-        // Ignore malformed stream packets
-      }
-    };
-
-    es.onerror = () => {
-      setChatConnection("offline");
-      try {
-        es.close();
-      } catch {}
-      if (eventSourceRef.current === es) eventSourceRef.current = null;
-      startPolling();
-    };
-
-    return () => {
-      try {
-        es.close();
-      } catch {}
-      if (eventSourceRef.current === es) eventSourceRef.current = null;
-      stopPolling();
-    };
-  }, [orderId, isValidOrderId, authReady, isAuthenticated, streamKey]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
+
+  // Mark messages as seen when they arrive
+  useEffect(() => {
+    const unreadIds = messages
+      .filter((m) => getMessageSenderRole(m) === "admin" && m.status !== "seen")
+      .map((m) => m._id);
+    if (unreadIds.length > 0) {
+      markSeen(unreadIds);
+    }
+  }, [messages, markSeen, getMessageSenderRole]);
 
   // If deep-linked to chat via ?chat=1, open chat on load.
   useEffect(() => {
@@ -350,7 +226,12 @@ function OrderDetailsContent() {
     return `${expiresPrefix} ${expiresAt.toLocaleString()}`;
   }, [isPendingPayment, order?.expiresAt]);
 
-  const sendMessage = async () => {
+  // Check if any message is currently sending
+  const sending = useMemo(() => {
+    return messages.some((m) => m.status === "sending");
+  }, [messages]);
+
+  const handleSendMessage = () => {
     const text = messageText.trim();
     if (!text) return;
 
@@ -363,72 +244,43 @@ function OrderDetailsContent() {
       console.log("sending", orderId, text);
     }
 
-    const tempId = `temp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    const optimisticMessage: OrderMessage = {
-      _id: tempId,
-      senderRole: "user",
-      message: text,
-      createdAt: new Date().toISOString(),
-      optimistic: true,
-    };
-
-    setMessages((prev) => {
-      const next = [...prev, optimisticMessage];
-      next.sort(
-        (a, b) =>
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      );
-      return next;
-    });
+    socketSendMessage(text);
     setMessageText("");
+    toast(ui.messageSentToast, "success");
+  };
 
-    setSending(true);
-    try {
-      const created = await apiRequest<OrderMessage>(
-        `/api/orders/${orderId}/messages`,
-        "POST",
-        { message: text },
-        true
-      );
+  // Get status indicator for a message
+  const getMessageStatusIcon = (status: MessageStatus): string | null => {
+    switch (status) {
+      case "sending":
+        return "⏳";
+      case "sent":
+        return "✓";
+      case "delivered":
+        return "✓✓";
+      case "seen":
+        return "✓✓";
+      case "failed":
+        return "⚠️";
+      default:
+        return null;
+    }
+  };
 
-      // Replace optimistic message with server-confirmed message.
-      setMessages((prev) => {
-        const hasConfirmed = prev.some(
-          (m) => String(m._id) === String(created._id)
-        );
-        const withoutTemp = prev.filter((m) => m._id !== tempId);
-        if (hasConfirmed) return withoutTemp;
-        const next = [...withoutTemp, created];
-        next.sort(
-          (a, b) =>
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        );
-        return next;
-      });
-      if (created?._id) {
-        seenMessageIdsRef.current.add(String(created._id));
-      }
-      toast(ui.messageSentToast, "success");
-    } catch (err: any) {
-      const apiErr = err as ApiError;
-      if (apiErr?.status === 401 || apiErr?.status === 403) {
-        // Remove optimistic message and restore input.
-        setMessages((prev) => prev.filter((m) => m._id !== tempId));
-        setMessageText(text);
-        toast("Please login to chat", "error");
-        return;
-      }
-
-      const rawMsg = (err as any)?.message;
-      if (process.env.NODE_ENV !== "production" && rawMsg) {
-        console.warn("[orders chat] sendMessage failed:", rawMsg);
-      }
-
-      // Remove optimistic message on failure.
-      setMessages((prev) => prev.filter((m) => m._id !== tempId));
-      toast(ui.sendFailedText, "error");
-    } finally {
-      setSending(false);
+  const getMessageStatusClass = (status: MessageStatus): string => {
+    switch (status) {
+      case "sending":
+        return "text-slate-400";
+      case "sent":
+        return "text-slate-400";
+      case "delivered":
+        return "text-blue-400";
+      case "seen":
+        return "text-emerald-400";
+      case "failed":
+        return "text-red-400";
+      default:
+        return "text-slate-400";
     }
   };
 
@@ -654,36 +506,29 @@ function OrderDetailsContent() {
               }`}
             >
               {chatConnection === "open"
-                ? "Live"
+                ? "🟢 Live"
                 : chatConnection === "connecting"
                 ? "Connecting…"
-                : chatConnection === "unsupported"
-                ? "Realtime unavailable"
                 : "Offline"}
             </span>
 
             {chatConnection !== "open" && (
               <button
                 type="button"
-                onClick={() => setStreamKey((k) => k + 1)}
+                onClick={reconnect}
                 className="text-xs text-[#9CA3AF] hover:text-white transition"
               >
                 Retry
               </button>
             )}
-
-            <button
-              type="button"
-              onClick={loadMessages}
-              className="text-xs text-[#9CA3AF] hover:text-white transition"
-            >
-              {ui.refreshText}
-            </button>
           </div>
         </div>
 
-        {messageLoadError && (
-          <p className="mt-2 text-xs text-red-400">{messageLoadError}</p>
+        {/* Typing indicator */}
+        {typingUsers.length > 0 && (
+          <div className="mt-2 text-xs text-slate-400 animate-pulse">
+            {typingUsers.map((t) => t.role).join(", ")} typing...
+          </div>
         )}
 
         <div className="mt-4 h-[360px] overflow-y-auto rounded-xl border border-slate-700/50 bg-gradient-to-b from-slate-900/80 via-slate-900/60 to-slate-800/40 p-4 space-y-4">
@@ -741,7 +586,9 @@ function OrderDetailsContent() {
                   <div
                     className={`rounded-2xl px-4 py-2 text-sm ${
                       getMessageSenderRole(m) === "user"
-                        ? "bg-blue-600 text-white"
+                        ? m.status === "failed"
+                          ? "bg-red-600/50 text-white border border-red-500"
+                          : "bg-blue-600 text-white"
                         : "bg-slate-800 text-slate-100 border border-slate-700"
                     }`}
                   >
@@ -749,15 +596,36 @@ function OrderDetailsContent() {
                       {m.message}
                     </p>
                   </div>
-                  <p
-                    className={`text-xs text-slate-400 ${
-                      getMessageSenderRole(m) === "user"
-                        ? "text-right"
-                        : "text-left"
-                    }`}
-                  >
-                    {new Date(m.createdAt).toLocaleString()}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p
+                      className={`text-xs text-slate-400 ${
+                        getMessageSenderRole(m) === "user"
+                          ? "text-right"
+                          : "text-left"
+                      }`}
+                    >
+                      {new Date(m.createdAt).toLocaleString()}
+                    </p>
+                    {/* Status indicator for user messages */}
+                    {getMessageSenderRole(m) === "user" && m.status && (
+                      <span
+                        className={`text-xs ${getMessageStatusClass(m.status)}`}
+                        title={m.status}
+                      >
+                        {getMessageStatusIcon(m.status)}
+                      </span>
+                    )}
+                    {/* Retry button for failed messages */}
+                    {m.status === "failed" && m.tempId && (
+                      <button
+                        type="button"
+                        onClick={() => retryMessage(m.tempId!)}
+                        className="text-xs text-blue-400 hover:text-blue-300"
+                      >
+                        Retry
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))
@@ -790,18 +658,19 @@ function OrderDetailsContent() {
               value={messageText}
               onChange={(e) => {
                 setMessageText(e.target.value);
+                startTyping();
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
-                  sendMessage();
+                  handleSendMessage();
                 }
               }}
               disabled={sending}
             />
             <button
               type="button"
-              onClick={sendMessage}
+              onClick={handleSendMessage}
               disabled={
                 sending || !messageText.trim() || !authReady || !isAuthenticated
               }
