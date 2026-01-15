@@ -33,13 +33,33 @@ export default function PaymentPage() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [faqOpen, setFaqOpen] = useState<number | null>(0);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const paymentFaq =
     settings?.payment?.faq && settings.payment.faq.length
       ? settings.payment.faq
       : DEFAULT_PUBLIC_SITE_SETTINGS.payment.faq;
 
+  const normalizeError = (e: any) => {
+    const msg = String(e?.message || "").trim();
+    return msg || "Failed to load payment details.";
+  };
+
+  const maybeRedirectToLogin = (e: any) => {
+    const msg = String(e?.message || "").toLowerCase();
+    if (
+      msg.includes("auth") ||
+      msg.includes("token") ||
+      msg.includes("login")
+    ) {
+      router.push("/login");
+      return true;
+    }
+    return false;
+  };
+
   const loadOrder = async () => {
+    setLoadError(null);
     const data = await apiRequest(
       `/api/orders/${resolvedOrderId}`,
       "GET",
@@ -50,8 +70,31 @@ export default function PaymentPage() {
   };
 
   useEffect(() => {
-    loadOrder();
-    apiRequest("/api/payments", "GET").then(setMethods);
+    let mounted = true;
+
+    loadOrder().catch((e) => {
+      if (!mounted) return;
+      if (maybeRedirectToLogin(e)) return;
+      const msg = normalizeError(e);
+      setLoadError(msg);
+      toast(msg, "error");
+    });
+
+    apiRequest("/api/payments", "GET")
+      .then((list) => {
+        if (!mounted) return;
+        setMethods(Array.isArray(list) ? list : []);
+      })
+      .catch((e) => {
+        if (!mounted) return;
+        // Methods are optional for initial render; don't crash.
+        console.warn("Failed to load payment methods", e);
+        setMethods([]);
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, [resolvedOrderId]);
 
   const copy = async (value: string) => {
@@ -125,7 +168,50 @@ export default function PaymentPage() {
     }
   };
 
-  if (!order) return <p className="p-6">{ui.loadingText}</p>;
+  if (!order) {
+    if (loadError) {
+      return (
+        <div className="u-container max-w-3xl py-10">
+          <div className="card">
+            <p className="text-sm text-[#9CA3AF]">Payment</p>
+            <h1 className="text-2xl font-bold text-white mt-2">
+              Unable to load payment
+            </h1>
+            <p className="text-slate-300 mt-3 whitespace-pre-wrap">
+              {loadError}
+            </p>
+            <div className="mt-6 flex gap-3 flex-wrap">
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => {
+                  setOrder(null);
+                  setMethods([]);
+                  loadOrder().catch((e) => {
+                    if (maybeRedirectToLogin(e)) return;
+                    const msg = normalizeError(e);
+                    setLoadError(msg);
+                    toast(msg, "error");
+                  });
+                }}
+              >
+                Try again
+              </button>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => router.push("/orders")}
+              >
+                Back to orders
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return <p className="p-6">{ui.loadingText}</p>;
+  }
 
   return (
     <div className="u-container max-w-3xl space-y-6">
