@@ -22,6 +22,12 @@ type JarvisContextPublic = {
   rules?: any;
 };
 
+type JarvisRequestServiceResponse = {
+  success?: boolean;
+  id?: string;
+  message?: string;
+};
+
 type ChatMessage = {
   id: string;
   role: "user" | "assistant";
@@ -31,6 +37,71 @@ type ChatMessage = {
 
 function uuid() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function normalizeText(s: string) {
+  return String(s || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function looksLikeServiceRequest(text: string) {
+  const msg = normalizeText(text);
+  if (!msg) return false;
+  return (
+    /(need|want|looking for|can you|help me|make|build|create)/.test(msg) &&
+    /(service|website|app|bot|automation|marketing|design|branding|seo|ads|kyc)/.test(
+      msg
+    )
+  );
+}
+
+function extractDetectedServiceName(text: string) {
+  const raw = String(text || "").trim();
+  if (!raw) return "";
+
+  const m1 = raw.match(
+    /(?:need|want)\s+(.{3,80}?)(?:\s+service|\s+help|\.|\!|\?|$)/i
+  );
+  if (m1?.[1]) return String(m1[1]).trim();
+
+  const m2 = raw.match(/(?:looking for)\s+(.{3,80}?)(?:\.|\!|\?|$)/i);
+  if (m2?.[1]) return String(m2[1]).trim();
+
+  return "";
+}
+
+function messageMentionsKnownService(
+  text: string,
+  services: any[] | undefined
+) {
+  const msg = normalizeText(text);
+  if (!msg) return false;
+  const list = Array.isArray(services) ? services : [];
+  for (const s of list) {
+    const title = String(s?.title || "").trim();
+    if (!title) continue;
+    const t = normalizeText(title);
+    if (!t) continue;
+    if (msg.includes(t) || t.includes(msg)) return true;
+  }
+  return false;
+}
+
+function buildGreetingFromContext(ctx: JarvisContextPublic | null) {
+  const brand = String(ctx?.settings?.site?.brandName || "").trim();
+  const support = ctx?.settings?.support || {};
+  const whatsapp = String(support?.whatsappNumber || "").trim();
+  const line1 = "Hi 👋 I’m JarvisX Support. Tell me what you need.";
+
+  // Keep greeting short; just add one helpful hint if available.
+  if (brand && whatsapp)
+    return `${line1}\n\n${brand} support is available on WhatsApp too.`;
+  if (brand)
+    return `${line1}\n\nI can help with ${brand} services and payments.`;
+  return line1;
 }
 
 export default function JarvisWidget() {
@@ -75,9 +146,15 @@ export default function JarvisWidget() {
     {
       id: uuid(),
       role: "assistant",
-      text: "Hi — I’m JarvisX Support. Ask me anything about services, payments, or orders. If you need a service that isn’t listed, I can create a request for the team.",
+      text: "Hi 👋 I’m JarvisX Support. Tell me what you need.",
     },
   ]);
+
+  const [customServiceDraft, setCustomServiceDraft] = useState<{
+    message: string;
+    detectedServiceName?: string;
+    sent?: boolean;
+  } | null>(null);
 
   const listRef = useRef<HTMLDivElement | null>(null);
 
@@ -101,10 +178,36 @@ export default function JarvisWidget() {
         "GET"
       );
       setContext(ctx);
+
+      // Upgrade greeting once we have CMS/support settings (only if user hasn't chatted yet).
+      setMessages((prev) => {
+        if (prev.length !== 1) return prev;
+        if (prev[0]?.role !== "assistant") return prev;
+        return [{ ...prev[0], text: buildGreetingFromContext(ctx) }];
+      });
     } catch {
       setContext(null);
     } finally {
       setLoadingContext(false);
+    }
+  };
+
+  const requestServiceToAdmin = async (payload: {
+    message: string;
+    detectedServiceName?: string;
+  }) => {
+    try {
+      await apiRequest<JarvisRequestServiceResponse>(
+        "/api/jarvisx/request-service",
+        "POST",
+        {
+          message: payload.message,
+          detectedServiceName: payload.detectedServiceName || "",
+          page: pathname || "",
+        }
+      );
+    } catch {
+      // Never surface request capture failures to the user.
     }
   };
 
@@ -136,6 +239,32 @@ export default function JarvisWidget() {
     const userMsg: ChatMessage = { id: uuid(), role: "user", text };
     setMessages((prev) => [...prev, userMsg]);
 
+    // Detect custom service requests and offer a UI action + backend capture.
+    const knownService = messageMentionsKnownService(text, context?.services);
+    const customIntent = looksLikeServiceRequest(text) && !knownService;
+    const detectedServiceName = extractDetectedServiceName(text);
+
+    if (customIntent && !leadRequestId) {
+      const draft = {
+        message: text,
+        detectedServiceName: detectedServiceName || undefined,
+        sent: false,
+      };
+      setCustomServiceDraft(draft);
+
+      // Capture in backend (fire-and-forget). The UI button is optional.
+      requestServiceToAdmin({
+        message: draft.message,
+        detectedServiceName: draft.detectedServiceName,
+      }).finally(() => {
+        setCustomServiceDraft((prev) =>
+          prev && prev.message === draft.message
+            ? { ...prev, sent: true }
+            : prev
+        );
+      });
+    }
+
     setSending(true);
     try {
       const res = await apiRequest<JarvisReply>("/api/jarvisx/chat", "POST", {
@@ -158,7 +287,7 @@ export default function JarvisWidget() {
         role: "assistant",
         text:
           String(res?.reply || "").trim() ||
-          "I’m not sure. Please contact admin in Order Support Chat.",
+          "I’m not fully sure yet. Please open Order Support Chat or contact WhatsApp support.",
         meta: {
           sources: Array.isArray(res?.usedSources) ? res.usedSources : [],
           actions: Array.isArray(res?.suggestedActions)
@@ -175,7 +304,7 @@ export default function JarvisWidget() {
         {
           id: uuid(),
           role: "assistant",
-          text: "I’m not sure. Please contact admin in Order Support Chat.",
+          text: "I’m not fully sure yet. Please open Order Support Chat or contact WhatsApp support.",
         },
       ]);
     } finally {
@@ -263,6 +392,32 @@ export default function JarvisWidget() {
                 </div>
               </div>
             ))}
+
+            {customServiceDraft && (
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                <p className="text-xs text-slate-300">
+                  Need a custom service? I can create a request for the admin.
+                </p>
+                <div className="mt-2 flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="text-xs rounded-full border border-white/10 bg-white/10 hover:bg-white/15 px-3 py-1 text-white transition"
+                    onClick={() =>
+                      requestServiceToAdmin({
+                        message: customServiceDraft.message,
+                        detectedServiceName:
+                          customServiceDraft.detectedServiceName,
+                      })
+                    }
+                  >
+                    Create request to Admin
+                  </button>
+                  <span className="text-[11px] text-slate-500">
+                    {customServiceDraft.sent ? "Captured ✅" : "Capturing…"}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="px-4 py-4 border-t border-white/10">

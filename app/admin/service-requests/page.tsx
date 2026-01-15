@@ -5,6 +5,17 @@ import Card from "@/components/Card";
 import { apiRequest, ApiError } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 
+async function copyToClipboard(text: string) {
+  if (typeof navigator === "undefined") return false;
+  if (!navigator.clipboard?.writeText) return false;
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 type ServiceRequestStatus =
   | "draft"
   | "new"
@@ -166,6 +177,22 @@ export default function AdminServiceRequestsPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const buildRequestClipboardText = (r: ServiceRequest) => {
+    const lines = [
+      `Service: ${r.requestedService || ""}`.trim(),
+      `Platform: ${r.platform || ""}`.trim(),
+      `Country: ${r.country || ""}`.trim(),
+      `Urgency: ${r.urgency || ""}`.trim(),
+      `Budget: ${
+        r.budget == null ? "" : `${r.budgetCurrency || "USD"} ${r.budget}`
+      }`.trim(),
+      `Contact: ${[r.email, r.name].filter(Boolean).join(" — ")}`.trim(),
+      `Message:`.trim(),
+      String(r.rawMessage || "").trim(),
+    ].filter(Boolean);
+    return lines.join("\n");
   };
 
   useEffect(() => {
@@ -381,6 +408,36 @@ export default function AdminServiceRequestsPage() {
                   <p className="text-sm text-slate-200 whitespace-pre-wrap">
                     {selected.rawMessage || "—"}
                   </p>
+
+                  <div className="flex flex-wrap items-center gap-2 mt-3">
+                    <button
+                      className="btn-secondary"
+                      onClick={async () => {
+                        const ok = await copyToClipboard(
+                          buildRequestClipboardText(selected)
+                        );
+                        toast(
+                          ok
+                            ? "Copied request to clipboard"
+                            : "Copy failed (browser permission)"
+                        );
+                      }}
+                    >
+                      Copy
+                    </button>
+
+                    <a
+                      className="btn-secondary"
+                      href="/admin/services"
+                      onClick={async () => {
+                        await copyToClipboard(
+                          buildRequestClipboardText(selected)
+                        );
+                      }}
+                    >
+                      Create Service from this
+                    </a>
+                  </div>
                 </Card>
 
                 <Card title="Notes">
