@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build --webpack",
     "build:win": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-win.ps1",
+    "build:win:swc-off": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-win.ps1 -DisableSwc",
     "start": "next start",
     "lint": "eslint"
   },
