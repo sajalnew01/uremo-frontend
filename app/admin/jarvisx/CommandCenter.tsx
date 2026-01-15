@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
+import { jarvisxApi } from "@/lib/api/jarvisx";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/useToast";
 
@@ -112,6 +113,39 @@ function prettyJson(value: unknown) {
   }
 }
 
+const JARVISX_GROQ_MIGRATION_CUTOFF_ISO = "2025-01-01T00:00:00.000Z";
+
+function isLegacyPreGroqProposal(p: Proposal): boolean {
+  const cutoff = Date.parse(JARVISX_GROQ_MIGRATION_CUTOFF_ISO);
+  const created = Date.parse(String((p as any)?.createdAt || ""));
+  if (!Number.isFinite(cutoff) || !Number.isFinite(created)) return false;
+  return created < cutoff;
+}
+
+function shouldHideLegacyArtifactsFromHistory(p: Proposal): boolean {
+  const haystack = `${String(p.rawAdminCommand || "")}\n${String(
+    p.previewText || ""
+  )}`.toLowerCase();
+
+  return (
+    haystack.includes("openrouter") ||
+    haystack.includes("jarvisx_api_key") ||
+    haystack.includes("missing jarvisx_api_key") ||
+    haystack.includes("jarvisx api key")
+  );
+}
+
+function toErrorMessage(error: unknown): string {
+  if (!error) return "Unknown error";
+  if (typeof error === "string") return error;
+  if (error instanceof Error) return error.message;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return "Unknown error";
+  }
+}
+
 function TabButton({
   active,
   label,
@@ -171,6 +205,9 @@ export default function AdminJarvisXCommandCenter() {
 
   const [actionsDraft, setActionsDraft] = useState<string>("");
   const [savingEdits, setSavingEdits] = useState(false);
+
+  const [executingProposal, setExecutingProposal] = useState(false);
+  const [executionError, setExecutionError] = useState<string | null>(null);
 
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsProposal, setDetailsProposal] = useState<Proposal | null>(null);
@@ -235,7 +272,10 @@ export default function AdminJarvisXCommandCenter() {
         null,
         true
       );
-      setHistory(Array.isArray(list) ? list : []);
+      const cleaned = (Array.isArray(list) ? list : []).filter(
+        (p) => !shouldHideLegacyArtifactsFromHistory(p)
+      );
+      setHistory(cleaned);
     } catch {
       setHistory([]);
     } finally {
@@ -272,9 +312,11 @@ export default function AdminJarvisXCommandCenter() {
   useEffect(() => {
     if (!activeProposal) {
       setActionsDraft("");
+      setExecutionError(null);
       return;
     }
     setActionsDraft(prettyJson(activeProposal.actions || []));
+    setExecutionError(null);
   }, [activeProposal]);
 
   const send = async () => {
@@ -287,11 +329,23 @@ export default function AdminJarvisXCommandCenter() {
 
     setSending(true);
     try {
-      const res = await apiRequest<JarvisReply>("/api/jarvisx/chat", "POST", {
+      const res = await jarvisxApi.sendMessage({
         message: text,
         mode: "admin",
         meta: { page: "/admin/jarvisx" },
       });
+
+      if (res?.ok === false) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: uuid(),
+            role: "assistant",
+            text: "JarvisX is temporarily unavailable right now. Please check your server logs / GROQ_API_KEY configuration.",
+          },
+        ]);
+        return;
+      }
 
       const assistantMsg: ChatMessage = {
         id: uuid(),
@@ -309,20 +363,12 @@ export default function AdminJarvisXCommandCenter() {
 
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (err: any) {
-      const errMsg = String(err?.message || "").toLowerCase();
-      const isApiKeyError =
-        errMsg.includes("api") ||
-        errMsg.includes("key") ||
-        errMsg.includes("configured");
-
       setMessages((prev) => [
         ...prev,
         {
           id: uuid(),
           role: "assistant",
-          text: isApiKeyError
-            ? "JarvisX AI is not configured yet. Set GROQ_API_KEY in your server environment to enable AI mode."
-            : "Got it, boss. I’ll look into that.",
+          text: "JarvisX is temporarily unavailable right now. Please check your server logs / GROQ_API_KEY configuration.",
         },
       ]);
     } finally {
@@ -411,6 +457,8 @@ export default function AdminJarvisXCommandCenter() {
   const approveAndExecute = async () => {
     if (!activeProposal?._id) return;
 
+    setExecutionError(null);
+    setExecutingProposal(true);
     try {
       const updated = await apiRequest<Proposal>(
         `/api/jarvisx/write/proposals/${activeProposal._id}/approve`,
@@ -429,8 +477,10 @@ export default function AdminJarvisXCommandCenter() {
       await loadHistory();
       await loadMemory();
       await loadHealth();
-    } catch {
-      toast("Failed to execute proposal.", "error");
+    } catch (err) {
+      setExecutionError(toErrorMessage(err) || "Failed to execute proposal.");
+    } finally {
+      setExecutingProposal(false);
     }
   };
 
@@ -822,11 +872,12 @@ export default function AdminJarvisXCommandCenter() {
                     onClick={approveAndExecute}
                     disabled={
                       activeProposal.status !== "pending" ||
-                      proposalActionsEmpty
+                      proposalActionsEmpty ||
+                      executingProposal
                     }
                     className="rounded-2xl px-4 py-3 text-sm font-semibold border border-green-400/20 bg-green-500/15 hover:bg-green-500/20 text-green-100 transition disabled:opacity-50"
                   >
-                    Approve & Execute
+                    {executingProposal ? "Executing…" : "Approve & Execute"}
                   </button>
                   <button
                     type="button"
@@ -844,6 +895,17 @@ export default function AdminJarvisXCommandCenter() {
                     </div>
                   ) : null}
                 </div>
+
+                {executionError ? (
+                  <div className="rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3">
+                    <p className="text-sm text-red-100 font-semibold">
+                      Execution failed
+                    </p>
+                    <p className="mt-1 text-xs text-red-100/90 whitespace-pre-wrap">
+                      {executionError}
+                    </p>
+                  </div>
+                ) : null}
 
                 {activeProposal.executionResult?.errors?.length ? (
                   <div className="rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3">
@@ -888,13 +950,20 @@ export default function AdminJarvisXCommandCenter() {
                     className="w-full text-left rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 px-4 py-3 transition"
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <span
-                        className={`inline-flex items-center px-3 py-1 rounded-full border text-xs ${statusPill(
-                          p.status
-                        )}`}
-                      >
-                        {p.status.toUpperCase()}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-flex items-center px-3 py-1 rounded-full border text-xs ${statusPill(
+                            p.status
+                          )}`}
+                        >
+                          {p.status.toUpperCase()}
+                        </span>
+                        {isLegacyPreGroqProposal(p) ? (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full border border-white/10 bg-white/5 text-xs text-slate-200">
+                            Legacy (pre-Groq)
+                          </span>
+                        ) : null}
+                      </div>
                       <span className="text-xs text-slate-500">
                         {new Date(p.createdAt).toLocaleString()}
                       </span>

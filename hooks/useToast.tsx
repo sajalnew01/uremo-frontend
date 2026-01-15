@@ -27,6 +27,25 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);
 
+  const clampMessage = useCallback((value: unknown) => {
+    const maxLen = 240;
+    let msg = "";
+    if (typeof value === "string") msg = value;
+    else if (value instanceof Error) msg = value.message;
+    else if (value == null) msg = "";
+    else {
+      try {
+        msg = JSON.stringify(value);
+      } catch {
+        msg = String(value);
+      }
+    }
+
+    msg = msg.trim();
+    if (!msg) return "Something went wrong";
+    return msg.length <= maxLen ? msg : `${msg.slice(0, maxLen)}…`;
+  }, []);
+
   const remove = useCallback((id: string) => {
     setItems((prev) => prev.filter((t) => t.id !== id));
   }, []);
@@ -34,13 +53,16 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const toast = useCallback(
     (message: string, type: ToastType = "info") => {
       const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-      setItems((prev) => [...prev, { id, message, type }]);
+      setItems((prev) => [
+        ...prev,
+        { id, message: clampMessage(message), type },
+      ]);
 
       window.setTimeout(() => {
         remove(id);
       }, 4500);
     },
-    [remove]
+    [remove, clampMessage]
   );
 
   const value = useMemo(

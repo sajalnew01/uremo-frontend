@@ -59,6 +59,39 @@ function prettyJson(value: unknown) {
   }
 }
 
+const JARVISX_GROQ_MIGRATION_CUTOFF_ISO = "2025-01-01T00:00:00.000Z";
+
+function isLegacyPreGroqProposal(p: Proposal): boolean {
+  const cutoff = Date.parse(JARVISX_GROQ_MIGRATION_CUTOFF_ISO);
+  const created = Date.parse(String((p as any)?.createdAt || ""));
+  if (!Number.isFinite(cutoff) || !Number.isFinite(created)) return false;
+  return created < cutoff;
+}
+
+function shouldHideLegacyArtifactsFromHistory(p: Proposal): boolean {
+  const haystack = `${String(p.rawAdminCommand || "")}\n${String(
+    p.previewText || ""
+  )}`.toLowerCase();
+
+  return (
+    haystack.includes("openrouter") ||
+    haystack.includes("jarvisx_api_key") ||
+    haystack.includes("missing jarvisx_api_key") ||
+    haystack.includes("jarvisx api key")
+  );
+}
+
+function toErrorMessage(error: unknown): string {
+  if (!error) return "Unknown error";
+  if (typeof error === "string") return error;
+  if (error instanceof Error) return error.message;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return "Unknown error";
+  }
+}
+
 export default function AdminJarvisXWritePage() {
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
@@ -72,6 +105,9 @@ export default function AdminJarvisXWritePage() {
   const [activeProposal, setActiveProposal] = useState<Proposal | null>(null);
   const [history, setHistory] = useState<Proposal[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+
+  const [executingProposal, setExecutingProposal] = useState(false);
+  const [executionError, setExecutionError] = useState<string | null>(null);
 
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsProposal, setDetailsProposal] = useState<Proposal | null>(null);
@@ -101,7 +137,10 @@ export default function AdminJarvisXWritePage() {
         null,
         true
       );
-      setHistory(Array.isArray(list) ? list : []);
+      const cleaned = (Array.isArray(list) ? list : []).filter(
+        (p) => !shouldHideLegacyArtifactsFromHistory(p)
+      );
+      setHistory(cleaned);
     } catch {
       setHistory([]);
     } finally {
@@ -115,6 +154,10 @@ export default function AdminJarvisXWritePage() {
     loadHealth();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, isAdmin]);
+
+  useEffect(() => {
+    setExecutionError(null);
+  }, [activeProposal?._id]);
 
   const proposalActionsEmpty =
     !activeProposal ||
@@ -159,6 +202,8 @@ export default function AdminJarvisXWritePage() {
   const approveAndExecute = async () => {
     if (!activeProposal?._id) return;
 
+    setExecutionError(null);
+    setExecutingProposal(true);
     try {
       const updated = await apiRequest<Proposal>(
         `/api/jarvisx/write/proposals/${activeProposal._id}/approve`,
@@ -175,8 +220,10 @@ export default function AdminJarvisXWritePage() {
       else toast("Updated.", "success");
 
       loadHistory();
-    } catch {
-      toast("Failed to execute proposal.", "error");
+    } catch (err) {
+      setExecutionError(toErrorMessage(err) || "Failed to execute proposal.");
+    } finally {
+      setExecutingProposal(false);
     }
   };
 
@@ -342,11 +389,13 @@ export default function AdminJarvisXWritePage() {
                 type="button"
                 onClick={approveAndExecute}
                 disabled={
-                  activeProposal.status !== "pending" || proposalActionsEmpty
+                  activeProposal.status !== "pending" ||
+                  proposalActionsEmpty ||
+                  executingProposal
                 }
                 className="rounded-2xl px-4 py-3 text-sm font-semibold border border-green-400/20 bg-green-500/15 hover:bg-green-500/20 text-green-100 transition disabled:opacity-50"
               >
-                Approve & Execute
+                {executingProposal ? "Executing…" : "Approve & Execute"}
               </button>
               <button
                 type="button"
@@ -364,6 +413,17 @@ export default function AdminJarvisXWritePage() {
                 </div>
               ) : null}
             </div>
+
+            {executionError ? (
+              <div className="rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3">
+                <p className="text-sm text-red-100 font-semibold">
+                  Execution failed
+                </p>
+                <p className="mt-1 text-xs text-red-100/90 whitespace-pre-wrap">
+                  {executionError}
+                </p>
+              </div>
+            ) : null}
 
             {activeProposal.executionResult?.errors?.length ? (
               <div className="rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3">
@@ -408,13 +468,20 @@ export default function AdminJarvisXWritePage() {
                 className="w-full text-left rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 px-4 py-3 transition"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <span
-                    className={`inline-flex items-center px-3 py-1 rounded-full border text-xs ${statusPill(
-                      p.status
-                    )}`}
-                  >
-                    {p.status.toUpperCase()}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-flex items-center px-3 py-1 rounded-full border text-xs ${statusPill(
+                        p.status
+                      )}`}
+                    >
+                      {p.status.toUpperCase()}
+                    </span>
+                    {isLegacyPreGroqProposal(p) ? (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full border border-white/10 bg-white/5 text-xs text-slate-200">
+                        Legacy (pre-Groq)
+                      </span>
+                    ) : null}
+                  </div>
                   <span className="text-xs text-slate-500">
                     {new Date(p.createdAt).toLocaleString()}
                   </span>

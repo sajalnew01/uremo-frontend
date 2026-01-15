@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { apiRequest } from "@/lib/api";
+import { jarvisxApi } from "@/lib/api/jarvisx";
 
 type JarvisSuggestedAction = { label: string; url: string };
 
@@ -16,6 +17,20 @@ type JarvisReply = {
   quickReplies?: string[];
   didCreateRequest?: boolean;
 };
+
+function scrubAdminGreetingForPublicWidget(text: string) {
+  const raw = String(text || "");
+  if (!raw) return raw;
+  if (/\bYes boss\b/i.test(raw)) {
+    console.warn(
+      "JarvisX incorrectly returned admin greeting in public widget"
+    );
+    return raw
+      .replace(/Yes boss\s*✅/gi, "Hello!")
+      .replace(/\bYes boss\b/gi, "Hello");
+  }
+  return raw;
+}
 
 type JarvisContextPublic = {
   settings?: any;
@@ -275,7 +290,7 @@ export default function JarvisWidget() {
 
     setSending(true);
     try {
-      const res = await apiRequest<JarvisReply>("/api/jarvisx/chat", "POST", {
+      const res = (await jarvisxApi.sendMessage({
         message: text,
         mode: "public",
         meta: {
@@ -283,7 +298,7 @@ export default function JarvisWidget() {
           orderId: inferredOrderId || undefined,
           leadCapture: leadRequestId ? { requestId: leadRequestId } : undefined,
         },
-      });
+      })) as unknown as JarvisReply;
 
       const nextId = String(res?.leadCapture?.requestId || "").trim();
       const step = String(res?.leadCapture?.step || "").trim();
@@ -294,7 +309,7 @@ export default function JarvisWidget() {
         id: uuid(),
         role: "assistant",
         text:
-          String(res?.reply || "").trim() ||
+          scrubAdminGreetingForPublicWidget(String(res?.reply || "").trim()) ||
           "I can help with services, payments, and interview support. What do you need?",
         meta: {
           sources: Array.isArray(res?.usedSources) ? res.usedSources : [],
