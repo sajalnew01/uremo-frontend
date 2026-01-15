@@ -20,7 +20,7 @@ export default function Error({
   return (
     <div className="u-container max-w-2xl py-20">
       <div className="card">
-        <p className="text-sm text-[#9CA3AF]">Error</p>
+        <p className="u-error-badge">Error</p>
         <h1 className="text-3xl font-bold text-white mt-2">
           Something went wrong
         </h1>
@@ -30,17 +30,11 @@ export default function Error({
         </p>
 
         {isDev && (error?.message || error?.digest) && (
-          <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3">
+          <div className="u-error-details">
             {error?.digest && (
-              <p className="text-xs text-[#9CA3AF] font-mono">
-                digest: {error.digest}
-              </p>
+              <p className="u-error-code">digest: {error.digest}</p>
             )}
-            {error?.message && (
-              <p className="text-xs text-[#9CA3AF] font-mono">
-                {error.message}
-              </p>
-            )}
+            {error?.message && <p className="u-error-code">{error.message}</p>}
           </div>
         )}
 
