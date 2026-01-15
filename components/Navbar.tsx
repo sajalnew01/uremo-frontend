@@ -52,6 +52,7 @@ export default function Navbar() {
     { href: "/admin", label: "Admin Dashboard", icon: "⚡" },
     { href: "/admin/services", label: "Services", icon: "📋" },
     { href: "/admin/orders", label: "Orders", icon: "📦" },
+    { href: "/admin/service-requests", label: "Service Requests", icon: "🧾" },
     { href: "/admin/payments", label: "Payments", icon: "💳" },
     { href: "/admin/work-applications", label: "Applications", icon: "📝" },
     { href: "/admin/work-positions", label: "Work Positions", icon: "👥" },

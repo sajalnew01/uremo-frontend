@@ -11,6 +11,7 @@ type JarvisReply = {
   confidence: number;
   usedSources: string[];
   suggestedActions: JarvisSuggestedAction[];
+  leadCapture?: { requestId?: string; step?: string };
 };
 
 type JarvisContextPublic = {
@@ -49,12 +50,26 @@ export default function JarvisWidget() {
 
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [leadRequestId, setLeadRequestId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    const v = localStorage.getItem("jarvisx_lead_request_id");
+    return v && v.trim() ? v : null;
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (leadRequestId) {
+      localStorage.setItem("jarvisx_lead_request_id", leadRequestId);
+    } else {
+      localStorage.removeItem("jarvisx_lead_request_id");
+    }
+  }, [leadRequestId]);
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
     {
       id: uuid(),
       role: "assistant",
-      text: "JarvisX Support — ask me about services, payments, or orders.",
+      text: "Hi — I’m JarvisX Support. Ask me anything about services, payments, or orders. If you need a service that isn’t listed, I can create a request for the team.",
     },
   ]);
 
@@ -120,8 +135,16 @@ export default function JarvisWidget() {
       const res = await apiRequest<JarvisReply>("/api/jarvisx/chat", "POST", {
         message: text,
         mode: "public",
-        meta: { page: pathname || "" },
+        meta: {
+          page: pathname || "",
+          leadCapture: leadRequestId ? { requestId: leadRequestId } : undefined,
+        },
       });
+
+      const nextId = String(res?.leadCapture?.requestId || "").trim();
+      const step = String(res?.leadCapture?.step || "").trim();
+      if (nextId) setLeadRequestId(nextId);
+      if (step === "created" || step === "cancelled") setLeadRequestId(null);
 
       const assistantMsg: ChatMessage = {
         id: uuid(),
@@ -139,14 +162,13 @@ export default function JarvisWidget() {
 
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (err: any) {
+      // Never show raw provider/server errors in the UI.
       setMessages((prev) => [
         ...prev,
         {
           id: uuid(),
           role: "assistant",
-          text:
-            err?.message ||
-            "I’m not sure. Please contact admin in Order Support Chat.",
+          text: "I’m not sure. Please contact admin in Order Support Chat.",
         },
       ]);
     } finally {
@@ -258,8 +280,8 @@ export default function JarvisWidget() {
               </button>
             </div>
             <p className="mt-2 text-[11px] text-slate-500">
-              Read-only assistant. If unsure, it will redirect to Order Support
-              Chat.
+              Tip: If you request something not listed, JarvisX will ask a few
+              quick questions and create a request ID for the team.
             </p>
           </div>
         </div>

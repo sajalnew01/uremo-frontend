@@ -22,6 +22,15 @@ const adminModules = [
     hoverBorder: "hover:border-purple-500/50",
   },
   {
+    title: "Service Requests",
+    description: "Leads captured from JarvisX Support",
+    href: "/admin/service-requests",
+    icon: "🧾",
+    gradient: "from-emerald-500/20 to-teal-500/20",
+    borderColor: "border-emerald-500/30",
+    hoverBorder: "hover:border-emerald-500/50",
+  },
+  {
     title: "Payment Methods",
     description: "Control PayPal / Crypto payment details",
     href: "/admin/payment-methods",
