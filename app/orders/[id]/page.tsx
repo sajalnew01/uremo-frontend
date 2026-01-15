@@ -93,6 +93,7 @@ function OrderDetailsContent() {
   const {
     connected,
     connecting,
+    joined,
     messages,
     typingUsers,
     sendMessage: socketSendMessage,
@@ -113,9 +114,9 @@ function OrderDetailsContent() {
   // Chat connection status
   const chatConnection = useMemo(() => {
     if (connecting) return "connecting";
-    if (connected) return "open";
+    if (connected && joined) return "open";
     return "offline";
-  }, [connected, connecting]);
+  }, [connected, joined, connecting]);
 
   const quickReplies = useMemo(() => {
     const list = settings?.orderSupport?.quickReplies;

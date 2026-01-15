@@ -76,6 +76,7 @@ type MemoryItem = {
 
 type HealthReport = {
   generatedAt: string;
+  llm?: { configured: boolean; provider: string; model: string };
   services: { total: number; active: number; missingHeroCount: number };
   workPositions: { total: number; active: number };
   serviceRequests: { total: number; new: number; draft: number };
@@ -522,6 +523,25 @@ export default function AdminJarvisXCommandCenter() {
           />
         </div>
       </div>
+
+      {health?.llm && (
+        <div
+          className={`rounded-2xl border px-4 py-3 text-sm ${
+            health.llm.configured
+              ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-100"
+              : "border-red-400/30 bg-red-500/10 text-red-100"
+          }`}
+        >
+          <p className="font-semibold">
+            {health.llm.configured
+              ? `LLM Connected: ${health.llm.model}`
+              : "LLM Not Configured"}
+          </p>
+          <p className="text-xs opacity-80 mt-1">
+            Provider: {health.llm.provider || "—"}
+          </p>
+        </div>
+      )}
 
       {tab === "chat" && (
         <>

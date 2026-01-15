@@ -52,6 +52,7 @@ export default function AdminOrderDetailPage() {
   const {
     connected,
     connecting,
+    joined,
     messages,
     typingUsers,
     sendMessage: socketSendMessage,
@@ -72,9 +73,9 @@ export default function AdminOrderDetailPage() {
   // Chat connection status
   const chatConnection = useMemo(() => {
     if (connecting) return "connecting";
-    if (connected) return "open";
+    if (connected && joined) return "open";
     return "offline";
-  }, [connected, connecting]);
+  }, [connected, joined, connecting]);
 
   // Check if any message is currently sending
   const sending = useMemo(() => {

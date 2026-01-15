@@ -36,6 +36,10 @@ type Proposal = {
   };
 };
 
+type HealthReport = {
+  llm?: { configured: boolean; provider: string; model: string };
+};
+
 function statusPill(status: ProposalStatus) {
   const map: Record<ProposalStatus, string> = {
     pending: "bg-yellow-500/15 text-yellow-200 border-yellow-400/20",
@@ -72,6 +76,22 @@ export default function AdminJarvisXWritePage() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsProposal, setDetailsProposal] = useState<Proposal | null>(null);
 
+  const [health, setHealth] = useState<HealthReport | null>(null);
+
+  const loadHealth = async () => {
+    try {
+      const data = await apiRequest<HealthReport>(
+        "/api/jarvisx/health-report",
+        "GET",
+        null,
+        true
+      );
+      setHealth(data);
+    } catch {
+      setHealth(null);
+    }
+  };
+
   const loadHistory = async () => {
     setLoadingHistory(true);
     try {
@@ -92,6 +112,7 @@ export default function AdminJarvisXWritePage() {
   useEffect(() => {
     if (!isAuthenticated || !isAdmin) return;
     loadHistory();
+    loadHealth();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, isAdmin]);
 
@@ -217,6 +238,25 @@ export default function AdminJarvisXWritePage() {
         <h1 className="text-2xl font-bold">JarvisX Write (Proposal-Based)</h1>
         <p className="text-[#9CA3AF]">Admin: {email || "—"}</p>
       </div>
+
+      {health?.llm && (
+        <div
+          className={`rounded-2xl border px-4 py-3 text-sm ${
+            health.llm.configured
+              ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-100"
+              : "border-red-400/30 bg-red-500/10 text-red-100"
+          }`}
+        >
+          <p className="font-semibold">
+            {health.llm.configured
+              ? `LLM Connected: ${health.llm.model}`
+              : "LLM Not Configured"}
+          </p>
+          <p className="text-xs opacity-80 mt-1">
+            Provider: {health.llm.provider || "—"}
+          </p>
+        </div>
+      )}
 
       <Card title="Command">
         <div className="space-y-3">

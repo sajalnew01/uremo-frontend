@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
-import { getApiBaseUrl } from "@/lib/api";
+import { apiRequest, getApiBaseUrl } from "@/lib/api";
 
 export type MessageStatus = "sending" | "sent" | "delivered" | "seen" | "failed";
 
@@ -71,6 +71,8 @@ export function useChatSocket(options: UseChatSocketOptions) {
 
   const [connected, setConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [joined, setJoined] = useState(false);
+  const [joining, setJoining] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [typingUsers, setTypingUsers] = useState<TypingState[]>([]);
   const [retryQueue, setRetryQueue] = useState<Array<{ orderId: string; message: string; tempId: string }>>([]);
@@ -80,6 +82,8 @@ export function useChatSocket(options: UseChatSocketOptions) {
   const seenIdsRef = useRef<Set<string>>(new Set());
   const retryTimerRef = useRef<number | null>(null);
   const typingTimerRef = useRef<number | null>(null);
+  const joinAttemptIdRef = useRef(0);
+  const pollTimerRef = useRef<number | null>(null);
 
   // Load retry queue on mount
   useEffect(() => {
@@ -98,6 +102,8 @@ export function useChatSocket(options: UseChatSocketOptions) {
     }
 
     setConnecting(true);
+    setJoined(false);
+    setJoining(false);
 
     const baseUrl = getApiBaseUrl();
     const socket = io(baseUrl, {
@@ -110,26 +116,68 @@ export function useChatSocket(options: UseChatSocketOptions) {
       timeout: 20000,
     });
 
+    const joinOrderWithAck = (targetOrderId: string) => {
+      if (!targetOrderId) return;
+      if (!socket.connected) return;
+
+      // Prevent stale ACKs from old join attempts.
+      const attemptId = ++joinAttemptIdRef.current;
+      setJoining(true);
+      setJoined(false);
+
+      let done = false;
+      const t = window.setTimeout(() => {
+        if (done) return;
+        done = true;
+        if (attemptId !== joinAttemptIdRef.current) return;
+        setJoining(false);
+        setJoined(false);
+        onError?.("JOIN_ACK_TIMEOUT");
+      }, 8000);
+
+      socket.emit("join:order", { orderId: targetOrderId }, (ack: any) => {
+        if (done) return;
+        done = true;
+        window.clearTimeout(t);
+        if (attemptId !== joinAttemptIdRef.current) return;
+
+        if (ack?.ok) {
+          setJoined(true);
+          setJoining(false);
+        } else {
+          setJoined(false);
+          setJoining(false);
+          onError?.(String(ack?.error || "JOIN_FAILED"));
+        }
+      });
+    };
+
     socket.on("connect", () => {
       console.log("[Socket] Connected");
       setConnected(true);
       setConnecting(false);
+      setJoined(false);
+      setJoining(false);
 
       // Rejoin order room if we were in one
       if (currentOrderIdRef.current) {
-        socket.emit("join:order", { orderId: currentOrderIdRef.current });
+        joinOrderWithAck(currentOrderIdRef.current);
       }
     });
 
     socket.on("disconnect", (reason) => {
       console.log("[Socket] Disconnected:", reason);
       setConnected(false);
+      setJoined(false);
+      setJoining(false);
     });
 
     socket.on("connect_error", (err) => {
       console.error("[Socket] Connection error:", err.message);
       setConnecting(false);
       setConnected(false);
+      setJoined(false);
+      setJoining(false);
     });
 
     socket.on("error", (data) => {
@@ -143,14 +191,33 @@ export function useChatSocket(options: UseChatSocketOptions) {
       const sorted = [...history].sort(
         (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       );
-      
-      const nextSeen = new Set<string>();
+
+      setMessages((prev) => {
+        const optimistic = prev.filter((m) => m.optimistic);
+        const byId = new Map<string, ChatMessage>();
+
+        for (const msg of sorted) {
+          if (msg?._id) byId.set(String(msg._id), { ...msg, optimistic: false });
+        }
+
+        // Keep optimistic messages that haven't been reconciled yet.
+        for (const opt of optimistic) {
+          if (opt?._id && byId.has(String(opt._id))) continue;
+          byId.set(String(opt._id), opt);
+        }
+
+        const next = Array.from(byId.values());
+        next.sort(
+          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+        return next;
+      });
+
+      const nextSeen = new Set<string>(seenIdsRef.current);
       for (const msg of sorted) {
         if (msg?._id) nextSeen.add(String(msg._id));
       }
       seenIdsRef.current = nextSeen;
-      
-      setMessages(sorted);
     });
 
     // New message
@@ -159,24 +226,37 @@ export function useChatSocket(options: UseChatSocketOptions) {
       const tempId = msg?.tempId;
 
       setMessages((prev) => {
-        // Remove optimistic message if this is the confirmed version
-        let next = tempId
-          ? prev.filter((m) => m.tempId !== tempId && m._id !== tempId)
-          : prev;
+        // Skip if already present by id
+        if (id && prev.some((m) => String(m._id) === id)) return prev;
 
-        // Skip if already seen
-        if (seenIdsRef.current.has(id)) {
-          return next;
+        // If this is a server-confirmed version of an optimistic message, reconcile it.
+        if (tempId) {
+          const idx = prev.findIndex((m) => m.tempId === tempId || m._id === tempId);
+          if (idx >= 0) {
+            const next = [...prev];
+            next[idx] = {
+              ...next[idx],
+              ...msg,
+              _id: id || next[idx]._id,
+              status: msg.status || "sent",
+              optimistic: false,
+            };
+            next.sort(
+              (a, b) =>
+                new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            );
+            return next;
+          }
         }
-        seenIdsRef.current.add(id);
 
-        // Add new message
-        next = [...next, { ...msg, optimistic: false }];
+        const next = [...prev, { ...msg, optimistic: false }];
         next.sort(
           (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
         return next;
       });
+
+      if (id) seenIdsRef.current.add(id);
 
       // Remove from retry queue if present
       if (tempId) {
@@ -237,6 +317,8 @@ export function useChatSocket(options: UseChatSocketOptions) {
     }
     setConnected(false);
     setConnecting(false);
+    setJoined(false);
+    setJoining(false);
   }, []);
 
   // Join order room
@@ -244,11 +326,41 @@ export function useChatSocket(options: UseChatSocketOptions) {
     currentOrderIdRef.current = newOrderId;
     seenIdsRef.current.clear();
     setMessages([]);
+    setJoined(false);
+    setJoining(false);
 
     if (socketRef.current?.connected) {
-      socketRef.current.emit("join:order", { orderId: newOrderId });
+      const socket = socketRef.current;
+      const attemptId = ++joinAttemptIdRef.current;
+      setJoining(true);
+
+      let done = false;
+      const t = window.setTimeout(() => {
+        if (done) return;
+        done = true;
+        if (attemptId !== joinAttemptIdRef.current) return;
+        setJoining(false);
+        setJoined(false);
+        onError?.("JOIN_ACK_TIMEOUT");
+      }, 8000);
+
+      socket.emit("join:order", { orderId: newOrderId }, (ack: any) => {
+        if (done) return;
+        done = true;
+        window.clearTimeout(t);
+        if (attemptId !== joinAttemptIdRef.current) return;
+
+        if (ack?.ok) {
+          setJoined(true);
+          setJoining(false);
+        } else {
+          setJoined(false);
+          setJoining(false);
+          onError?.(String(ack?.error || "JOIN_FAILED"));
+        }
+      });
     }
-  }, []);
+  }, [onError]);
 
   // Leave order room
   const leaveOrder = useCallback(() => {
@@ -257,6 +369,8 @@ export function useChatSocket(options: UseChatSocketOptions) {
     }
     currentOrderIdRef.current = null;
     setMessages([]);
+    setJoined(false);
+    setJoining(false);
   }, []);
 
   // Send message
@@ -281,16 +395,72 @@ export function useChatSocket(options: UseChatSocketOptions) {
 
     setMessages((prev) => [...prev, optimisticMsg]);
 
-    if (socketRef.current?.connected) {
-      socketRef.current.emit("message:send", { message, tempId });
-    } else {
-      // Add to retry queue
+    const enqueueRetry = () => {
       const queueItem = { orderId, message, tempId };
       setRetryQueue((q) => {
+        // de-dupe by tempId
+        if (q.some((x) => x.tempId === tempId)) return q;
         const updated = [...q, queueItem];
         saveRetryQueue(updated);
         return updated;
       });
+    };
+
+    // Only allow sending when connected + joined.
+    if (socketRef.current?.connected && joined) {
+      const socket = socketRef.current;
+
+      let done = false;
+      const t = window.setTimeout(() => {
+        if (done) return;
+        done = true;
+        setMessages((prev) =>
+          prev.map((m) => (m.tempId === tempId ? { ...m, status: "failed" } : m))
+        );
+        enqueueRetry();
+        onError?.("SEND_ACK_TIMEOUT");
+      }, 8000);
+
+      socket.emit(
+        "message:send",
+        { orderId, tempId, text: message },
+        (ack: any) => {
+          if (done) return;
+          done = true;
+          window.clearTimeout(t);
+
+          if (ack?.ok && ack?.message?._id) {
+            const serverMsg = ack.message as ChatMessage;
+            const serverId = String(serverMsg._id);
+            seenIdsRef.current.add(serverId);
+
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.tempId === tempId
+                  ? {
+                      ...m,
+                      ...serverMsg,
+                      _id: serverId,
+                      status: "sent",
+                      optimistic: false,
+                    }
+                  : m
+              )
+            );
+          } else {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.tempId === tempId ? { ...m, status: "failed" } : m
+              )
+            );
+            enqueueRetry();
+            onError?.(String(ack?.error || "SEND_FAILED"));
+          }
+        }
+      );
+    } else {
+      // Add to retry queue
+      enqueueRetry();
 
       // Mark as failed for now
       setMessages((prev) =>
@@ -299,7 +469,7 @@ export function useChatSocket(options: UseChatSocketOptions) {
     }
 
     return tempId;
-  }, []);
+  }, [joined, onError]);
 
   // Retry failed message
   const retryMessage = useCallback((tempId: string) => {
@@ -311,10 +481,63 @@ export function useChatSocket(options: UseChatSocketOptions) {
       prev.map((m) => (m.tempId === tempId ? { ...m, status: "sending" } : m))
     );
 
-    if (socketRef.current?.connected) {
-      socketRef.current.emit("message:send", { message: item.message, tempId });
+    if (socketRef.current?.connected && joined) {
+      const socket = socketRef.current;
+
+      let done = false;
+      const t = window.setTimeout(() => {
+        if (done) return;
+        done = true;
+        setMessages((prev) =>
+          prev.map((m) => (m.tempId === tempId ? { ...m, status: "failed" } : m))
+        );
+        onError?.("SEND_ACK_TIMEOUT");
+      }, 8000);
+
+      socket.emit(
+        "message:send",
+        { orderId: item.orderId, tempId, text: item.message },
+        (ack: any) => {
+          if (done) return;
+          done = true;
+          window.clearTimeout(t);
+
+          if (ack?.ok && ack?.message?._id) {
+            const serverMsg = ack.message as ChatMessage;
+            const serverId = String(serverMsg._id);
+            seenIdsRef.current.add(serverId);
+
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.tempId === tempId
+                  ? {
+                      ...m,
+                      ...serverMsg,
+                      _id: serverId,
+                      status: "sent",
+                      optimistic: false,
+                    }
+                  : m
+              )
+            );
+
+            setRetryQueue((q) => {
+              const updated = q.filter((x) => x.tempId !== tempId);
+              saveRetryQueue(updated);
+              return updated;
+            });
+          } else {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.tempId === tempId ? { ...m, status: "failed" } : m
+              )
+            );
+            onError?.(String(ack?.error || "SEND_FAILED"));
+          }
+        }
+      );
     }
-  }, [retryQueue]);
+  }, [retryQueue, joined, onError]);
 
   // Mark messages as delivered
   const markDelivered = useCallback((messageIds: string[]) => {
@@ -354,7 +577,7 @@ export function useChatSocket(options: UseChatSocketOptions) {
 
   // Process retry queue when connected
   useEffect(() => {
-    if (!connected || retryQueue.length === 0) return;
+    if (!connected || !joined || retryQueue.length === 0) return;
 
     // Retry failed messages for current order
     const currentOrderRetries = retryQueue.filter(
@@ -369,9 +592,10 @@ export function useChatSocket(options: UseChatSocketOptions) {
       if (index >= currentOrderRetries.length) return;
 
       const item = currentOrderRetries[index];
-      if (socketRef.current?.connected) {
+      if (socketRef.current?.connected && joined) {
         socketRef.current.emit("message:send", {
-          message: item.message,
+          orderId: item.orderId,
+          text: item.message,
           tempId: item.tempId,
         });
 
@@ -394,7 +618,64 @@ export function useChatSocket(options: UseChatSocketOptions) {
         window.clearTimeout(retryTimerRef.current);
       }
     };
-  }, [connected, retryQueue]);
+  }, [connected, joined, retryQueue]);
+
+  // Fallback polling safety net when socket is disconnected
+  useEffect(() => {
+    if (!enabled) return;
+    if (!orderId) return;
+    if (connected) return;
+
+    const poll = async () => {
+      try {
+        const list = await apiRequest<ChatMessage[]>(
+          `/api/orders/${orderId}/messages`,
+          "GET",
+          null,
+          true
+        );
+
+        const serverMessages = Array.isArray(list) ? list : [];
+        setMessages((prev) => {
+          const byId = new Map<string, ChatMessage>();
+          for (const m of prev) {
+            if (!m?._id) continue;
+            byId.set(String(m._id), m);
+          }
+          for (const sm of serverMessages) {
+            const sid = String((sm as any)?._id || "");
+            if (!sid) continue;
+            if (byId.has(sid)) continue;
+            byId.set(sid, { ...(sm as any), optimistic: false });
+          }
+          const next = Array.from(byId.values());
+          next.sort(
+            (a, b) =>
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+          return next;
+        });
+
+        // update seen ids
+        const nextSeen = new Set<string>(seenIdsRef.current);
+        for (const sm of serverMessages) {
+          if (sm?._id) nextSeen.add(String(sm._id));
+        }
+        seenIdsRef.current = nextSeen;
+      } catch {
+        // ignore
+      }
+    };
+
+    poll();
+    pollTimerRef.current = window.setInterval(poll, 10_000);
+    return () => {
+      if (pollTimerRef.current) {
+        window.clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+    };
+  }, [enabled, orderId, connected]);
 
   // Connect/disconnect based on enabled flag
   useEffect(() => {
@@ -424,6 +705,8 @@ export function useChatSocket(options: UseChatSocketOptions) {
   return {
     connected,
     connecting,
+    joined,
+    joining,
     messages,
     typingUsers,
     retryQueue,
