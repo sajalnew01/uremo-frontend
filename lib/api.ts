@@ -42,7 +42,8 @@ export async function apiRequest<T = any>(
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" = "GET",
   body: any = null,
   auth: boolean = false,
-  isFormData: boolean = false
+  isFormData: boolean = false,
+  options?: { timeoutMs?: number }
 ): Promise<T> {
   const baseUrl = getApiBaseUrl();
 
@@ -71,7 +72,12 @@ export async function apiRequest<T = any>(
   }
 
   const controller = new AbortController();
-  const timeoutMs = 30_000;
+  const timeoutMs =
+    typeof options?.timeoutMs === "number" &&
+    Number.isFinite(options.timeoutMs) &&
+    options.timeoutMs > 0
+      ? options.timeoutMs
+      : 30_000;
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   let res: Response;

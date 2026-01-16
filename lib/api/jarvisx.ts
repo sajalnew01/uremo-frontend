@@ -12,6 +12,7 @@ export type JarvisXChatRequest = {
 
 export type JarvisXChatResponse = {
   ok?: boolean;
+  message?: string;
   reply: string;
   intent?: string;
   quickReplies?: string[];
@@ -19,6 +20,7 @@ export type JarvisXChatResponse = {
   suggestedActions?: Array<{ label: string; url: string }>;
   leadCapture?: { requestId?: string; step?: string };
   didCreateRequest?: boolean;
+  maintenance?: boolean;
   error?: { message?: string };
 };
 
@@ -41,10 +43,12 @@ export const jarvisxApi = {
         "/api/jarvisx/chat",
         "POST",
         data,
-        data.mode === "admin"
+        data.mode === "admin",
+        false,
+        { timeoutMs: 15_000 }
       );
 
-      const reply = String(res?.reply || "").trim();
+      const reply = String(res?.reply || res?.message || "").trim();
       return {
         ...res,
         ok: res?.ok ?? true,
@@ -53,7 +57,7 @@ export const jarvisxApi = {
     } catch (error) {
       return {
         ok: false,
-        reply: "Service temporarily unavailable",
+        reply: "Network error — please try again.",
         quickReplies: [],
         error: { message: toErrorMessage(error) },
       };

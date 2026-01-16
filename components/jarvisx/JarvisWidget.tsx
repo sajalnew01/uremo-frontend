@@ -8,6 +8,8 @@ import { jarvisxApi } from "@/lib/api/jarvisx";
 type JarvisSuggestedAction = { label: string; url: string };
 
 type JarvisReply = {
+  ok?: boolean;
+  message?: string;
   reply: string;
   confidence?: number;
   usedSources?: string[];
@@ -151,6 +153,7 @@ export default function JarvisWidget() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const lastSendAtRef = useRef(0);
+  const cooldownUntilRef = useRef(0);
   const lastAssistantSigRef = useRef<{ sig: string; at: number } | null>(null);
   const [leadRequestId, setLeadRequestId] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
@@ -259,8 +262,11 @@ export default function JarvisWidget() {
     const text = String(rawText || "").trim();
     if (!text || sending) return;
 
-    // Prevent accidental double-send (Enter + click, double tap, etc.)
+    // Prevent spam loops during backend/provider outages.
     const now = Date.now();
+    if (now < cooldownUntilRef.current) return;
+
+    // Prevent accidental double-send (Enter + click, double tap, etc.)
     if (now - lastSendAtRef.current < 450) return;
     lastSendAtRef.current = now;
 
@@ -353,12 +359,18 @@ export default function JarvisWidget() {
         );
         return [...cleared, assistantMsg];
       });
+
+      // If backend says ok:false, apply a brief cooldown to avoid rapid retries.
+      if (res?.ok === false) {
+        cooldownUntilRef.current = Date.now() + 3000;
+      }
     } catch (err: any) {
       // Never show raw provider/server errors in the UI.
+      cooldownUntilRef.current = Date.now() + 3000;
       const fallback: ChatMessage = {
         id: uuid(),
         role: "assistant",
-        text: "I hit a technical issue. Please try again in a moment.",
+        text: "Network error — please try again.",
       };
       setMessages((prev) => {
         const cleared = prev.map((m) =>
