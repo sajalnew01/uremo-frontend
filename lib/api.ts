@@ -80,6 +80,8 @@ export async function apiRequest<T = any>(
       method,
       headers,
       signal: controller.signal,
+      // P0 FIX: Include credentials for cookie-based session management (jarvisx_sid)
+      credentials: "include",
     };
 
     // ✅ Only attach body for POST/PUT (never for GET/DELETE)

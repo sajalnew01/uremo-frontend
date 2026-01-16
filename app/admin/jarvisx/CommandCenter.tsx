@@ -371,7 +371,7 @@ export default function AdminJarvisXCommandCenter() {
           {
             id: uuid(),
             role: "assistant",
-            text: "JarvisX is temporarily unavailable right now. Please check your server logs / GROQ_API_KEY configuration.",
+            text: "JarvisX is temporarily unavailable. Please try again shortly.",
           },
         ]);
         return;
@@ -398,7 +398,7 @@ export default function AdminJarvisXCommandCenter() {
         {
           id: uuid(),
           role: "assistant",
-          text: "JarvisX is temporarily unavailable right now. Please check your server logs / GROQ_API_KEY configuration.",
+          text: "JarvisX is temporarily unavailable. Please try again shortly.",
         },
       ]);
     } finally {
@@ -507,8 +507,32 @@ export default function AdminJarvisXCommandCenter() {
       await loadHistory();
       await loadMemory();
       await loadHealth();
-    } catch (err) {
-      setExecutionError(toErrorMessage(err) || "Failed to execute proposal.");
+    } catch (err: any) {
+      // P0 FIX: Better error display for validation failures
+      const errorData = err?.response?.data || err?.data || err;
+      const validationErrors = errorData?.validationErrors;
+      const details = errorData?.details;
+
+      if (validationErrors && validationErrors.length > 0) {
+        const errorMsg = validationErrors
+          .map(
+            (e: any) =>
+              `Action ${e.index + 1} (${e.type}): Missing ${
+                e.missingFields?.join(", ") || "unknown fields"
+              }`
+          )
+          .join("\n");
+        setExecutionError(`Validation failed:\n${errorMsg}`);
+        toast(
+          "Proposal has missing required fields. Please edit before executing.",
+          "error"
+        );
+      } else if (details) {
+        setExecutionError(details);
+        toast("Validation failed.", "error");
+      } else {
+        setExecutionError(toErrorMessage(err) || "Failed to execute proposal.");
+      }
     } finally {
       setExecutingProposal(false);
     }

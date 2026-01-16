@@ -205,13 +205,27 @@ export default function AdminJarvisXWritePage() {
     setExecutionError(null);
     setExecutingProposal(true);
     try {
-      const updated = await apiRequest<Proposal>(
+      const updated = await apiRequest<any>(
         `/api/jarvisx/write/proposals/${activeProposal._id}/approve`,
         "POST",
         {},
         true
       );
-      setActiveProposal(updated);
+
+      if (updated?.ok === false && updated?.action === "EDIT_REQUIRED") {
+        const missing = Array.isArray(updated?.missingFields)
+          ? updated.missingFields.join(", ")
+          : "";
+        setExecutionError(
+          missing
+            ? `Edit required. Missing fields: ${missing}`
+            : "Edit required. Missing required fields."
+        );
+        toast("Edit required before execution.", "error");
+        return;
+      }
+
+      setActiveProposal(updated as Proposal);
 
       if (updated.status === "executed")
         toast("Executed successfully.", "success");

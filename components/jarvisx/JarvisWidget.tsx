@@ -150,6 +150,8 @@ export default function JarvisWidget() {
 
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const lastSendAtRef = useRef(0);
+  const lastAssistantSigRef = useRef<{ sig: string; at: number } | null>(null);
   const [leadRequestId, setLeadRequestId] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     const v = localStorage.getItem("jarvisx_lead_request_id");
@@ -257,6 +259,11 @@ export default function JarvisWidget() {
     const text = String(rawText || "").trim();
     if (!text || sending) return;
 
+    // Prevent accidental double-send (Enter + click, double tap, etc.)
+    const now = Date.now();
+    if (now - lastSendAtRef.current < 450) return;
+    lastSendAtRef.current = now;
+
     setInput("");
 
     const userMsg: ChatMessage = { id: uuid(), role: "user", text };
@@ -317,23 +324,50 @@ export default function JarvisWidget() {
             ? res.suggestedActions
             : [],
           quickReplies: Array.isArray(res?.quickReplies)
-            ? res.quickReplies
+            ? Array.from(
+                new Set(
+                  res.quickReplies
+                    .map((q) => String(q || "").trim())
+                    .filter(Boolean)
+                )
+              ).slice(0, 6)
             : [],
           intent: String(res?.intent || "").trim() || undefined,
         },
       };
 
-      setMessages((prev) => [...prev, assistantMsg]);
+      // Replace quickReplies (never append duplicates across messages)
+      // and dedupe accidental duplicate assistant messages within 1s.
+      const sig = `assistant:${assistantMsg.text}`;
+      const last = lastAssistantSigRef.current;
+      if (last && last.sig === sig && now - last.at < 1000) {
+        return;
+      }
+      lastAssistantSigRef.current = { sig, at: now };
+
+      setMessages((prev) => {
+        const cleared = prev.map((m) =>
+          m.role === "assistant"
+            ? { ...m, meta: { ...(m.meta || {}), quickReplies: [] } }
+            : m
+        );
+        return [...cleared, assistantMsg];
+      });
     } catch (err: any) {
       // Never show raw provider/server errors in the UI.
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: uuid(),
-          role: "assistant",
-          text: "I hit a technical issue. Please try again in a moment.",
-        },
-      ]);
+      const fallback: ChatMessage = {
+        id: uuid(),
+        role: "assistant",
+        text: "I hit a technical issue. Please try again in a moment.",
+      };
+      setMessages((prev) => {
+        const cleared = prev.map((m) =>
+          m.role === "assistant"
+            ? { ...m, meta: { ...(m.meta || {}), quickReplies: [] } }
+            : m
+        );
+        return [...cleared, fallback];
+      });
     } finally {
       setSending(false);
     }
