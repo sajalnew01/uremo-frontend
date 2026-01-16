@@ -140,12 +140,29 @@ function OrderDetailsContent() {
     behavior?: ScrollBehavior;
   }) => {
     const behavior = opts?.behavior || "smooth";
-    chatSectionRef.current?.scrollIntoView({ behavior, block: "start" });
+    const el = chatSectionRef.current;
+    if (!el) return;
+
+    // Avoid scrollIntoView jitter on some mobile browsers.
+    const rect = el.getBoundingClientRect();
+    const headerOffset = 72; // fixed navbar (56px) + small gap
+    const top = Math.max(0, rect.top + window.scrollY - headerOffset);
+    window.scrollTo({ top, behavior });
+
     if (opts?.focus) {
-      // Mobile keyboards are more reliable when focus happens after a tick.
-      window.setTimeout(() => {
-        chatInputRef.current?.focus();
-      }, 50);
+      // Focus after scrolling settles; preventScroll reduces jump.
+      window.setTimeout(
+        () => {
+          const input = chatInputRef.current;
+          if (!input) return;
+          try {
+            input.focus({ preventScroll: true } as any);
+          } catch {
+            input.focus();
+          }
+        },
+        behavior === "smooth" ? 350 : 0
+      );
     }
   };
 
@@ -500,7 +517,7 @@ function OrderDetailsContent() {
       {/* Chat */}
       <div
         ref={chatSectionRef}
-        className={`border border-[#1F2937] rounded-lg p-6 bg-[#0F172A] transition-shadow ${
+        className={`scroll-mt-20 border border-[#1F2937] rounded-lg p-6 bg-[#0F172A] transition-shadow ${
           chatGlow ? "shadow-[0_0_0_3px_rgba(59,130,246,0.35)]" : ""
         }`}
       >
@@ -518,6 +535,7 @@ function OrderDetailsContent() {
           onRetry={(tempId) => retryMessage(tempId)}
           onReconnect={reconnect}
           onStartTyping={startTyping}
+          inputRefExternal={chatInputRef}
         />
       </div>
     </div>

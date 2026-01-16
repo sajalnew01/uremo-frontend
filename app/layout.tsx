@@ -79,7 +79,7 @@ export default function RootLayout({
         <ToastProvider>
           <Navbar />
           <ToastViewport />
-          <div className="pt-14 min-h-[calc(100vh-56px)]">
+          <div className="pt-14 min-h-[calc(100vh-56px)] min-h-[calc(100dvh-56px)]">
             <StatusBanner />
             <main className="min-w-0 relative z-10 u-page">{children}</main>
           </div>

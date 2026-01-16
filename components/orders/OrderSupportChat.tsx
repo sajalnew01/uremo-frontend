@@ -43,6 +43,9 @@ type Props = {
   onRetry: (tempId: string) => void;
   onReconnect: () => void;
   onStartTyping: () => void;
+
+  // Optional: allow parent to focus the input (e.g., "Open chat" button).
+  inputRefExternal?: React.MutableRefObject<HTMLInputElement | null>;
 };
 
 function formatTime(input: string) {
@@ -243,6 +246,7 @@ export default function OrderSupportChat(props: Props) {
     onRetry,
     onReconnect,
     onStartTyping,
+    inputRefExternal,
   } = props;
 
   const safeQuickReplies = useMemo(
@@ -266,7 +270,15 @@ export default function OrderSupportChat(props: Props) {
       setText("");
 
       // Keep typing UX consistent on mobile.
-      window.setTimeout(() => inputRef.current?.focus(), 0);
+      window.setTimeout(() => {
+        const el = inputRef.current;
+        if (!el) return;
+        try {
+          el.focus({ preventScroll: true } as any);
+        } catch {
+          el.focus();
+        }
+      }, 0);
     },
     [authReady, isAuthenticated, onSend, text]
   );
@@ -279,7 +291,15 @@ export default function OrderSupportChat(props: Props) {
         return;
       }
       setText(q);
-      window.setTimeout(() => inputRef.current?.focus(), 0);
+      window.setTimeout(() => {
+        const el = inputRef.current;
+        if (!el) return;
+        try {
+          el.focus({ preventScroll: true } as any);
+        } catch {
+          el.focus();
+        }
+      }, 0);
     },
     [authReady, handleSend, isAuthenticated, sending]
   );
@@ -291,7 +311,7 @@ export default function OrderSupportChat(props: Props) {
   }, [userNearBottom, text]);
 
   return (
-    <div className="relative">
+    <div className="relative isolate [contain:layout_paint]">
       {/* Connection status: small, top-right, never blocks UI */}
       <div className="absolute right-0 top-0">
         <div
@@ -399,7 +419,10 @@ export default function OrderSupportChat(props: Props) {
                 📎
               </button>
               <input
-                ref={inputRef}
+                ref={(node) => {
+                  inputRef.current = node;
+                  if (inputRefExternal) inputRefExternal.current = node;
+                }}
                 className="w-full rounded-lg border border-[#1F2937] bg-[#020617] px-3 py-2 text-sm text-white placeholder:text-[#64748B]"
                 placeholder={ui.chatInputPlaceholder}
                 value={text}

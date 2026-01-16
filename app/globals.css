@@ -35,7 +35,16 @@ body {
   color: var(--text);
   font-family: var(--font-sans), system-ui, sans-serif;
   min-height: 100vh;
+  min-height: 100dvh;
   letter-spacing: -0.01em;
+}
+
+/* Mobile Safari/Chrome: `background-attachment: fixed` can cause heavy repaints
+   and visual glitches when focusing inputs / opening the keyboard. */
+@media (max-width: 768px) {
+  body {
+    background-attachment: scroll;
+  }
 }
 
 h1 {
