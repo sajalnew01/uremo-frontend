@@ -14,6 +14,7 @@ import {
   ChatMessage,
   MessageStatus,
 } from "@/hooks/useChatSocket";
+import OrderSupportChat from "@/components/orders/OrderSupportChat";
 
 interface Order {
   _id: string;
@@ -83,9 +84,7 @@ function OrderDetailsContent() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
-  const [messageText, setMessageText] = useState<string>("");
   const [chatGlow, setChatGlow] = useState(false);
-  const endRef = useRef<HTMLDivElement | null>(null);
   const chatSectionRef = useRef<HTMLDivElement | null>(null);
   const chatInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -192,9 +191,7 @@ function OrderDetailsContent() {
     loadOrder();
   }, [orderId]);
 
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
+  useEffect(() => {}, [messages.length]);
 
   // Mark messages as seen when they arrive
   useEffect(() => {
@@ -232,23 +229,32 @@ function OrderDetailsContent() {
     return messages.some((m) => m.status === "sending");
   }, [messages]);
 
-  const handleSendMessage = () => {
-    const text = messageText.trim();
-    if (!text) return;
+  const handleSendMessage = useCallback(
+    (text: string) => {
+      const clean = String(text || "").trim();
+      if (!clean) return;
 
-    if (!authReady || !isAuthenticated) {
-      toast("Please login to chat", "error");
-      return;
-    }
+      if (!authReady || !isAuthenticated) {
+        toast("Please login to chat", "error");
+        return;
+      }
 
-    if (process.env.NODE_ENV !== "production") {
-      console.log("sending", orderId, text);
-    }
+      if (process.env.NODE_ENV !== "production") {
+        console.log("sending", orderId, clean);
+      }
 
-    socketSendMessage(text);
-    setMessageText("");
-    toast(ui.messageSentToast, "success");
-  };
+      socketSendMessage(clean);
+      toast(ui.messageSentToast, "success");
+    },
+    [
+      authReady,
+      isAuthenticated,
+      orderId,
+      socketSendMessage,
+      toast,
+      ui.messageSentToast,
+    ]
+  );
 
   // Get status indicator for a message
   const getMessageStatusIcon = (status: MessageStatus): string | null => {
@@ -491,198 +497,21 @@ function OrderDetailsContent() {
           chatGlow ? "shadow-[0_0_0_3px_rgba(59,130,246,0.35)]" : ""
         }`}
       >
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-lg">{ui.chatTitle}</h3>
-            <p className="text-xs text-[#9CA3AF] mt-1">{ui.chatSubtitle}</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span
-              className={`text-[11px] px-2 py-1 rounded-full border ${
-                chatConnection === "open"
-                  ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-200"
-                  : chatConnection === "connecting"
-                  ? "border-blue-500/25 bg-blue-500/10 text-blue-200"
-                  : "border-white/10 bg-white/5 text-[#9CA3AF]"
-              }`}
-            >
-              {chatConnection === "open"
-                ? "🟢 Live"
-                : chatConnection === "connecting"
-                ? "Connecting…"
-                : "Offline"}
-            </span>
-
-            {chatConnection !== "open" && (
-              <button
-                type="button"
-                onClick={reconnect}
-                className="text-xs text-[#9CA3AF] hover:text-white transition"
-              >
-                Retry
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Typing indicator */}
-        {typingUsers.length > 0 && (
-          <div className="mt-2 text-xs text-slate-400 animate-pulse">
-            {typingUsers.map((t) => t.role).join(", ")} typing...
-          </div>
-        )}
-
-        <div className="mt-4 h-[360px] overflow-y-auto rounded-xl border border-slate-700/50 bg-gradient-to-b from-slate-900/80 via-slate-900/60 to-slate-800/40 p-4 space-y-4">
-          {messages.length === 0 ? (
-            <div className="h-full flex items-center justify-center">
-              <div className="text-center max-w-sm">
-                <div className="mx-auto w-14 h-14 rounded-2xl border border-blue-500/20 bg-blue-500/10 flex items-center justify-center text-2xl text-blue-300">
-                  💬
-                </div>
-                <p className="mt-4 text-sm text-slate-200 font-medium">
-                  {ui.emptyChatTitle}
-                </p>
-                <p className="mt-1 text-xs text-slate-400">
-                  {ui.emptyChatSubtitle}
-                </p>
-                <div className="mt-5 flex flex-wrap gap-2 justify-center">
-                  {quickReplies.map((q) => (
-                    <button
-                      key={q}
-                      type="button"
-                      onClick={() => {
-                        setMessageText(q);
-                        scrollToChat({ focus: true });
-                      }}
-                      className="px-3 py-1.5 rounded-full text-xs border border-blue-500/20 bg-blue-500/10 text-blue-200 hover:bg-blue-500/20 transition"
-                    >
-                      {q}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ) : (
-            messages.map((m) => (
-              <div
-                key={m._id}
-                className={`flex ${
-                  getMessageSenderRole(m) === "user"
-                    ? "justify-end"
-                    : "justify-start"
-                }`}
-              >
-                <div
-                  className={`flex flex-col gap-1 ${
-                    getMessageSenderRole(m) === "user"
-                      ? "items-end"
-                      : "items-start"
-                  } max-w-[80%] md:max-w-[60%]`}
-                >
-                  <p className="text-[11px] text-slate-400">
-                    {getMessageSenderRole(m) === "user"
-                      ? ui.youLabel
-                      : ui.supportLabel}
-                  </p>
-                  <div
-                    className={`rounded-2xl px-4 py-2 text-sm ${
-                      getMessageSenderRole(m) === "user"
-                        ? m.status === "failed"
-                          ? "bg-red-600/50 text-white border border-red-500"
-                          : "bg-blue-600 text-white"
-                        : "bg-slate-800 text-slate-100 border border-slate-700"
-                    }`}
-                  >
-                    <p className="whitespace-pre-wrap break-words">
-                      {m.message}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <p
-                      className={`text-xs text-slate-400 ${
-                        getMessageSenderRole(m) === "user"
-                          ? "text-right"
-                          : "text-left"
-                      }`}
-                    >
-                      {new Date(m.createdAt).toLocaleString()}
-                    </p>
-                    {/* Status indicator for user messages */}
-                    {getMessageSenderRole(m) === "user" && m.status && (
-                      <span
-                        className={`text-xs ${getMessageStatusClass(m.status)}`}
-                        title={m.status}
-                      >
-                        {getMessageStatusIcon(m.status)}
-                      </span>
-                    )}
-                    {/* Retry button for failed messages */}
-                    {m.status === "failed" && m.tempId && (
-                      <button
-                        type="button"
-                        onClick={() => retryMessage(m.tempId!)}
-                        className="text-xs text-blue-400 hover:text-blue-300"
-                      >
-                        Retry
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-          <div ref={endRef} />
-        </div>
-
-        <div className="mt-4">
-          <div className="flex flex-wrap gap-2">
-            {quickReplies.map((q) => (
-              <button
-                key={q}
-                type="button"
-                onClick={() => {
-                  setMessageText(q);
-                  scrollToChat({ focus: true });
-                }}
-                className="px-3 py-1.5 rounded-full text-xs border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-
-          <div className="mt-3 flex flex-col sm:flex-row gap-2">
-            <input
-              ref={chatInputRef}
-              className="w-full sm:flex-1 rounded-lg border border-[#1F2937] bg-[#020617] px-3 py-2 text-sm text-white placeholder:text-[#64748B]"
-              placeholder={ui.chatInputPlaceholder}
-              value={messageText}
-              onChange={(e) => {
-                setMessageText(e.target.value);
-                startTyping();
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendMessage();
-                }
-              }}
-              disabled={sending}
-            />
-            <button
-              type="button"
-              onClick={handleSendMessage}
-              disabled={
-                sending || !messageText.trim() || !authReady || !isAuthenticated
-              }
-              className="px-4 py-2 rounded-lg bg-[#3B82F6] text-white text-sm disabled:opacity-50 w-full sm:w-auto"
-            >
-              {sending ? ui.sendingButtonText : ui.sendButtonText}
-            </button>
-          </div>
-        </div>
-
-        <p className="mt-3 text-xs text-[#9CA3AF]">{ui.supportRepliesHint}</p>
+        <OrderSupportChat
+          ui={ui}
+          quickReplies={quickReplies}
+          messages={messages}
+          typingUsers={typingUsers}
+          connection={chatConnection}
+          authReady={authReady}
+          isAuthenticated={isAuthenticated}
+          sending={sending}
+          getSenderRole={getMessageSenderRole}
+          onSend={handleSendMessage}
+          onRetry={(tempId) => retryMessage(tempId)}
+          onReconnect={reconnect}
+          onStartTyping={startTyping}
+        />
       </div>
     </div>
   );
