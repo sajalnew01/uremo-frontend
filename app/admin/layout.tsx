@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import AdminSupportNotifier from "@/components/admin/AdminSupportNotifier";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -27,5 +28,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   }
 
   // Use the global app shell (Navbar + Sidebar). This layout only enforces the admin guard.
-  return <>{children}</>;
+  return (
+    <>
+      <AdminSupportNotifier />
+      {children}
+    </>
+  );
 }

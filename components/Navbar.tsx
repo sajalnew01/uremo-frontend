@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import ProfileMenu from "@/components/ProfileMenu";
+import { useAdminSupportUnread } from "@/lib/supportUnread";
 import {
   DEFAULT_PUBLIC_SITE_SETTINGS,
   useSiteSettings,
@@ -17,6 +18,7 @@ export default function Navbar() {
   const [logoFailed, setLogoFailed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { data: settings } = useSiteSettings();
+  const { total: adminUnreadTotal } = useAdminSupportUnread();
 
   const nav = settings?.nav || DEFAULT_PUBLIC_SITE_SETTINGS.nav;
   const site = settings?.site || DEFAULT_PUBLIC_SITE_SETTINGS.site;
@@ -190,6 +192,35 @@ export default function Navbar() {
                     {nav.supportLinkText}
                   </a>
                 </div>
+              )}
+
+              {isAuthenticated && user?.role === "admin" && (
+                <Link
+                  href="/admin/messages"
+                  className="relative inline-flex items-center justify-center w-10 h-10 rounded-xl border border-white/10 hover:border-white/20 hover:bg-white/5 transition-all"
+                  aria-label="Admin inbox"
+                  title="Admin inbox"
+                >
+                  <svg
+                    className="w-5 h-5 text-slate-200"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                    />
+                  </svg>
+
+                  {adminUnreadTotal > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-600 text-white text-[11px] leading-5 text-center border border-slate-900">
+                      {adminUnreadTotal > 99 ? "99+" : adminUnreadTotal}
+                    </span>
+                  )}
+                </Link>
               )}
 
               {isAuthenticated && <ProfileMenu />}

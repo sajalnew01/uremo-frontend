@@ -13,6 +13,7 @@ import {
   ChatMessage,
   MessageStatus,
 } from "@/hooks/useChatSocket";
+import { clearAdminSupportUnreadForOrder } from "@/lib/supportUnread";
 
 type StatusLogItem = { text: string; at: string };
 
@@ -138,6 +139,26 @@ export default function AdminOrderDetailPage() {
 
   useEffect(() => {
     loadOrder();
+  }, [orderId]);
+
+  // Clear unread badge for this order when opened (best-effort)
+  useEffect(() => {
+    if (!orderId) return;
+    clearAdminSupportUnreadForOrder(String(orderId));
+
+    // REST fallback: mark all user->admin messages as read even if socket is offline
+    (async () => {
+      try {
+        await apiRequest(
+          `/api/admin/orders/${orderId}/support/mark-read`,
+          "POST",
+          {},
+          true
+        );
+      } catch {
+        // ignore
+      }
+    })();
   }, [orderId]);
 
   // Scroll to bottom when messages update

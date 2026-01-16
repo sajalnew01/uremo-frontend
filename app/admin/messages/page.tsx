@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
+import { setAdminSupportUnreadFromServer } from "@/lib/supportUnread";
 
 type InboxItem = {
   orderId: string;
@@ -13,6 +14,7 @@ type InboxItem = {
   status: string;
   userEmail: string;
   serviceTitle: string;
+  unreadCount?: number;
 };
 
 export default function AdminInboxPage() {
@@ -25,7 +27,16 @@ export default function AdminInboxPage() {
     setLoading(true);
     try {
       const data = await apiRequest("/api/admin/messages", "GET", null, true);
-      setItems(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : [];
+      setItems(list);
+
+      // Keep navbar badge aligned with what the admin sees in the inbox.
+      const byOrder: Record<string, number> = {};
+      for (const it of list) {
+        const count = Number((it as any)?.unreadCount || 0);
+        if (count > 0) byOrder[String((it as any)?.orderId || "")] = count;
+      }
+      setAdminSupportUnreadFromServer(byOrder);
     } catch (e: any) {
       toast(e?.message || "Failed to load inbox", "error");
     } finally {
@@ -76,6 +87,13 @@ export default function AdminInboxPage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-semibold text-white">{it.userEmail}</p>
+                    {Number(it.unreadCount || 0) > 0 && (
+                      <span className="text-xs px-2 py-1 rounded bg-red-600 text-white">
+                        {Number(it.unreadCount || 0) > 99
+                          ? "99+"
+                          : Number(it.unreadCount || 0)}
+                      </span>
+                    )}
                     <span
                       className={`text-xs px-2 py-1 rounded ${badge(
                         it.status
