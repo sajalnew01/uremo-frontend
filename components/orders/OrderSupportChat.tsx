@@ -156,7 +156,7 @@ const MessageList = memo(function MessageList(props: {
     <div
       ref={listRef}
       onScroll={handleScroll}
-      className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-slate-700/50 bg-gradient-to-b from-slate-900/80 via-slate-900/60 to-slate-800/40 p-4"
+      className="flex-1 min-h-0 overflow-y-auto overscroll-contain rounded-xl border border-slate-700/50 bg-gradient-to-b from-slate-900/80 via-slate-900/60 to-slate-800/40 p-4"
     >
       <div className="space-y-4">
         {messages.map((m, index) => {
@@ -322,8 +322,9 @@ export default function OrderSupportChat(props: Props) {
         </div>
       )}
 
-      {/* Fixed-height, flex chat layout (mobile-first). */}
-      <div className="mt-4 flex flex-col h-[70vh] sm:h-[520px] min-h-0">
+      {/* Fixed-height, flex chat layout (mobile-first).
+          Use `dvh` so the layout responds to mobile keyboard resizing. */}
+      <div className="mt-4 flex flex-col min-h-0 overflow-hidden h-[70vh] h-[70dvh] max-h-[520px]">
         {messages.length === 0 ? (
           <div className="flex-1 min-h-0 rounded-xl border border-slate-700/50 bg-gradient-to-b from-slate-900/80 via-slate-900/60 to-slate-800/40 p-4 flex items-center justify-center">
             <div className="text-center max-w-sm">
@@ -338,7 +339,7 @@ export default function OrderSupportChat(props: Props) {
               </p>
 
               {showQuickReplies && (
-                <div className="mt-5 overflow-x-auto">
+                <div className="mt-5 shrink-0 overflow-x-auto">
                   <div className="flex gap-2 w-max mx-auto">
                     {safeQuickReplies.map((q) => (
                       <button
@@ -368,7 +369,7 @@ export default function OrderSupportChat(props: Props) {
 
         {/* Quick replies (single place, horizontal scroll) */}
         {messages.length > 0 && showQuickReplies && (
-          <div className="mt-3 overflow-x-auto">
+          <div className="mt-3 shrink-0 overflow-x-auto">
             <div className="flex gap-2 w-max">
               {safeQuickReplies.map((q) => (
                 <button
@@ -385,7 +386,7 @@ export default function OrderSupportChat(props: Props) {
         )}
 
         {/* Input bar (separate from scroll area; sticky-ish UX) */}
-        <div className="mt-3 sticky bottom-0">
+        <div className="mt-3 shrink-0">
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="flex-1 flex gap-2">
               <button

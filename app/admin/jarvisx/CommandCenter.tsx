@@ -357,8 +357,63 @@ export default function AdminJarvisXCommandCenter() {
     const userMsg: ChatMessage = { id: uuid(), role: "user", text };
     setMessages((prev) => [...prev, userMsg]);
 
+    const isWritePrefixed = /^(!|do:|write:)/i.test(text);
+
     setSending(true);
     try {
+      // "Via chatting" write-mode: draft a proposal from chat when prefixed.
+      // This keeps normal chat lightweight, but enables operational commands.
+      if (isWritePrefixed) {
+        const cleaned = text.replace(/^(!|do:|write:)\s*/i, "").trim();
+        if (!cleaned) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: uuid(),
+              role: "assistant",
+              text: "Use `!` like this: `! verify payment for order <id>`",
+            },
+          ]);
+          return;
+        }
+
+        const res = await apiRequest<{
+          proposalId: string;
+          actions: ActionItem[];
+          previewText: string;
+        }>("/api/jarvisx/write/propose", "POST", { command: cleaned }, true);
+
+        const proposal: Proposal = {
+          _id: res.proposalId,
+          createdAt: new Date().toISOString(),
+          createdByAdminId: String(
+            (user as any)?.id || (user as any)?._id || ""
+          ),
+          rawAdminCommand: cleaned,
+          status: "pending",
+          actions: Array.isArray(res.actions) ? res.actions : [],
+          previewText: String(res.previewText || "").trim(),
+          requiresApproval: true,
+        };
+
+        setActiveProposal(proposal);
+        setCommand(cleaned);
+        setTab("proposals");
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: uuid(),
+            role: "assistant",
+            text:
+              (proposal.previewText || "Drafted an action proposal.") +
+              "\n\nReview & approve it in the Proposals tab.",
+          },
+        ]);
+
+        return;
+      }
+
       const res = await jarvisxApi.sendMessage({
         message: text,
         mode: "admin",
