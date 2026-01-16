@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { io, Socket } from "socket.io-client";
-import { apiRequest, getApiBaseUrl } from "@/lib/api";
+import { apiRequest } from "@/lib/api";
+import type { Socket } from "socket.io-client";
+import { getOrderSocket } from "@/lib/socket/orderSocket";
 
 export type MessageStatus = "sending" | "sent" | "delivered" | "seen" | "failed";
 
@@ -69,6 +70,11 @@ function generateTempId(): string {
 export function useChatSocket(options: UseChatSocketOptions) {
   const { orderId, enabled, onError } = options;
 
+  const onErrorRef = useRef(onError);
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
+
   const [connected, setConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [joined, setJoined] = useState(false);
@@ -78,6 +84,8 @@ export function useChatSocket(options: UseChatSocketOptions) {
   const [retryQueue, setRetryQueue] = useState<Array<{ orderId: string; message: string; tempId: string }>>([]);
 
   const socketRef = useRef<Socket | null>(null);
+  const listenersBoundRef = useRef(false);
+  const connectInFlightRef = useRef(false);
   const currentOrderIdRef = useRef<string | null>(null);
   const seenIdsRef = useRef<Set<string>>(new Set());
   const retryTimerRef = useRef<number | null>(null);
@@ -90,239 +98,110 @@ export function useChatSocket(options: UseChatSocketOptions) {
     setRetryQueue(loadRetryQueue());
   }, []);
 
-  // Connect to socket
+  const joinOrderWithAck = useCallback((socket: Socket, targetOrderId: string) => {
+    if (!targetOrderId) return;
+    if (!socket.connected) return;
+
+    // Prevent stale ACKs from old join attempts.
+    const attemptId = ++joinAttemptIdRef.current;
+    setJoining(true);
+    setJoined(false);
+
+    let done = false;
+    const t = window.setTimeout(() => {
+      if (done) return;
+      done = true;
+      if (attemptId !== joinAttemptIdRef.current) return;
+      setJoining(false);
+      setJoined(false);
+      onErrorRef.current?.("JOIN_ACK_TIMEOUT");
+    }, 8000);
+
+    socket.emit("join:order", { orderId: targetOrderId }, (ack: any) => {
+      if (done) return;
+      done = true;
+      window.clearTimeout(t);
+      if (attemptId !== joinAttemptIdRef.current) return;
+
+      if (ack?.ok) {
+        setJoined(true);
+        setJoining(false);
+      } else {
+        setJoined(false);
+        setJoining(false);
+        onErrorRef.current?.(String(ack?.error || "JOIN_FAILED"));
+      }
+    });
+  }, []);
+
+  // Connect to socket (singleton instance per tab)
   const connect = useCallback(() => {
-    if (socketRef.current?.connected) return;
     if (typeof window === "undefined") return;
+
+    // Prevent repeated connect() calls from thrashing the socket.
+    if (connectInFlightRef.current) return;
 
     const token = localStorage.getItem("token");
     if (!token) {
-      onError?.("No auth token");
+      onErrorRef.current?.("No auth token");
       return;
     }
 
     setConnecting(true);
-    setJoined(false);
-    setJoining(false);
 
-    const baseUrl = getApiBaseUrl();
-    const socket = io(baseUrl, {
-      auth: { token },
-      transports: ["websocket", "polling"],
-      reconnection: true,
-      reconnectionAttempts: 10,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      timeout: 20000,
-    });
+    connectInFlightRef.current = true;
 
-    const joinOrderWithAck = (targetOrderId: string) => {
-      if (!targetOrderId) return;
-      if (!socket.connected) return;
+    const socket = getOrderSocket();
+    socketRef.current = socket;
 
-      // Prevent stale ACKs from old join attempts.
-      const attemptId = ++joinAttemptIdRef.current;
-      setJoining(true);
-      setJoined(false);
+    // Ensure auth token is always current.
+    (socket as any).auth = { token };
 
-      let done = false;
-      const t = window.setTimeout(() => {
-        if (done) return;
-        done = true;
-        if (attemptId !== joinAttemptIdRef.current) return;
-        setJoining(false);
-        setJoined(false);
-        onError?.("JOIN_ACK_TIMEOUT");
-      }, 8000);
-
-      socket.emit("join:order", { orderId: targetOrderId }, (ack: any) => {
-        if (done) return;
-        done = true;
-        window.clearTimeout(t);
-        if (attemptId !== joinAttemptIdRef.current) return;
-
-        if (ack?.ok) {
-          setJoined(true);
-          setJoining(false);
-        } else {
-          setJoined(false);
-          setJoining(false);
-          onError?.(String(ack?.error || "JOIN_FAILED"));
-        }
-      });
-    };
-
-    socket.on("connect", () => {
-      console.log("[Socket] Connected");
+    const active = Boolean((socket as any)?.active);
+    if (socket.connected) {
+      // If already connected, update state immediately.
       setConnected(true);
       setConnecting(false);
-      setJoined(false);
-      setJoining(false);
+      connectInFlightRef.current = false;
+      return;
+    }
 
-      // Rejoin order room if we were in one
-      if (currentOrderIdRef.current) {
-        joinOrderWithAck(currentOrderIdRef.current);
-      }
-    });
+    // If the client is already attempting to connect/reconnect, don't spam connect().
+    if (active) {
+      setConnecting(true);
+      return;
+    }
 
-    socket.on("disconnect", (reason) => {
-      console.log("[Socket] Disconnected:", reason);
-      setConnected(false);
-      setJoined(false);
-      setJoining(false);
-    });
+    socket.connect();
+  }, []);
 
-    socket.on("connect_error", (err) => {
-      console.error("[Socket] Connection error:", err.message);
-      setConnecting(false);
-      setConnected(false);
-      setJoined(false);
-      setJoining(false);
-    });
-
-    socket.on("error", (data) => {
-      console.error("[Socket] Error:", data?.message);
-      onError?.(data?.message || "Socket error");
-    });
-
-    // Message history on join
-    socket.on("messages:history", (data) => {
-      const history = Array.isArray(data?.messages) ? data.messages : [];
-      const sorted = [...history].sort(
-        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      );
-
-      setMessages((prev) => {
-        const optimistic = prev.filter((m) => m.optimistic);
-        const byId = new Map<string, ChatMessage>();
-
-        for (const msg of sorted) {
-          if (msg?._id) byId.set(String(msg._id), { ...msg, optimistic: false });
-        }
-
-        // Keep optimistic messages that haven't been reconciled yet.
-        for (const opt of optimistic) {
-          if (opt?._id && byId.has(String(opt._id))) continue;
-          byId.set(String(opt._id), opt);
-        }
-
-        const next = Array.from(byId.values());
-        next.sort(
-          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        );
-        return next;
-      });
-
-      const nextSeen = new Set<string>(seenIdsRef.current);
-      for (const msg of sorted) {
-        if (msg?._id) nextSeen.add(String(msg._id));
-      }
-      seenIdsRef.current = nextSeen;
-    });
-
-    // New message
-    socket.on("message:new", (msg: ChatMessage) => {
-      const id = String(msg?._id || "");
-      const tempId = msg?.tempId;
-
-      setMessages((prev) => {
-        // Skip if already present by id
-        if (id && prev.some((m) => String(m._id) === id)) return prev;
-
-        // If this is a server-confirmed version of an optimistic message, reconcile it.
-        if (tempId) {
-          const idx = prev.findIndex((m) => m.tempId === tempId || m._id === tempId);
-          if (idx >= 0) {
-            const next = [...prev];
-            next[idx] = {
-              ...next[idx],
-              ...msg,
-              _id: id || next[idx]._id,
-              status: msg.status || "sent",
-              optimistic: false,
-            };
-            next.sort(
-              (a, b) =>
-                new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-            );
-            return next;
-          }
-        }
-
-        const next = [...prev, { ...msg, optimistic: false }];
-        next.sort(
-          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        );
-        return next;
-      });
-
-      if (id) seenIdsRef.current.add(id);
-
-      // Remove from retry queue if present
-      if (tempId) {
-        setRetryQueue((q) => {
-          const updated = q.filter((item) => item.tempId !== tempId);
-          saveRetryQueue(updated);
-          return updated;
-        });
-      }
-    });
-
-    // Message status update
-    socket.on("message:status", (data: { messageIds: string[]; status: MessageStatus }) => {
-      const { messageIds, status } = data;
-      if (!Array.isArray(messageIds) || messageIds.length === 0) return;
-
-      setMessages((prev) =>
-        prev.map((m) => (messageIds.includes(String(m._id)) ? { ...m, status } : m))
-      );
-    });
-
-    // Message send error
-    socket.on("message:error", (data: { tempId?: string; error: string }) => {
-      const { tempId, error } = data;
-      console.error("[Socket] Message error:", error);
-
-      if (tempId) {
-        setMessages((prev) =>
-          prev.map((m) => (m.tempId === tempId ? { ...m, status: "failed" } : m))
-        );
-      }
-
-      onError?.(error);
-    });
-
-    // Typing indicator
-    socket.on("typing:update", (data: TypingState) => {
-      setTypingUsers((prev) => {
-        const exists = prev.find((t) => t.userId === data.userId);
-        if (data.isTyping) {
-          return exists
-            ? prev.map((t) => (t.userId === data.userId ? data : t))
-            : [...prev, data];
-        } else {
-          return prev.filter((t) => t.userId !== data.userId);
-        }
-      });
-    });
-
-    socketRef.current = socket;
-  }, [onError]);
-
-  // Disconnect from socket
+  // Detach listeners + leave room (do NOT hard-disconnect the singleton socket on every unmount)
   const disconnect = useCallback(() => {
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-      socketRef.current = null;
+    const socket = socketRef.current;
+    if (!socket) return;
+    if (currentOrderIdRef.current) {
+      socket.emit("leave:order");
     }
     setConnected(false);
     setConnecting(false);
     setJoined(false);
     setJoining(false);
+    connectInFlightRef.current = false;
+    socketRef.current = null;
   }, []);
 
   // Join order room
   const joinOrder = useCallback((newOrderId: string) => {
+    const prevOrderId = currentOrderIdRef.current;
+    if (
+      prevOrderId &&
+      String(prevOrderId) !== String(newOrderId) &&
+      socketRef.current?.connected
+    ) {
+      // Ensure we don't stay subscribed to the previous room (prevents duplicated events).
+      socketRef.current.emit("leave:order");
+    }
+
     currentOrderIdRef.current = newOrderId;
     seenIdsRef.current.clear();
     setMessages([]);
@@ -330,37 +209,9 @@ export function useChatSocket(options: UseChatSocketOptions) {
     setJoining(false);
 
     if (socketRef.current?.connected) {
-      const socket = socketRef.current;
-      const attemptId = ++joinAttemptIdRef.current;
-      setJoining(true);
-
-      let done = false;
-      const t = window.setTimeout(() => {
-        if (done) return;
-        done = true;
-        if (attemptId !== joinAttemptIdRef.current) return;
-        setJoining(false);
-        setJoined(false);
-        onError?.("JOIN_ACK_TIMEOUT");
-      }, 8000);
-
-      socket.emit("join:order", { orderId: newOrderId }, (ack: any) => {
-        if (done) return;
-        done = true;
-        window.clearTimeout(t);
-        if (attemptId !== joinAttemptIdRef.current) return;
-
-        if (ack?.ok) {
-          setJoined(true);
-          setJoining(false);
-        } else {
-          setJoined(false);
-          setJoining(false);
-          onError?.(String(ack?.error || "JOIN_FAILED"));
-        }
-      });
+      joinOrderWithAck(socketRef.current, newOrderId);
     }
-  }, [onError]);
+  }, [joinOrderWithAck]);
 
   // Leave order room
   const leaveOrder = useCallback(() => {
@@ -438,12 +289,12 @@ export function useChatSocket(options: UseChatSocketOptions) {
               prev.map((m) =>
                 m.tempId === tempId
                   ? {
-                      ...m,
-                      ...serverMsg,
-                      _id: serverId,
-                      status: "sent",
-                      optimistic: false,
-                    }
+                    ...m,
+                    ...serverMsg,
+                    _id: serverId,
+                    status: "sent",
+                    optimistic: false,
+                  }
                   : m
               )
             );
@@ -511,12 +362,12 @@ export function useChatSocket(options: UseChatSocketOptions) {
               prev.map((m) =>
                 m.tempId === tempId
                   ? {
-                      ...m,
-                      ...serverMsg,
-                      _id: serverId,
-                      status: "sent",
-                      optimistic: false,
-                    }
+                    ...m,
+                    ...serverMsg,
+                    _id: serverId,
+                    status: "sent",
+                    optimistic: false,
+                  }
                   : m
               )
             );
@@ -677,19 +528,6 @@ export function useChatSocket(options: UseChatSocketOptions) {
     };
   }, [enabled, orderId, connected]);
 
-  // Connect/disconnect based on enabled flag
-  useEffect(() => {
-    if (enabled) {
-      connect();
-    } else {
-      disconnect();
-    }
-
-    return () => {
-      disconnect();
-    };
-  }, [enabled, connect, disconnect]);
-
   // Join/leave order room when orderId changes
   useEffect(() => {
     if (!orderId) {
@@ -701,6 +539,209 @@ export function useChatSocket(options: UseChatSocketOptions) {
       joinOrder(orderId);
     }
   }, [orderId, connected, joinOrder, leaveOrder]);
+
+  // Bind socket listeners once per enabled session and clean up correctly.
+  useEffect(() => {
+    if (!enabled) {
+      // When disabled, detach state from socket.
+      disconnect();
+      listenersBoundRef.current = false;
+      return;
+    }
+
+    connect();
+
+    const socket = socketRef.current;
+    if (!socket) return;
+
+    if (listenersBoundRef.current) return;
+    listenersBoundRef.current = true;
+
+    const onConnect = () => {
+      setConnected(true);
+      setConnecting(false);
+      setJoined(false);
+      setJoining(false);
+      connectInFlightRef.current = false;
+
+      // Rejoin order room if we were in one
+      if (currentOrderIdRef.current) {
+        joinOrderWithAck(socket, currentOrderIdRef.current);
+      }
+    };
+
+    const onDisconnect = (reason: any) => {
+      setConnected(false);
+      setJoined(false);
+      setJoining(false);
+      // Keep connecting=false so UI doesn't flicker into "connecting" forever
+      setConnecting(false);
+      connectInFlightRef.current = false;
+      if (process.env.NODE_ENV !== "production") {
+        console.log("[Socket] Disconnected:", reason);
+      }
+    };
+
+    const onConnectError = (err: any) => {
+      setConnecting(false);
+      setConnected(false);
+      setJoined(false);
+      setJoining(false);
+      connectInFlightRef.current = false;
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[Socket] Connection error:", err?.message || err);
+      }
+    };
+
+    const onSocketError = (data: any) => {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[Socket] Error:", data?.message || data);
+      }
+      onErrorRef.current?.(data?.message || "Socket error");
+    };
+
+    const onHistory = (data: any) => {
+      const history = Array.isArray(data?.messages) ? data.messages : [];
+      const sorted = [...history].sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+
+      setMessages((prev) => {
+        const optimistic = prev.filter((m) => m.optimistic);
+        const byId = new Map<string, ChatMessage>();
+
+        for (const msg of sorted) {
+          if (msg?._id) byId.set(String(msg._id), { ...msg, optimistic: false });
+        }
+
+        // Keep optimistic messages that haven't been reconciled yet.
+        for (const opt of optimistic) {
+          if (opt?._id && byId.has(String(opt._id))) continue;
+          byId.set(String(opt._id), opt);
+        }
+
+        const next = Array.from(byId.values());
+        next.sort(
+          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+        return next;
+      });
+
+      const nextSeen = new Set<string>(seenIdsRef.current);
+      for (const msg of sorted) {
+        if (msg?._id) nextSeen.add(String(msg._id));
+      }
+      seenIdsRef.current = nextSeen;
+    };
+
+    const onNewMessage = (msg: ChatMessage) => {
+      const id = String((msg as any)?._id || "");
+      const tempId = (msg as any)?.tempId;
+
+      setMessages((prev) => {
+        // Skip if already present by id
+        if (id && prev.some((m) => String(m._id) === id)) return prev;
+
+        // If this is a server-confirmed version of an optimistic message, reconcile it.
+        if (tempId) {
+          const idx = prev.findIndex((m) => m.tempId === tempId || m._id === tempId);
+          if (idx >= 0) {
+            const next = [...prev];
+            next[idx] = {
+              ...next[idx],
+              ...msg,
+              _id: id || next[idx]._id,
+              status: (msg as any).status || "sent",
+              optimistic: false,
+            };
+            next.sort(
+              (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            );
+            return next;
+          }
+        }
+
+        const next = [...prev, { ...msg, optimistic: false } as any];
+        next.sort(
+          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+        return next;
+      });
+
+      if (id) seenIdsRef.current.add(id);
+
+      // Remove from retry queue if present
+      if (tempId) {
+        setRetryQueue((q) => {
+          const updated = q.filter((item) => item.tempId !== tempId);
+          saveRetryQueue(updated);
+          return updated;
+        });
+      }
+    };
+
+    const onStatus = (data: { messageIds: string[]; status: MessageStatus }) => {
+      const { messageIds, status } = data;
+      if (!Array.isArray(messageIds) || messageIds.length === 0) return;
+      setMessages((prev) =>
+        prev.map((m) => (messageIds.includes(String(m._id)) ? { ...m, status } : m))
+      );
+    };
+
+    const onMessageError = (data: { tempId?: string; error: string }) => {
+      const { tempId, error } = data;
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[Socket] Message error:", error);
+      }
+
+      if (tempId) {
+        setMessages((prev) =>
+          prev.map((m) => (m.tempId === tempId ? { ...m, status: "failed" } : m))
+        );
+      }
+
+      onErrorRef.current?.(error);
+    };
+
+    const onTypingUpdate = (data: TypingState) => {
+      setTypingUsers((prev) => {
+        const exists = prev.find((t) => t.userId === data.userId);
+        if (data.isTyping) {
+          return exists
+            ? prev.map((t) => (t.userId === data.userId ? data : t))
+            : [...prev, data];
+        }
+        return prev.filter((t) => t.userId !== data.userId);
+      });
+    };
+
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+    socket.on("connect_error", onConnectError);
+    socket.on("error", onSocketError);
+    socket.on("messages:history", onHistory);
+    socket.on("message:new", onNewMessage);
+    socket.on("message:status", onStatus);
+    socket.on("message:error", onMessageError);
+    socket.on("typing:update", onTypingUpdate);
+
+    return () => {
+      // Leave room, but keep the singleton socket alive.
+      if (currentOrderIdRef.current) socket.emit("leave:order");
+
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+      socket.off("connect_error", onConnectError);
+      socket.off("error", onSocketError);
+      socket.off("messages:history", onHistory);
+      socket.off("message:new", onNewMessage);
+      socket.off("message:status", onStatus);
+      socket.off("message:error", onMessageError);
+      socket.off("typing:update", onTypingUpdate);
+
+      listenersBoundRef.current = false;
+    };
+  }, [enabled, connect, disconnect, joinOrderWithAck]);
 
   return {
     connected,

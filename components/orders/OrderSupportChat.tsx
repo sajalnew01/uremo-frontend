@@ -159,9 +159,9 @@ const MessageList = memo(function MessageList(props: {
     <div
       ref={listRef}
       onScroll={handleScroll}
-      className="flex-1 min-h-0 overflow-y-auto overscroll-contain rounded-xl border border-slate-700/50 bg-gradient-to-b from-slate-900/80 via-slate-900/60 to-slate-800/40 p-4"
+      className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3"
     >
-      <div className="space-y-4">
+      <div className="space-y-3">
         {messages.map((m, index) => {
           const role = getSenderRole(m);
           const isUser = role === "user";
@@ -249,10 +249,17 @@ export default function OrderSupportChat(props: Props) {
     inputRefExternal,
   } = props;
 
-  const safeQuickReplies = useMemo(
-    () => uniqStrings(Array.isArray(quickReplies) ? quickReplies : []),
-    [quickReplies]
-  );
+  const lastQuickRepliesJsonRef = useRef<string>("[]");
+  const lastQuickRepliesRef = useRef<string[]>([]);
+  const safeQuickReplies = useMemo(() => {
+    const next = uniqStrings(Array.isArray(quickReplies) ? quickReplies : []);
+    const json = JSON.stringify(next);
+    if (json === lastQuickRepliesJsonRef.current)
+      return lastQuickRepliesRef.current;
+    lastQuickRepliesJsonRef.current = json;
+    lastQuickRepliesRef.current = next;
+    return next;
+  }, [quickReplies]);
 
   const [text, setText] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -311,42 +318,39 @@ export default function OrderSupportChat(props: Props) {
   }, [userNearBottom, text]);
 
   return (
-    <div className="relative isolate [contain:layout_paint]">
-      {/* Connection status: small, top-right, never blocks UI */}
-      <div className="absolute right-0 top-0">
-        <div
-          className={`text-[11px] px-2 py-1 rounded-full border ${
-            connection === "open"
-              ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-200"
+    <div className="[contain:layout_paint]">
+      <div className="mt-4 flex flex-col h-[520px] sm:h-[600px] min-h-0 rounded-xl border border-slate-700/50 overflow-hidden bg-gradient-to-b from-slate-950/70 via-slate-900/50 to-slate-900/30">
+        {/* Header */}
+        <div className="flex-shrink-0 p-3 border-b border-slate-700/50 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="font-semibold text-base sm:text-lg truncate">
+              {ui.chatTitle}
+            </h3>
+            <p className="text-xs text-[#9CA3AF] mt-0.5 truncate">
+              {ui.chatSubtitle}
+            </p>
+          </div>
+
+          <div
+            className={`text-xs px-2 py-1 rounded-full border shrink-0 ${
+              connection === "open"
+                ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-200"
+                : connection === "connecting"
+                ? "border-blue-500/25 bg-blue-500/10 text-blue-200"
+                : "border-white/10 bg-white/5 text-[#9CA3AF]"
+            }`}
+          >
+            {connection === "open"
+              ? "● Connected"
               : connection === "connecting"
-              ? "border-blue-500/25 bg-blue-500/10 text-blue-200"
-              : "border-white/10 bg-white/5 text-[#9CA3AF]"
-          }`}
-        >
-          {connection === "open"
-            ? "🟢 Live"
-            : connection === "connecting"
-            ? "Connecting…"
-            : "Offline"}
+              ? "○ Connecting…"
+              : "○ Offline"}
+          </div>
         </div>
-      </div>
 
-      <div>
-        <h3 className="font-semibold text-lg">{ui.chatTitle}</h3>
-        <p className="text-xs text-[#9CA3AF] mt-1">{ui.chatSubtitle}</p>
-      </div>
-
-      {typingUsers.length > 0 && (
-        <div className="mt-2 text-xs text-slate-400 animate-pulse">
-          {typingUsers.map((t) => t.role).join(", ")} typing...
-        </div>
-      )}
-
-      {/* Fixed-height, flex chat layout (mobile-first).
-          Use `dvh` so the layout responds to mobile keyboard resizing. */}
-      <div className="mt-4 flex flex-col min-h-0 overflow-hidden h-[70vh] h-[70dvh] max-h-[520px]">
+        {/* Messages */}
         {messages.length === 0 ? (
-          <div className="flex-1 min-h-0 rounded-xl border border-slate-700/50 bg-gradient-to-b from-slate-900/80 via-slate-900/60 to-slate-800/40 p-4 flex items-center justify-center">
+          <div className="flex-1 min-h-0 overflow-y-auto p-3 flex items-center justify-center">
             <div className="text-center max-w-sm">
               <div className="mx-auto w-14 h-14 rounded-2xl border border-blue-500/20 bg-blue-500/10 flex items-center justify-center text-2xl text-blue-300">
                 💬
@@ -357,23 +361,6 @@ export default function OrderSupportChat(props: Props) {
               <p className="mt-1 text-xs text-slate-400">
                 {ui.emptyChatSubtitle}
               </p>
-
-              {showQuickReplies && (
-                <div className="mt-5 shrink-0 overflow-x-auto">
-                  <div className="flex gap-2 w-max mx-auto">
-                    {safeQuickReplies.map((q) => (
-                      <button
-                        key={q}
-                        type="button"
-                        onClick={() => handleQuickReply(q)}
-                        className="shrink-0 px-3 py-1.5 rounded-full text-xs border border-blue-500/20 bg-blue-500/10 text-blue-200 hover:bg-blue-500/20 transition"
-                      >
-                        {q}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         ) : (
@@ -387,9 +374,16 @@ export default function OrderSupportChat(props: Props) {
           />
         )}
 
+        {/* Typing indicator */}
+        {typingUsers.length > 0 && (
+          <div className="flex-shrink-0 px-3 pb-2 text-xs text-slate-400 animate-pulse">
+            {typingUsers.map((t) => t.role).join(", ")} typing...
+          </div>
+        )}
+
         {/* Quick replies (single place, horizontal scroll) */}
-        {messages.length > 0 && showQuickReplies && (
-          <div className="mt-3 shrink-0 overflow-x-auto">
+        {showQuickReplies && (
+          <div className="flex-shrink-0 border-t border-slate-700/50 p-2 overflow-x-auto">
             <div className="flex gap-2 w-max">
               {safeQuickReplies.map((q) => (
                 <button
@@ -405,8 +399,8 @@ export default function OrderSupportChat(props: Props) {
           </div>
         )}
 
-        {/* Input bar (separate from scroll area; sticky-ish UX) */}
-        <div className="mt-3 shrink-0">
+        {/* Input pinned */}
+        <div className="flex-shrink-0 border-t border-slate-700/50 p-2">
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="flex-1 flex gap-2">
               <button
@@ -463,7 +457,7 @@ export default function OrderSupportChat(props: Props) {
             </div>
           </div>
 
-          <p className="mt-3 text-xs text-[#9CA3AF]">{ui.supportRepliesHint}</p>
+          <p className="mt-2 text-xs text-[#9CA3AF]">{ui.supportRepliesHint}</p>
         </div>
       </div>
     </div>
