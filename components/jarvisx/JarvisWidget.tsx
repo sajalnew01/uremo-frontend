@@ -18,6 +18,14 @@ type JarvisReply = {
   intent?: string;
   quickReplies?: string[];
   didCreateRequest?: boolean;
+  customRequestDraft?: {
+    sessionId?: string;
+    platform?: string;
+    requestType?: "KYC" | "ACCOUNT" | "OTHER";
+    quantity?: number;
+    unitPrice?: number;
+    notes?: string;
+  };
 };
 
 function scrubAdminGreetingForPublicWidget(text: string) {
@@ -70,6 +78,50 @@ function normalizeText(s: string) {
     .replace(/[^a-z0-9]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function parseQtyFromText(text: string): number | null {
+  const t = normalizeText(text);
+  if (!t) return null;
+  const m = t.match(
+    /\b(?:x\s*)?(\d{1,4})\s*(?:accounts?|account|kyc|pcs?|pieces?)\b/
+  );
+  if (m?.[1]) {
+    const n = Number(m[1]);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+  const m2 = t.match(/\bqty\s*[:=]?\s*(\d{1,4})\b/);
+  if (m2?.[1]) {
+    const n = Number(m2[1]);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+  return null;
+}
+
+function parseUnitPriceFromText(text: string): number | null {
+  const raw = String(text || "");
+  const m = raw.match(/\$\s*(\d{1,6}(?:\.\d{1,2})?)/);
+  if (m?.[1]) {
+    const n = Number(m[1]);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  }
+  const m2 = raw.match(/\b(\d{1,6}(?:\.\d{1,2})?)\s*\$\b/);
+  if (m2?.[1]) {
+    const n = Number(m2[1]);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  }
+  return null;
+}
+
+function parseRequestTypeFromText(
+  text: string
+): "KYC" | "ACCOUNT" | "OTHER" | null {
+  const t = normalizeText(text);
+  if (!t) return null;
+  if (t.includes("kyc")) return "KYC";
+  if (t.includes("ready") || t.includes("account") || t.includes("accounts"))
+    return "ACCOUNT";
+  return null;
 }
 
 function looksLikeServiceRequest(text: string) {
@@ -184,6 +236,19 @@ export default function JarvisWidget() {
     sent?: boolean;
   } | null>(null);
 
+  const [customRequestDraft, setCustomRequestDraft] = useState<{
+    sessionId?: string;
+    platform?: string;
+    requestType?: "KYC" | "ACCOUNT" | "OTHER";
+    quantity?: number;
+    unitPrice?: number;
+    notes?: string;
+    submitted?: boolean;
+  } | null>(null);
+
+  const [customRequestSubmitting, setCustomRequestSubmitting] = useState(false);
+  const customRequestCooldownUntilRef = useRef(0);
+
   const listRef = useRef<HTMLDivElement | null>(null);
 
   const scrollToBottom = () => {
@@ -239,6 +304,67 @@ export default function JarvisWidget() {
     }
   };
 
+  const submitCustomRequestToAdmin = async (draft: {
+    sessionId?: string;
+    platform?: string;
+    requestType?: "KYC" | "ACCOUNT" | "OTHER";
+    quantity?: number;
+    unitPrice?: number;
+    notes?: string;
+  }) => {
+    const now = Date.now();
+    if (customRequestSubmitting) return;
+    if (now < customRequestCooldownUntilRef.current) return;
+
+    const platform = String(draft.platform || "").trim();
+    if (!platform) return;
+
+    setCustomRequestSubmitting(true);
+    try {
+      const res = await apiRequest<{
+        ok?: boolean;
+        message?: string;
+        requestId?: string;
+      }>("/api/jarvisx/custom-request", "POST", {
+        sessionId: String(draft.sessionId || ""),
+        platform,
+        requestType: draft.requestType || "OTHER",
+        quantity: draft.quantity || 1,
+        unitPrice: typeof draft.unitPrice === "number" ? draft.unitPrice : null,
+        notes: String(draft.notes || "").trim(),
+      });
+
+      const ok = !!res?.ok;
+      const msg =
+        String(res?.message || "").trim() ||
+        (ok ? "Request sent to admin ✅" : "Unable to send request.");
+
+      setMessages((prev) => [
+        ...prev,
+        { id: uuid(), role: "assistant", text: msg },
+      ]);
+
+      if (ok) {
+        setCustomRequestDraft((prev) =>
+          prev ? { ...prev, submitted: true } : prev
+        );
+        customRequestCooldownUntilRef.current = Date.now() + 2500;
+      }
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: uuid(),
+          role: "assistant",
+          text: "Couldn’t submit that right now. Please try again.",
+        },
+      ]);
+      customRequestCooldownUntilRef.current = Date.now() + 2500;
+    } finally {
+      setCustomRequestSubmitting(false);
+    }
+  };
+
   useEffect(() => {
     if (!open) return;
     if (context) return;
@@ -271,6 +397,73 @@ export default function JarvisWidget() {
     lastSendAtRef.current = now;
 
     setInput("");
+
+    // Minimal custom request flow (local draft collection; avoids backend template loops).
+    if (customRequestDraft && !customRequestDraft.submitted) {
+      const t = normalizeText(text);
+      if (
+        t === "cancel" ||
+        t === "stop" ||
+        t === "never mind" ||
+        t === "nevermind"
+      ) {
+        setCustomRequestDraft(null);
+        setMessages((prev) => [
+          ...prev,
+          { id: uuid(), role: "user", text },
+          {
+            id: uuid(),
+            role: "assistant",
+            text: "Okay — cancelled. What else can I help you with?",
+          },
+        ]);
+        return;
+      }
+
+      const userMsg: ChatMessage = { id: uuid(), role: "user", text };
+      setMessages((prev) => [...prev, userMsg]);
+
+      const nextDraft = (() => {
+        const cur = customRequestDraft || {};
+        const next: any = { ...cur };
+
+        const type = parseRequestTypeFromText(text);
+        if (!next.requestType && type) next.requestType = type;
+
+        const qty = parseQtyFromText(text);
+        if (!next.quantity && qty) next.quantity = qty;
+
+        const price = parseUnitPriceFromText(text);
+        if (next.unitPrice == null && price != null) next.unitPrice = price;
+
+        const notes = String(next.notes || "").trim();
+        const add = String(text || "").trim();
+        next.notes = notes ? `${notes}\n${add}` : add;
+        return next;
+      })();
+
+      setCustomRequestDraft(nextDraft);
+
+      let prompt = "";
+      if (!nextDraft.requestType) {
+        prompt = "Is this for KYC or a ready account?";
+      } else if (!nextDraft.quantity) {
+        prompt = "How many do you need?";
+      } else if (nextDraft.unitPrice == null) {
+        prompt = "What’s your target price per account? (e.g., $8)";
+      } else {
+        prompt = "Perfect ✅ Tap ‘Create request to Admin’ to send it.";
+      }
+
+      if (prompt) {
+        setMessages((prev) => [
+          ...prev,
+          { id: uuid(), role: "assistant", text: prompt },
+        ]);
+      }
+
+      return;
+    }
 
     const userMsg: ChatMessage = { id: uuid(), role: "user", text };
     setMessages((prev) => [...prev, userMsg]);
@@ -359,6 +552,22 @@ export default function JarvisWidget() {
         );
         return [...cleared, assistantMsg];
       });
+
+      // If backend started a custom request flow, store the draft and show CTA.
+      if (
+        res?.intent === "SERVICE_PURCHASE_REQUEST" &&
+        res?.customRequestDraft
+      ) {
+        setCustomRequestDraft({
+          sessionId: res.customRequestDraft.sessionId,
+          platform: res.customRequestDraft.platform,
+          requestType: res.customRequestDraft.requestType,
+          quantity: res.customRequestDraft.quantity,
+          unitPrice: res.customRequestDraft.unitPrice,
+          notes: "",
+          submitted: false,
+        });
+      }
 
       // If backend says ok:false, apply a brief cooldown to avoid rapid retries.
       if (res?.ok === false) {
@@ -510,6 +719,11 @@ export default function JarvisWidget() {
                 <div className="mt-2 flex items-center gap-2">
                   <button
                     type="button"
+                    style={{
+                      pointerEvents: "auto",
+                      position: "relative",
+                      zIndex: 9999,
+                    }}
                     className="text-xs rounded-full border border-white/10 bg-white/10 hover:bg-white/15 px-3 py-1 text-white transition"
                     onClick={() =>
                       requestServiceToAdmin({
@@ -523,6 +737,37 @@ export default function JarvisWidget() {
                   </button>
                   <span className="text-[11px] text-slate-500">
                     {customServiceDraft.sent ? "Captured ✅" : "Capturing…"}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {customRequestDraft && !customRequestDraft.submitted && (
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                <p className="text-xs text-slate-300">
+                  Custom request to admin is ready when you are.
+                </p>
+                <div className="mt-2 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      submitCustomRequestToAdmin(customRequestDraft)
+                    }
+                    disabled={
+                      customRequestSubmitting ||
+                      !String(customRequestDraft.platform || "").trim()
+                    }
+                    style={{
+                      pointerEvents: "auto",
+                      position: "relative",
+                      zIndex: 9999,
+                    }}
+                    className="text-xs rounded-full border border-white/10 bg-white/10 hover:bg-white/15 px-3 py-1 text-white transition disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    Create request to Admin
+                  </button>
+                  <span className="text-[11px] text-slate-500">
+                    {customRequestSubmitting ? "Sending…" : ""}
                   </span>
                 </div>
               </div>
