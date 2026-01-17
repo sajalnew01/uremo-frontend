@@ -45,7 +45,7 @@ export async function apiRequest<T = any>(
   isFormData: boolean = false,
   options?: { timeoutMs?: number }
 ): Promise<T> {
-  const baseUrl = getApiBaseUrl();
+  const baseUrl = endpoint.startsWith("/api/jarvisx/") ? "" : getApiBaseUrl();
 
   // baseUrl is always non-empty due to fallback.
 

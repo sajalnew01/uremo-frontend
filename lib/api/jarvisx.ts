@@ -39,14 +39,24 @@ function toErrorMessage(error: unknown): string {
 export const jarvisxApi = {
   sendMessage: async (data: JarvisXChatRequest): Promise<JarvisXChatResponse> => {
     try {
-      const res = await apiRequest<JarvisXChatResponse>(
-        "/api/jarvisx/chat",
-        "POST",
-        data,
-        data.mode === "admin",
-        false,
-        { timeoutMs: 15_000 }
-      );
+      const call = () =>
+        apiRequest<JarvisXChatResponse>(
+          "/api/jarvisx/chat",
+          "POST",
+          data,
+          data.mode === "admin",
+          false,
+          { timeoutMs: 20_000 }
+        );
+
+      let res: JarvisXChatResponse;
+      try {
+        res = await call();
+      } catch {
+        // one retry only
+        await new Promise((r) => setTimeout(r, 350));
+        res = await call();
+      }
 
       const reply = String(res?.reply || res?.message || "").trim();
       return {

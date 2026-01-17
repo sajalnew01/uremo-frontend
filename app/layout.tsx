@@ -1,5 +1,39 @@
-// Other content remains the same
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+
+import "./globals.css";
+
+import { ToastProvider } from "@/hooks/useToast";
+import ToastViewport from "@/components/ToastViewport";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 const FAVICON_PATH = "/brand/favicon.png?v=2";
 
-// Rest of the file content
+export const metadata: Metadata = {
+  title: {
+    default: "UREMO",
+    template: "%s | UREMO",
+  },
+  description: "UREMO platform",
+  icons: {
+    icon: FAVICON_PATH,
+    shortcut: FAVICON_PATH,
+    apple: FAVICON_PATH,
+  },
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
+  return (
+    <html lang="en" className={inter.variable}>
+      <body>
+        <ToastProvider>
+          {children}
+          <ToastViewport />
+        </ToastProvider>
+      </body>
+    </html>
+  );
+}
