@@ -177,7 +177,13 @@ export default function AdminJarvisXWritePage() {
         proposalId: string;
         actions: ActionItem[];
         previewText: string;
+        fallback?: boolean;
       }>("/api/jarvisx/write/propose", "POST", { command: text }, true);
+
+      // PATCH_13: Handle fallback gracefully (AI not configured)
+      if (res.fallback) {
+        toast("AI not configured. GROQ_API_KEY required.", "error");
+      }
 
       const proposal: Proposal = {
         _id: res.proposalId,
@@ -190,7 +196,9 @@ export default function AdminJarvisXWritePage() {
       };
 
       setActiveProposal(proposal);
-      toast("Proposal generated.", "success");
+      if (!res.fallback) {
+        toast("Proposal generated.", "success");
+      }
       loadHistory();
     } catch (err) {
       const message = toErrorMessage(err) || "Failed to generate proposal.";

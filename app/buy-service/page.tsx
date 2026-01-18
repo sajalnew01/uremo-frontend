@@ -40,9 +40,13 @@ export default function BuyServicePage() {
     (settings?.services?.trustBlockText || "").trim() ||
     DEFAULT_PUBLIC_SITE_SETTINGS.services.trustBlockText;
 
-  // Do not gate CTA on `authReady`; otherwise users can click during hydration
-  // and get incorrectly sent to signup/login even with a valid token.
-  const getStartedHref = isAuthenticated ? "/dashboard" : "/signup";
+  // PATCH_13: Wait for auth to be ready before determining href.
+  // If not ready, default to dashboard (safer for logged-in users).
+  const getStartedHref = authReady
+    ? isAuthenticated
+      ? "/dashboard"
+      : "/signup"
+    : "/dashboard";
 
   useEffect(() => {
     let mounted = true;
@@ -54,9 +58,15 @@ export default function BuyServicePage() {
           cache: "no-store",
           credentials: "include",
         });
-        const data = await res.json().catch(() => []);
+        const data = await res.json().catch(() => ({ services: [] }));
         if (!mounted) return;
-        setServices(Array.isArray(data) ? data : []);
+        // PATCH_13: Handle both {services: [...]} and [...] response formats
+        const servicesList = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.services)
+            ? data.services
+            : [];
+        setServices(servicesList);
       } catch {
         if (!mounted) return;
         setServices([]);
