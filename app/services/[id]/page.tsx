@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiRequest } from "@/lib/api";
@@ -15,6 +15,7 @@ export default function ServiceDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
   const { toast } = useToast();
+  const lastAuthToastAtRef = useRef(0);
   const { data: settings } = useSiteSettings();
   const copy =
     settings?.services?.details ||
@@ -57,12 +58,33 @@ export default function ServiceDetailsPage() {
   }, [id]);
 
   const buyService = async () => {
+    // PATCH_12: Hard redirect if not logged in, with next param.
+    // This avoids endless "Authentication required" toasts.
+    try {
+      const token =
+        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      if (!token) {
+        const next =
+          typeof window !== "undefined" && window.location?.pathname
+            ? window.location.pathname
+            : `/services/${String(id || "")}`;
+        if (typeof window !== "undefined") {
+          window.location.href = `/login?next=${encodeURIComponent(next)}`;
+        } else {
+          router.push("/login");
+        }
+        return;
+      }
+    } catch {
+      // ignore
+    }
+
     try {
       const res = await apiRequest(
         "/api/orders",
         "POST",
         { serviceId: service._id },
-        true
+        true,
       );
       const orderId = res?.orderId;
       if (!orderId) throw new Error("Failed to create order");
@@ -70,10 +92,31 @@ export default function ServiceDetailsPage() {
       toast("Order reserved. Complete payment to confirm.", "success");
       router.push(`/payment/${orderId}`);
     } catch (e: any) {
-      toast(e?.message || "Login required", "error");
-      if ((e?.message || "").toLowerCase().includes("login")) {
-        router.push("/login");
+      const msg = String(e?.message || "").trim();
+      const isAuthError =
+        (msg && msg.toLowerCase().includes("authentication required")) ||
+        (msg && msg.toLowerCase().includes("unauthorized"));
+
+      if (isAuthError) {
+        const now = Date.now();
+        if (now - lastAuthToastAtRef.current >= 2000) {
+          lastAuthToastAtRef.current = now;
+          toast("Please login to continue.", "error");
+        }
+
+        const next =
+          typeof window !== "undefined" && window.location?.pathname
+            ? window.location.pathname
+            : `/services/${String(id || "")}`;
+        if (typeof window !== "undefined") {
+          window.location.href = `/login?next=${encodeURIComponent(next)}`;
+        } else {
+          router.push("/login");
+        }
+        return;
       }
+
+      toast(msg || "Login required", "error");
     }
   };
 
@@ -136,7 +179,7 @@ export default function ServiceDetailsPage() {
           <img
             src={withCacheBust(
               service.imageUrl || service.images?.[0],
-              service.updatedAt || service._id
+              service.updatedAt || service._id,
             )}
             alt={service.title}
             className="h-80 w-full object-cover"

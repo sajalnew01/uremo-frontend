@@ -44,9 +44,12 @@ export default function BuyServicePage() {
     const load = async () => {
       try {
         const base = getApiBaseUrl();
-        const res = await fetch(`${base}/api/services`, {
+        const res = await fetch(`${base}/api/services?status=active`, {
           cache: "no-store",
           credentials: "include",
+          headers: {
+            "Cache-Control": "no-cache",
+          },
         });
         const data = await res.json().catch(() => []);
         if (!mounted) return;
@@ -82,7 +85,7 @@ export default function BuyServicePage() {
     return services
       .filter((s) => (activeOnly ? s.active !== false : true))
       .filter((s) =>
-        category === "all" ? true : String(s.category) === category
+        category === "all" ? true : String(s.category) === category,
       )
       .filter((s) => {
         if (!q) return true;
@@ -199,7 +202,7 @@ export default function BuyServicePage() {
                       <img
                         src={withCacheBust(
                           s.imageUrl || s.images?.[0],
-                          s.updatedAt || s._id
+                          s.updatedAt || s._id,
                         )}
                         alt={s.title}
                         className="h-full w-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300"
