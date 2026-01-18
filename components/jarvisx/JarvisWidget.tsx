@@ -615,7 +615,7 @@ export default function JarvisWidget() {
   if (shouldHide) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-[9999]">
+    <div className="fixed bottom-5 right-5 z-[99999] pointer-events-auto">
       {/* Bubble */}
       {!open && (
         <button

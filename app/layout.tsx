@@ -5,6 +5,8 @@ import "./globals.css";
 
 import { ToastProvider } from "@/hooks/useToast";
 import ToastViewport from "@/components/ToastViewport";
+import Navbar from "@/components/Navbar";
+import JarvisWidget from "@/components/jarvisx/JarvisWidget";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -30,7 +32,9 @@ export default function RootLayout({
     <html lang="en" className={inter.variable}>
       <body>
         <ToastProvider>
+          <Navbar />
           {children}
+          <JarvisWidget />
           <ToastViewport />
         </ToastProvider>
       </body>

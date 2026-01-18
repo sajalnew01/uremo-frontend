@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { apiRequest } from "@/lib/api";
+import { getApiBaseUrl } from "@/lib/api";
 import Link from "next/link";
 import { withCacheBust } from "@/lib/cacheBust";
 import {
@@ -41,21 +41,30 @@ export default function BuyServicePage() {
   useEffect(() => {
     let mounted = true;
     setLoading(true);
-    apiRequest<Service[]>("/api/services")
-      .then((data) => {
+    const load = async () => {
+      try {
+        const base = getApiBaseUrl();
+        const res = await fetch(`${base}/api/services`, {
+          cache: "no-store",
+          credentials: "include",
+        });
+        const data = await res.json().catch(() => []);
         if (!mounted) return;
         setServices(Array.isArray(data) ? data : []);
-      })
-      .catch(() => {
+      } catch {
         if (!mounted) return;
         setServices([]);
-      })
-      .finally(() => {
+      } finally {
         if (!mounted) return;
         setLoading(false);
-      });
+      }
+    };
+
+    load();
+    const id = window.setInterval(load, 30_000);
 
     return () => {
+      window.clearInterval(id);
       mounted = false;
     };
   }, []);
