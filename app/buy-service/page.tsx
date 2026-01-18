@@ -40,8 +40,9 @@ export default function BuyServicePage() {
     (settings?.services?.trustBlockText || "").trim() ||
     DEFAULT_PUBLIC_SITE_SETTINGS.services.trustBlockText;
 
-  const getStartedHref =
-    authReady && isAuthenticated ? "/dashboard" : "/signup";
+  // Do not gate CTA on `authReady`; otherwise users can click during hydration
+  // and get incorrectly sent to signup/login even with a valid token.
+  const getStartedHref = isAuthenticated ? "/dashboard" : "/signup";
 
   useEffect(() => {
     let mounted = true;
@@ -52,9 +53,6 @@ export default function BuyServicePage() {
         const res = await fetch(`${base}/api/services?status=active`, {
           cache: "no-store",
           credentials: "include",
-          headers: {
-            "Cache-Control": "no-cache",
-          },
         });
         const data = await res.json().catch(() => []);
         if (!mounted) return;
