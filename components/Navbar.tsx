@@ -56,7 +56,7 @@ export default function Navbar() {
     { href: "/admin/orders", label: "Orders", icon: "📦" },
     { href: "/admin/service-requests", label: "Service Requests", icon: "🧾" },
     { href: "/admin/payments", label: "Payments", icon: "💳" },
-    { href: "/admin/work-applications", label: "Applications", icon: "📝" },
+    { href: "/admin/applications", label: "Applications", icon: "📝" },
     { href: "/admin/work-positions", label: "Work Positions", icon: "👥" },
     { href: "/admin/settings", label: "CMS Settings", icon: "⚙️" },
   ];

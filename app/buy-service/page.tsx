@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getApiBaseUrl } from "@/lib/api";
 import Link from "next/link";
 import { withCacheBust } from "@/lib/cacheBust";
+import { useAuth } from "@/hooks/useAuth";
 import {
   DEFAULT_PUBLIC_SITE_SETTINGS,
   useSiteSettings,
@@ -26,6 +27,7 @@ type Service = {
 
 export default function BuyServicePage() {
   const { data: settings } = useSiteSettings();
+  const { ready: authReady, isAuthenticated } = useAuth();
   const servicesCopy =
     settings?.services?.list || DEFAULT_PUBLIC_SITE_SETTINGS.services.list;
   const [services, setServices] = useState<Service[]>([]);
@@ -37,6 +39,9 @@ export default function BuyServicePage() {
   const introText =
     (settings?.services?.trustBlockText || "").trim() ||
     DEFAULT_PUBLIC_SITE_SETTINGS.services.trustBlockText;
+
+  const getStartedHref =
+    authReady && isAuthenticated ? "/dashboard" : "/signup";
 
   useEffect(() => {
     let mounted = true;
@@ -64,7 +69,7 @@ export default function BuyServicePage() {
     };
 
     load();
-    const id = window.setInterval(load, 30_000);
+    const id = window.setInterval(load, 5_000);
 
     return () => {
       window.clearInterval(id);
@@ -182,7 +187,10 @@ export default function BuyServicePage() {
             >
               {servicesCopy.resetFiltersText}
             </button>
-            <Link href="/signup" className="btn-primary w-full sm:w-auto">
+            <Link
+              href={getStartedHref}
+              className="btn-primary w-full sm:w-auto"
+            >
               {servicesCopy.getStartedText}
             </Link>
           </div>

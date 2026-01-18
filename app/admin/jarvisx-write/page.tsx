@@ -70,7 +70,7 @@ function isLegacyPreGroqProposal(p: Proposal): boolean {
 
 function shouldHideLegacyArtifactsFromHistory(p: Proposal): boolean {
   const haystack = `${String(p.rawAdminCommand || "")}\n${String(
-    p.previewText || ""
+    p.previewText || "",
   )}`.toLowerCase();
 
   return (
@@ -120,7 +120,7 @@ export default function AdminJarvisXWritePage() {
         "/api/jarvisx/health-report",
         "GET",
         null,
-        true
+        true,
       );
       setHealth(data);
     } catch {
@@ -135,10 +135,10 @@ export default function AdminJarvisXWritePage() {
         "/api/jarvisx/write/proposals?limit=10",
         "GET",
         null,
-        true
+        true,
       );
       const cleaned = (Array.isArray(list) ? list : []).filter(
-        (p) => !shouldHideLegacyArtifactsFromHistory(p)
+        (p) => !shouldHideLegacyArtifactsFromHistory(p),
       );
       setHistory(cleaned);
     } catch {
@@ -192,8 +192,10 @@ export default function AdminJarvisXWritePage() {
       setActiveProposal(proposal);
       toast("Proposal generated.", "success");
       loadHistory();
-    } catch {
-      toast("Failed to generate proposal.", "error");
+    } catch (err) {
+      const message = toErrorMessage(err) || "Failed to generate proposal.";
+      console.error("[JARVISX_WRITE_PROPOSE_UI_ERROR]", err);
+      toast(message, "error");
     } finally {
       setLoadingPropose(false);
     }
@@ -209,7 +211,7 @@ export default function AdminJarvisXWritePage() {
         `/api/jarvisx/write/proposals/${activeProposal._id}/approve`,
         "POST",
         {},
-        true
+        true,
       );
 
       if (updated?.ok === false && updated?.action === "EDIT_REQUIRED") {
@@ -219,7 +221,7 @@ export default function AdminJarvisXWritePage() {
         setExecutionError(
           missing
             ? `Edit required. Missing fields: ${missing}`
-            : "Edit required. Missing required fields."
+            : "Edit required. Missing required fields.",
         );
         toast("Edit required before execution.", "error");
         return;
@@ -249,7 +251,7 @@ export default function AdminJarvisXWritePage() {
         `/api/jarvisx/write/proposals/${activeProposal._id}/reject`,
         "POST",
         { reason: "Rejected by admin" },
-        true
+        true,
       );
       setActiveProposal(updated);
       toast("Proposal rejected.", "success");
@@ -267,7 +269,7 @@ export default function AdminJarvisXWritePage() {
         `/api/jarvisx/write/proposals/${id}`,
         "GET",
         null,
-        true
+        true,
       );
       setDetailsProposal(doc);
     } catch {
@@ -353,7 +355,7 @@ export default function AdminJarvisXWritePage() {
             <div className="flex items-center justify-between gap-3">
               <span
                 className={`inline-flex items-center px-3 py-1 rounded-full border text-xs ${statusPill(
-                  activeProposal.status
+                  activeProposal.status,
                 )}`}
               >
                 {activeProposal.status.toUpperCase()}
@@ -485,7 +487,7 @@ export default function AdminJarvisXWritePage() {
                   <div className="flex items-center gap-2">
                     <span
                       className={`inline-flex items-center px-3 py-1 rounded-full border text-xs ${statusPill(
-                        p.status
+                        p.status,
                       )}`}
                     >
                       {p.status.toUpperCase()}
@@ -534,7 +536,7 @@ export default function AdminJarvisXWritePage() {
                   <div className="flex items-center gap-2">
                     <span
                       className={`inline-flex items-center px-3 py-1 rounded-full border text-xs ${statusPill(
-                        detailsProposal.status
+                        detailsProposal.status,
                       )}`}
                     >
                       {detailsProposal.status.toUpperCase()}
