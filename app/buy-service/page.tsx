@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { getApiBaseUrl } from "@/lib/api";
 import Link from "next/link";
 import { withCacheBust } from "@/lib/cacheBust";
@@ -9,6 +9,7 @@ import {
   DEFAULT_PUBLIC_SITE_SETTINGS,
   useSiteSettings,
 } from "@/hooks/useSiteSettings";
+import ServiceFilters from "./components/ServiceFilters";
 
 type Service = {
   _id: string;
@@ -16,6 +17,8 @@ type Service = {
   description?: string;
   shortDescription?: string;
   category?: string;
+  serviceType?: string;
+  countries?: string[];
   deliveryType?: string;
   price: number;
   currency?: string;
@@ -23,6 +26,14 @@ type Service = {
   imageUrl?: string;
   updatedAt?: string;
   active?: boolean;
+  status?: string;
+};
+
+type FiltersState = {
+  category: string;
+  country: string;
+  serviceType: string;
+  sort: string;
 };
 
 export default function BuyServicePage() {
@@ -33,81 +44,101 @@ export default function BuyServicePage() {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState<string>("all");
-  const [activeOnly, setActiveOnly] = useState(true);
+
+  // PATCH_15: Vision-aligned filters
+  const [filters, setFilters] = useState<FiltersState>({
+    category: "all",
+    country: "all",
+    serviceType: "all",
+    sort: "createdAt",
+  });
+
+  // PATCH_15: Available filter options from API
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+  const [availableCountries, setAvailableCountries] = useState<string[]>([]);
+  const [availableServiceTypes, setAvailableServiceTypes] = useState<string[]>(
+    [],
+  );
 
   const introText =
     (settings?.services?.trustBlockText || "").trim() ||
     DEFAULT_PUBLIC_SITE_SETTINGS.services.trustBlockText;
 
-  // PATCH_13: Wait for auth to be ready before determining href.
-  // If not ready, default to dashboard (safer for logged-in users).
+  // PATCH_15: Wait for auth to be ready before determining href.
+  // If authenticated, go to buy-service (stay here). If not, go to signup.
   const getStartedHref = authReady
     ? isAuthenticated
-      ? "/dashboard"
+      ? "/buy-service"
       : "/signup"
-    : "/dashboard";
+    : "/buy-service";
+
+  // PATCH_15: Fetch services with filters from MongoDB
+  const loadServices = useCallback(async () => {
+    setLoading(true);
+    try {
+      const base = getApiBaseUrl();
+      const params = new URLSearchParams({
+        status: "active",
+        limit: "100",
+        category: filters.category,
+        country: filters.country,
+        serviceType: filters.serviceType,
+        sort: filters.sort,
+      });
+
+      const res = await fetch(`${base}/api/services?${params.toString()}`, {
+        cache: "no-store",
+        credentials: "include",
+      });
+      const data = await res
+        .json()
+        .catch(() => ({ services: [], filters: {} }));
+
+      // Handle response
+      const servicesList = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.services)
+          ? data.services
+          : [];
+      setServices(servicesList);
+
+      // PATCH_15: Update available filters from API response
+      if (data?.filters) {
+        if (Array.isArray(data.filters.availableCategories)) {
+          setAvailableCategories(data.filters.availableCategories);
+        }
+        if (Array.isArray(data.filters.availableCountries)) {
+          setAvailableCountries(data.filters.availableCountries);
+        }
+        if (Array.isArray(data.filters.availableServiceTypes)) {
+          setAvailableServiceTypes(data.filters.availableServiceTypes);
+        }
+      }
+    } catch {
+      setServices([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [filters]);
 
   useEffect(() => {
-    let mounted = true;
-    setLoading(true);
-    const load = async () => {
-      try {
-        const base = getApiBaseUrl();
-        const res = await fetch(`${base}/api/services?status=active`, {
-          cache: "no-store",
-          credentials: "include",
-        });
-        const data = await res.json().catch(() => ({ services: [] }));
-        if (!mounted) return;
-        // PATCH_13: Handle both {services: [...]} and [...] response formats
-        const servicesList = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.services)
-            ? data.services
-            : [];
-        setServices(servicesList);
-      } catch {
-        if (!mounted) return;
-        setServices([]);
-      } finally {
-        if (!mounted) return;
-        setLoading(false);
-      }
-    };
+    loadServices();
+    // PATCH_15: Auto refresh every 30s
+    const id = window.setInterval(loadServices, 30_000);
+    return () => window.clearInterval(id);
+  }, [loadServices]);
 
-    load();
-    const id = window.setInterval(load, 5_000);
-
-    return () => {
-      window.clearInterval(id);
-      mounted = false;
-    };
-  }, []);
-
-  const categories = useMemo(() => {
-    const set = new Set<string>();
-    for (const s of services) {
-      if (s?.category) set.add(String(s.category));
-    }
-    return ["all", ...Array.from(set).sort((a, b) => a.localeCompare(b))];
-  }, [services]);
-
+  // PATCH_15: Client-side text search filtering
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return services
-      .filter((s) => (activeOnly ? s.active !== false : true))
-      .filter((s) =>
-        category === "all" ? true : String(s.category) === category,
-      )
-      .filter((s) => {
-        if (!q) return true;
-        const hay = `${s.title || ""} ${s.category || ""} ${
-          s.shortDescription || ""
-        } ${s.description || ""}`.toLowerCase();
-        return hay.includes(q);
-      });
-  }, [services, query, category, activeOnly]);
+    return services.filter((s) => {
+      if (!q) return true;
+      const hay = `${s.title || ""} ${s.category || ""} ${
+        s.shortDescription || ""
+      } ${s.description || ""}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [services, query]);
 
   return (
     <div className="u-container">
@@ -128,41 +159,26 @@ export default function BuyServicePage() {
           </div>
         </div>
 
-        <div className="mt-6 grid gap-3 md:grid-cols-[1fr_220px_190px] items-stretch">
+        {/* PATCH_15: Vision-aligned filter controls */}
+        <div className="mt-6 space-y-4">
           <div className="relative">
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={servicesCopy.searchPlaceholder}
-              className="u-input placeholder:text-slate-400"
+              className="u-input placeholder:text-slate-400 w-full"
             />
           </div>
 
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="u-select"
-          >
-            {categories.map((c) => (
-              <option key={c} value={c}>
-                {c === "all" ? servicesCopy.allCategoriesText : c}
-              </option>
-            ))}
-          </select>
-
-          <button
-            type="button"
-            onClick={() => setActiveOnly((v) => !v)}
-            className={`rounded-xl border px-4 py-3 text-sm transition ${
-              activeOnly
-                ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-200"
-                : "bg-white/5 border-white/10 text-slate-200 hover:bg-white/10"
-            }`}
-          >
-            {activeOnly
-              ? servicesCopy.activeOnlyText
-              : servicesCopy.showAllText}
-          </button>
+          <ServiceFilters
+            filters={filters}
+            setFilters={setFilters}
+            availableCategories={availableCategories}
+            availableCountries={availableCountries}
+            availableServiceTypes={availableServiceTypes}
+            onRefresh={loadServices}
+            loading={loading}
+          />
         </div>
       </div>
 
@@ -188,8 +204,12 @@ export default function BuyServicePage() {
               type="button"
               onClick={() => {
                 setQuery("");
-                setCategory("all");
-                setActiveOnly(true);
+                setFilters({
+                  category: "all",
+                  country: "all",
+                  serviceType: "all",
+                  sort: "createdAt",
+                });
               }}
               className="btn-secondary w-full sm:w-auto"
             >
