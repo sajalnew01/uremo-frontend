@@ -22,64 +22,63 @@ function RefreshIcon({ className }: { className?: string }) {
 }
 
 type ServiceFiltersProps = {
-  filters: {
+  filtersConfig: {
+    categories: Array<{ id: string; label: string }>;
+    countries: string[];
+    serviceTypes: Array<{ id: string; label: string }>;
+  };
+  value: {
     category: string;
     country: string;
     serviceType: string;
     sort: string;
   };
-  setFilters: React.Dispatch<
-    React.SetStateAction<{
-      category: string;
-      country: string;
-      serviceType: string;
-      sort: string;
-    }>
-  >;
-  availableCategories: string[];
-  availableCountries: string[];
-  availableServiceTypes: string[];
+  onChange: (next: {
+    category: string;
+    country: string;
+    serviceType: string;
+    sort: string;
+  }) => void;
   onRefresh: () => void;
   loading?: boolean;
 };
 
 export default function ServiceFilters({
-  filters,
-  setFilters,
-  availableCategories,
-  availableCountries,
-  availableServiceTypes,
+  filtersConfig,
+  value,
+  onChange,
   onRefresh,
   loading,
 }: ServiceFiltersProps) {
+  const countries =
+    Array.isArray(filtersConfig?.countries) && filtersConfig.countries.length
+      ? filtersConfig.countries
+      : ["Global"];
+
   return (
     <div className="flex flex-wrap gap-3 items-center">
       {/* Category Filter */}
       <select
-        value={filters.category}
-        onChange={(e) =>
-          setFilters((prev) => ({ ...prev, category: e.target.value }))
-        }
+        value={value.category}
+        onChange={(e) => onChange({ ...value, category: e.target.value })}
         className="u-select min-w-[160px]"
       >
         <option value="all">All Categories</option>
-        {availableCategories.map((cat) => (
-          <option key={cat} value={cat}>
-            {cat.replace(/_/g, " ")}
+        {(filtersConfig?.categories || []).map((cat) => (
+          <option key={cat.id} value={cat.id}>
+            {cat.label}
           </option>
         ))}
       </select>
 
       {/* Country Filter */}
       <select
-        value={filters.country}
-        onChange={(e) =>
-          setFilters((prev) => ({ ...prev, country: e.target.value }))
-        }
+        value={value.country}
+        onChange={(e) => onChange({ ...value, country: e.target.value })}
         className="u-select min-w-[140px]"
       >
         <option value="all">All Countries</option>
-        {availableCountries.map((country) => (
+        {countries.map((country) => (
           <option key={country} value={country}>
             {country}
           </option>
@@ -88,26 +87,22 @@ export default function ServiceFilters({
 
       {/* Service Type Filter */}
       <select
-        value={filters.serviceType}
-        onChange={(e) =>
-          setFilters((prev) => ({ ...prev, serviceType: e.target.value }))
-        }
+        value={value.serviceType}
+        onChange={(e) => onChange({ ...value, serviceType: e.target.value })}
         className="u-select min-w-[160px]"
       >
         <option value="all">All Types</option>
-        {availableServiceTypes.map((type) => (
-          <option key={type} value={type}>
-            {type.replace(/_/g, " ")}
+        {(filtersConfig?.serviceTypes || []).map((type) => (
+          <option key={type.id} value={type.id}>
+            {type.label}
           </option>
         ))}
       </select>
 
       {/* Sort Filter */}
       <select
-        value={filters.sort}
-        onChange={(e) =>
-          setFilters((prev) => ({ ...prev, sort: e.target.value }))
-        }
+        value={value.sort}
+        onChange={(e) => onChange({ ...value, sort: e.target.value })}
         className="u-select min-w-[140px]"
       >
         <option value="createdAt">Newest</option>

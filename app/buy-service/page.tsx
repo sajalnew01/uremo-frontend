@@ -11,6 +11,12 @@ import {
 } from "@/hooks/useSiteSettings";
 import ServiceFilters from "./components/ServiceFilters";
 
+type FiltersConfig = {
+  categories: Array<{ id: string; label: string }>;
+  countries: string[];
+  serviceTypes: Array<{ id: string; label: string }>;
+};
+
 type Service = {
   _id: string;
   title: string;
@@ -54,11 +60,23 @@ export default function BuyServicePage() {
   });
 
   // PATCH_15: Available filter options from API
-  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
-  const [availableCountries, setAvailableCountries] = useState<string[]>([]);
-  const [availableServiceTypes, setAvailableServiceTypes] = useState<string[]>(
-    [],
-  );
+  const [filtersConfig, setFiltersConfig] = useState<FiltersConfig>({
+    categories: [
+      { id: "microjobs", label: "Microjobs" },
+      { id: "forex_crypto", label: "Forex / Crypto" },
+      { id: "banks_gateways_wallets", label: "Banks / Gateways / Wallets" },
+      { id: "general", label: "General" },
+    ],
+    countries: ["Global"],
+    serviceTypes: [
+      { id: "all", label: "All types" },
+      { id: "fresh_profile", label: "Apply Fresh / KYC" },
+      { id: "already_onboarded", label: "Already Onboarded" },
+      { id: "interview_process", label: "Interview Process" },
+      { id: "interview_passed", label: "Interview Passed" },
+      { id: "general", label: "General" },
+    ],
+  });
 
   const introText =
     (settings?.services?.trustBlockText || "").trim() ||
@@ -102,30 +120,46 @@ export default function BuyServicePage() {
           : [];
       setServices(servicesList);
 
-      // PATCH_15: Update available filters from API response
-      if (data?.filters) {
-        if (Array.isArray(data.filters.availableCategories)) {
-          setAvailableCategories(data.filters.availableCategories);
-        }
-        if (Array.isArray(data.filters.availableCountries)) {
-          setAvailableCountries(data.filters.availableCountries);
-        }
-        if (Array.isArray(data.filters.availableServiceTypes)) {
-          setAvailableServiceTypes(data.filters.availableServiceTypes);
-        }
+      // PATCH_16: Stable filters config from API
+      if (data?.filters && typeof data.filters === "object") {
+        const nextConfig: FiltersConfig = {
+          categories: Array.isArray(data.filters.categories)
+            ? data.filters.categories
+            : filtersConfig.categories,
+          countries: Array.isArray(data.filters.countries)
+            ? data.filters.countries
+            : filtersConfig.countries,
+          serviceTypes: Array.isArray(data.filters.serviceTypes)
+            ? data.filters.serviceTypes
+            : filtersConfig.serviceTypes,
+        };
+        setFiltersConfig(nextConfig);
       }
     } catch {
       setServices([]);
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [
+    filters,
+    filtersConfig.categories,
+    filtersConfig.countries,
+    filtersConfig.serviceTypes,
+  ]);
 
   useEffect(() => {
     loadServices();
+
+    // PATCH_16: Instant refresh after admin/Jarvis actions (no websockets)
+    const handler = () => loadServices();
+    window.addEventListener("services:refresh", handler);
+
     // PATCH_15: Auto refresh every 30s
     const id = window.setInterval(loadServices, 30_000);
-    return () => window.clearInterval(id);
+    return () => {
+      window.removeEventListener("services:refresh", handler);
+      window.clearInterval(id);
+    };
   }, [loadServices]);
 
   // PATCH_15: Client-side text search filtering
@@ -171,11 +205,9 @@ export default function BuyServicePage() {
           </div>
 
           <ServiceFilters
-            filters={filters}
-            setFilters={setFilters}
-            availableCategories={availableCategories}
-            availableCountries={availableCountries}
-            availableServiceTypes={availableServiceTypes}
+            filtersConfig={filtersConfig}
+            value={filters}
+            onChange={setFilters}
             onRefresh={loadServices}
             loading={loading}
           />

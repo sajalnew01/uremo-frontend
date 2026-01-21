@@ -45,7 +45,7 @@ export async function apiRequest<T = any>(
   isFormData: boolean = false,
   options?: { timeoutMs?: number }
 ): Promise<T> {
-  const baseUrl = endpoint.startsWith("/api/jarvisx/") ? "" : getApiBaseUrl();
+  const baseUrl = getApiBaseUrl();
 
   // baseUrl is always non-empty due to fallback.
 
@@ -138,7 +138,9 @@ export async function apiRequest<T = any>(
 }
 
 export function getApiBaseUrl(): string {
-  const envBase = process.env.NEXT_PUBLIC_API_URL?.trim();
+  const envBase =
+    process.env.NEXT_PUBLIC_BACKEND_URL?.trim() ||
+    process.env.NEXT_PUBLIC_API_URL?.trim();
   const defaultProdBase = "https://uremo-backend.onrender.com";
   return (
     envBase ||
