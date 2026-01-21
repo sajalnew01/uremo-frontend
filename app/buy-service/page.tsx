@@ -120,32 +120,26 @@ export default function BuyServicePage() {
           : [];
       setServices(servicesList);
 
-      // PATCH_16: Stable filters config from API
+      // PATCH_16_FIX: Update filters config from API (only if valid)
       if (data?.filters && typeof data.filters === "object") {
-        const nextConfig: FiltersConfig = {
+        setFiltersConfig((prev) => ({
           categories: Array.isArray(data.filters.categories)
             ? data.filters.categories
-            : filtersConfig.categories,
+            : prev.categories,
           countries: Array.isArray(data.filters.countries)
             ? data.filters.countries
-            : filtersConfig.countries,
+            : prev.countries,
           serviceTypes: Array.isArray(data.filters.serviceTypes)
             ? data.filters.serviceTypes
-            : filtersConfig.serviceTypes,
-        };
-        setFiltersConfig(nextConfig);
+            : prev.serviceTypes,
+        }));
       }
     } catch {
       setServices([]);
     } finally {
       setLoading(false);
     }
-  }, [
-    filters,
-    filtersConfig.categories,
-    filtersConfig.countries,
-    filtersConfig.serviceTypes,
-  ]);
+  }, [filters]);
 
   useEffect(() => {
     loadServices();
