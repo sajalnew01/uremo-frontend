@@ -1,6 +1,6 @@
 "use client";
 
-// PATCH_15: Inline RefreshCw icon to avoid lucide-react dependency
+// PATCH_16: Inline RefreshCw icon to avoid lucide-react dependency
 function RefreshIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -21,64 +21,106 @@ function RefreshIcon({ className }: { className?: string }) {
   );
 }
 
+// PATCH_16: Canonical category labels for display (matches backend vision)
+const CATEGORY_LABELS: Record<string, string> = {
+  microjobs: "Microjobs",
+  forex_crypto: "Forex / Crypto",
+  banks_gateways_wallets: "Banks / Gateways / Wallets",
+  general: "General",
+};
+
+// PATCH_16: Canonical service type labels for display
+const SERVICE_TYPE_LABELS: Record<string, string> = {
+  fresh_profile: "Apply Fresh / KYC",
+  already_onboarded: "Already Onboarded",
+  interview_process: "Interview Process",
+  interview_passed: "Interview Passed",
+  general: "General",
+};
+
 type ServiceFiltersProps = {
-  filtersConfig: {
-    categories: Array<{ id: string; label: string }>;
-    countries: string[];
-    serviceTypes: Array<{ id: string; label: string }>;
-  };
-  value: {
+  filters: {
     category: string;
     country: string;
     serviceType: string;
     sort: string;
   };
-  onChange: (next: {
-    category: string;
-    country: string;
-    serviceType: string;
-    sort: string;
-  }) => void;
+  setFilters: React.Dispatch<
+    React.SetStateAction<{
+      category: string;
+      country: string;
+      serviceType: string;
+      sort: string;
+    }>
+  >;
+  availableCategories: string[];
+  availableCountries: string[];
+  availableServiceTypes: string[];
   onRefresh: () => void;
   loading?: boolean;
 };
 
 export default function ServiceFilters({
-  filtersConfig,
-  value,
-  onChange,
+  filters,
+  setFilters,
+  availableCategories,
+  availableCountries,
+  availableServiceTypes,
   onRefresh,
   loading,
 }: ServiceFiltersProps) {
-  const countries =
-    Array.isArray(filtersConfig?.countries) && filtersConfig.countries.length
-      ? filtersConfig.countries
-      : ["Global"];
+  // PATCH_16: Order categories to match vision (Microjobs first, General last)
+  const orderedCategories = [
+    "microjobs",
+    "forex_crypto",
+    "banks_gateways_wallets",
+    "general",
+  ].filter(
+    (cat) =>
+      availableCategories.includes(cat) || availableCategories.length === 0,
+  );
+
+  // PATCH_16: Order service types to match vision
+  const orderedServiceTypes = [
+    "fresh_profile",
+    "already_onboarded",
+    "interview_process",
+    "interview_passed",
+    "general",
+  ].filter(
+    (type) =>
+      availableServiceTypes.includes(type) ||
+      availableServiceTypes.length === 0,
+  );
 
   return (
     <div className="flex flex-wrap gap-3 items-center">
       {/* Category Filter */}
       <select
-        value={value.category}
-        onChange={(e) => onChange({ ...value, category: e.target.value })}
-        className="u-select min-w-[160px]"
+        value={filters.category}
+        onChange={(e) =>
+          setFilters((prev) => ({ ...prev, category: e.target.value }))
+        }
+        className="u-select min-w-[180px]"
       >
         <option value="all">All Categories</option>
-        {(filtersConfig?.categories || []).map((cat) => (
-          <option key={cat.id} value={cat.id}>
-            {cat.label}
+        {orderedCategories.map((cat) => (
+          <option key={cat} value={cat}>
+            {CATEGORY_LABELS[cat] || cat.replace(/_/g, " ")}
           </option>
         ))}
       </select>
 
       {/* Country Filter */}
       <select
-        value={value.country}
-        onChange={(e) => onChange({ ...value, country: e.target.value })}
+        value={filters.country}
+        onChange={(e) =>
+          setFilters((prev) => ({ ...prev, country: e.target.value }))
+        }
         className="u-select min-w-[140px]"
       >
         <option value="all">All Countries</option>
-        {countries.map((country) => (
+        {availableCountries.map((country) => (
           <option key={country} value={country}>
             {country}
           </option>
@@ -87,22 +129,26 @@ export default function ServiceFilters({
 
       {/* Service Type Filter */}
       <select
-        value={value.serviceType}
-        onChange={(e) => onChange({ ...value, serviceType: e.target.value })}
-        className="u-select min-w-[160px]"
+        value={filters.serviceType}
+        onChange={(e) =>
+          setFilters((prev) => ({ ...prev, serviceType: e.target.value }))
+        }
+        className="u-select min-w-[180px]"
       >
         <option value="all">All Types</option>
-        {(filtersConfig?.serviceTypes || []).map((type) => (
-          <option key={type.id} value={type.id}>
-            {type.label}
+        {orderedServiceTypes.map((type) => (
+          <option key={type} value={type}>
+            {SERVICE_TYPE_LABELS[type] || type.replace(/_/g, " ")}
           </option>
         ))}
       </select>
 
       {/* Sort Filter */}
       <select
-        value={value.sort}
-        onChange={(e) => onChange({ ...value, sort: e.target.value })}
+        value={filters.sort}
+        onChange={(e) =>
+          setFilters((prev) => ({ ...prev, sort: e.target.value }))
+        }
         className="u-select min-w-[140px]"
       >
         <option value="createdAt">Newest</option>

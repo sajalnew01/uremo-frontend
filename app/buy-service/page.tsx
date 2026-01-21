@@ -11,12 +11,6 @@ import {
 } from "@/hooks/useSiteSettings";
 import ServiceFilters from "./components/ServiceFilters";
 
-type FiltersConfig = {
-  categories: Array<{ id: string; label: string }>;
-  countries: string[];
-  serviceTypes: Array<{ id: string; label: string }>;
-};
-
 type Service = {
   _id: string;
   title: string;
@@ -60,23 +54,11 @@ export default function BuyServicePage() {
   });
 
   // PATCH_15: Available filter options from API
-  const [filtersConfig, setFiltersConfig] = useState<FiltersConfig>({
-    categories: [
-      { id: "microjobs", label: "Microjobs" },
-      { id: "forex_crypto", label: "Forex / Crypto" },
-      { id: "banks_gateways_wallets", label: "Banks / Gateways / Wallets" },
-      { id: "general", label: "General" },
-    ],
-    countries: ["Global"],
-    serviceTypes: [
-      { id: "all", label: "All types" },
-      { id: "fresh_profile", label: "Apply Fresh / KYC" },
-      { id: "already_onboarded", label: "Already Onboarded" },
-      { id: "interview_process", label: "Interview Process" },
-      { id: "interview_passed", label: "Interview Passed" },
-      { id: "general", label: "General" },
-    ],
-  });
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+  const [availableCountries, setAvailableCountries] = useState<string[]>([]);
+  const [availableServiceTypes, setAvailableServiceTypes] = useState<string[]>(
+    [],
+  );
 
   const introText =
     (settings?.services?.trustBlockText || "").trim() ||
@@ -120,19 +102,32 @@ export default function BuyServicePage() {
           : [];
       setServices(servicesList);
 
-      // PATCH_16_FIX: Update filters config from API (only if valid)
-      if (data?.filters && typeof data.filters === "object") {
-        setFiltersConfig((prev) => ({
-          categories: Array.isArray(data.filters.categories)
-            ? data.filters.categories
-            : prev.categories,
-          countries: Array.isArray(data.filters.countries)
-            ? data.filters.countries
-            : prev.countries,
-          serviceTypes: Array.isArray(data.filters.serviceTypes)
-            ? data.filters.serviceTypes
-            : prev.serviceTypes,
-        }));
+      // PATCH_16: Update available filters from API response (canonical config)
+      if (data?.filters) {
+        // Use canonical categories with id/label if available, fallback to legacy
+        if (Array.isArray(data.filters.categories)) {
+          setAvailableCategories(
+            data.filters.categories.map((c: any) => c.id || c),
+          );
+        } else if (Array.isArray(data.filters.availableCategories)) {
+          setAvailableCategories(data.filters.availableCategories);
+        }
+        // Use canonical countries (normalized list from backend)
+        if (Array.isArray(data.filters.countries)) {
+          setAvailableCountries(data.filters.countries);
+        } else if (Array.isArray(data.filters.availableCountries)) {
+          setAvailableCountries(data.filters.availableCountries);
+        }
+        // Use canonical service types
+        if (Array.isArray(data.filters.serviceTypes)) {
+          setAvailableServiceTypes(
+            data.filters.serviceTypes
+              .filter((t: any) => (t.id || t) !== "all")
+              .map((t: any) => t.id || t),
+          );
+        } else if (Array.isArray(data.filters.availableServiceTypes)) {
+          setAvailableServiceTypes(data.filters.availableServiceTypes);
+        }
       }
     } catch {
       setServices([]);
@@ -143,16 +138,19 @@ export default function BuyServicePage() {
 
   useEffect(() => {
     loadServices();
+    // PATCH_16: Auto refresh every 30s
+    const intervalId = window.setInterval(loadServices, 30_000);
 
-    // PATCH_16: Instant refresh after admin/Jarvis actions (no websockets)
-    const handler = () => loadServices();
-    window.addEventListener("services:refresh", handler);
+    // PATCH_16: Listen for services:refresh event (dispatched by JarvisX Write)
+    const refreshHandler = () => {
+      console.log("[BuyService] services:refresh event received");
+      loadServices();
+    };
+    window.addEventListener("services:refresh", refreshHandler);
 
-    // PATCH_15: Auto refresh every 30s
-    const id = window.setInterval(loadServices, 30_000);
     return () => {
-      window.removeEventListener("services:refresh", handler);
-      window.clearInterval(id);
+      window.clearInterval(intervalId);
+      window.removeEventListener("services:refresh", refreshHandler);
     };
   }, [loadServices]);
 
@@ -199,9 +197,11 @@ export default function BuyServicePage() {
           </div>
 
           <ServiceFilters
-            filtersConfig={filtersConfig}
-            value={filters}
-            onChange={setFilters}
+            filters={filters}
+            setFilters={setFilters}
+            availableCategories={availableCategories}
+            availableCountries={availableCountries}
+            availableServiceTypes={availableServiceTypes}
             onRefresh={loadServices}
             loading={loading}
           />

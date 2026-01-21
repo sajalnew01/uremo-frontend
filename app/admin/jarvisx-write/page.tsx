@@ -215,55 +215,6 @@ export default function AdminJarvisXWritePage() {
     setExecutionError(null);
     setExecutingProposal(true);
     try {
-      // PATCH_16: If this proposal is a single service.create, execute via real Mongo publish endpoint.
-      const actions = Array.isArray(activeProposal.actions)
-        ? activeProposal.actions
-        : [];
-      const isSingleServiceCreate =
-        actions.length === 1 &&
-        String(actions[0]?.type || "") === "service.create";
-
-      if (isSingleServiceCreate) {
-        const payload = (actions[0] as any)?.payload || {};
-        const created = await apiRequest<any>(
-          "/api/jarvisx/write/execute",
-          "POST",
-          {
-            title: payload.title,
-            price: payload.price,
-            description: payload.description,
-            category: payload.category,
-            serviceType: payload.serviceType,
-            countries: payload.countries,
-          },
-          true,
-        );
-
-        if (created?.ok !== true) {
-          const message =
-            String(created?.message || "DB write failed") || "DB write failed";
-          setExecutionError(message);
-          toast(message, "error");
-          return;
-        }
-
-        setActiveProposal((prev) =>
-          prev
-            ? {
-                ...prev,
-                status: "executed",
-                executedAt: new Date().toISOString(),
-                executionResult: { successCount: 1, failCount: 0, errors: [] },
-              }
-            : prev,
-        );
-
-        toast("✅ Service created & published.", "success");
-        window.dispatchEvent(new Event("services:refresh"));
-        loadHistory();
-        return;
-      }
-
       const updated = await apiRequest<any>(
         `/api/jarvisx/write/proposals/${activeProposal._id}/approve`,
         "POST",
@@ -286,15 +237,15 @@ export default function AdminJarvisXWritePage() {
 
       setActiveProposal(updated as Proposal);
 
-      if (updated.status === "executed")
+      if (updated.status === "executed") {
         toast("Executed successfully.", "success");
-      else if (updated.status === "failed")
+        // PATCH_16: Dispatch refresh event so buy-service updates instantly
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("services:refresh"));
+        }
+      } else if (updated.status === "failed")
         toast("Executed with errors.", "error");
       else toast("Updated.", "success");
-
-      if (updated.status === "executed") {
-        window.dispatchEvent(new Event("services:refresh"));
-      }
 
       loadHistory();
     } catch (err) {
