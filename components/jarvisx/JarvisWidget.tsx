@@ -33,7 +33,7 @@ function scrubAdminGreetingForPublicWidget(text: string) {
   if (!raw) return raw;
   if (/\bYes boss\b/i.test(raw)) {
     console.warn(
-      "JarvisX incorrectly returned admin greeting in public widget"
+      "JarvisX incorrectly returned admin greeting in public widget",
     );
     return raw
       .replace(/Yes boss\s*✅/gi, "Hello!")
@@ -84,7 +84,7 @@ function parseQtyFromText(text: string): number | null {
   const t = normalizeText(text);
   if (!t) return null;
   const m = t.match(
-    /\b(?:x\s*)?(\d{1,4})\s*(?:accounts?|account|kyc|pcs?|pieces?)\b/
+    /\b(?:x\s*)?(\d{1,4})\s*(?:accounts?|account|kyc|pcs?|pieces?)\b/,
   );
   if (m?.[1]) {
     const n = Number(m[1]);
@@ -114,7 +114,7 @@ function parseUnitPriceFromText(text: string): number | null {
 }
 
 function parseRequestTypeFromText(
-  text: string
+  text: string,
 ): "KYC" | "ACCOUNT" | "OTHER" | null {
   const t = normalizeText(text);
   if (!t) return null;
@@ -127,10 +127,16 @@ function parseRequestTypeFromText(
 function looksLikeServiceRequest(text: string) {
   const msg = normalizeText(text);
   if (!msg) return false;
+
+  // PATCH_19: Exclude service listing queries - these should be handled by backend LIST_SERVICES intent
+  const serviceListingPatterns =
+    /(what services|which services|available services|show me services|list services|services available|what can i buy|can i buy|do you have|do you sell)/;
+  if (serviceListingPatterns.test(msg)) return false;
+
   return (
     /(need|want|looking for|can you|help me|make|build|create)/.test(msg) &&
     /(service|website|app|bot|automation|marketing|design|branding|seo|ads|kyc)/.test(
-      msg
+      msg,
     )
   );
 }
@@ -140,7 +146,7 @@ function extractDetectedServiceName(text: string) {
   if (!raw) return "";
 
   const m1 = raw.match(
-    /(?:need|want)\s+(.{3,80}?)(?:\s+service|\s+help|\.|\!|\?|$)/i
+    /(?:need|want)\s+(.{3,80}?)(?:\s+service|\s+help|\.|\!|\?|$)/i,
   );
   if (m1?.[1]) return String(m1[1]).trim();
 
@@ -152,7 +158,7 @@ function extractDetectedServiceName(text: string) {
 
 function messageMentionsKnownService(
   text: string,
-  services: any[] | undefined
+  services: any[] | undefined,
 ) {
   const msg = normalizeText(text);
   if (!msg) return false;
@@ -268,7 +274,7 @@ export default function JarvisWidget() {
     try {
       const ctx = await apiRequest<JarvisContextPublic>(
         "/api/jarvisx/context/public",
-        "GET"
+        "GET",
       );
       setContext(ctx);
 
@@ -297,7 +303,7 @@ export default function JarvisWidget() {
           message: payload.message,
           detectedServiceName: payload.detectedServiceName || "",
           page: pathname || "",
-        }
+        },
       );
     } catch {
       // Never surface request capture failures to the user.
@@ -346,7 +352,7 @@ export default function JarvisWidget() {
 
       if (ok) {
         setCustomRequestDraft((prev) =>
-          prev ? { ...prev, submitted: true } : prev
+          prev ? { ...prev, submitted: true } : prev,
         );
         customRequestCooldownUntilRef.current = Date.now() + 2500;
       }
@@ -489,7 +495,7 @@ export default function JarvisWidget() {
         setCustomServiceDraft((prev) =>
           prev && prev.message === draft.message
             ? { ...prev, sent: true }
-            : prev
+            : prev,
         );
       });
     }
@@ -527,8 +533,8 @@ export default function JarvisWidget() {
                 new Set(
                   res.quickReplies
                     .map((q) => String(q || "").trim())
-                    .filter(Boolean)
-                )
+                    .filter(Boolean),
+                ),
               ).slice(0, 6)
             : [],
           intent: String(res?.intent || "").trim() || undefined,
@@ -548,7 +554,7 @@ export default function JarvisWidget() {
         const cleared = prev.map((m) =>
           m.role === "assistant"
             ? { ...m, meta: { ...(m.meta || {}), quickReplies: [] } }
-            : m
+            : m,
         );
         return [...cleared, assistantMsg];
       });
@@ -585,7 +591,7 @@ export default function JarvisWidget() {
         const cleared = prev.map((m) =>
           m.role === "assistant"
             ? { ...m, meta: { ...(m.meta || {}), quickReplies: [] } }
-            : m
+            : m,
         );
         return [...cleared, fallback];
       });
@@ -605,8 +611,8 @@ export default function JarvisWidget() {
       prev.map((m) =>
         m.id === messageId
           ? { ...m, meta: { ...(m.meta || {}), quickReplies: [] } }
-          : m
-      )
+          : m,
+      ),
     );
 
     sendText(replyText);

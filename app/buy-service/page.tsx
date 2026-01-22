@@ -1,8 +1,8 @@
 "use client";
 
-// PATCH_17: Buy Service page with 3-step flow
+// PATCH_19: Buy Service page with 3-step flow
 // Step 1: Choose Category
-// Step 2: Choose Listing Type
+// Step 2: Choose Subcategory (was ListingType)
 // Step 3: Filters + Results Grid
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -43,9 +43,11 @@ type Service = {
   status?: string;
 };
 
+// PATCH_19: Updated filters to use subcategory
 type FiltersState = {
   category: string;
   subcategory: string;
+  listingType: string; // Keep for backwards compatibility
   country: string;
   platform: string;
   subject: string;
@@ -62,16 +64,17 @@ export default function BuyServicePage() {
   const servicesCopy =
     settings?.services?.list || DEFAULT_PUBLIC_SITE_SETTINGS.services.list;
 
-  // PATCH_17: 3-step flow state
+  // PATCH_19: 3-step flow state
   const [step, setStep] = useState<Step>(1);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
 
-  // PATCH_19: Vision-aligned filters with subcategory (not listingType)
+  // PATCH_19: Vision-aligned filters with subcategory
   const [filters, setFilters] = useState<FiltersState>({
     category: "",
     subcategory: "",
+    listingType: "", // Legacy
     country: "all",
     platform: "all",
     subject: "all",
@@ -80,7 +83,7 @@ export default function BuyServicePage() {
     sort: "createdAt",
   });
 
-  // PATCH_17: Available filter options from API
+  // PATCH_19: Available filter options from API
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const [availablePlatforms, setAvailablePlatforms] = useState<string[]>([]);
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
@@ -99,6 +102,7 @@ export default function BuyServicePage() {
       ...prev,
       category: categoryId,
       subcategory: "",
+      listingType: "",
       country: "all",
       platform: "all",
       subject: "all",
@@ -108,10 +112,12 @@ export default function BuyServicePage() {
     setStep(2);
   };
 
+  // PATCH_19: Subcategory selection handler
   const handleSubcategorySelect = (subcategoryId: string) => {
     setFilters((prev) => ({
       ...prev,
       subcategory: subcategoryId,
+      listingType: subcategoryId, // Keep in sync for legacy
       country: "all",
       platform: "all",
       subject: "all",
@@ -126,6 +132,7 @@ export default function BuyServicePage() {
     setFilters({
       category: "",
       subcategory: "",
+      listingType: "",
       country: "all",
       platform: "all",
       subject: "all",
@@ -141,6 +148,7 @@ export default function BuyServicePage() {
     setFilters((prev) => ({
       ...prev,
       subcategory: "",
+      listingType: "",
       country: "all",
       platform: "all",
       subject: "all",
@@ -150,7 +158,7 @@ export default function BuyServicePage() {
     setServices([]);
   };
 
-  // PATCH_19: Fetch services with subcategory-based filtering
+  // PATCH_19: Fetch services with subcategory filter
   const loadServices = useCallback(async () => {
     if (step !== 3 || !filters.category || !filters.subcategory) return;
 
@@ -162,15 +170,24 @@ export default function BuyServicePage() {
       params.set("category", filters.category);
       params.set("subcategory", filters.subcategory);
 
-      // PATCH_19: Only send filters that apply to current subcategory
+      // Also send listingType for backwards compatibility with old services
+      if (
+        filters.subcategory === "fresh_account" ||
+        filters.subcategory === "already_onboarded"
+      ) {
+        params.set("listingType", filters.subcategory);
+      }
+
+      // Country filter
       if (filters.country && filters.country !== "all") {
         params.set("country", filters.country);
       }
+      // Platform filter
       if (filters.platform && filters.platform !== "all") {
         params.set("platform", filters.platform);
       }
 
-      // Subject only for fresh_account subcategory
+      // Subject only for fresh_account
       if (
         filters.subcategory === "fresh_account" &&
         filters.subject &&
@@ -179,7 +196,7 @@ export default function BuyServicePage() {
         params.set("subject", filters.subject);
       }
 
-      // projectName and minPayRate only for already_onboarded subcategory
+      // projectName and minPayRate only for already_onboarded
       if (filters.subcategory === "already_onboarded") {
         if (filters.projectName && filters.projectName !== "all") {
           params.set("projectName", filters.projectName);
@@ -325,7 +342,7 @@ export default function BuyServicePage() {
         )}
       </div>
 
-      {/* PATCH_17: Step 1 - Category Selection */}
+      {/* PATCH_19: Step 1 - Category Selection */}
       {step === 1 && (
         <CategoryPicker
           selected={filters.category}
@@ -343,7 +360,7 @@ export default function BuyServicePage() {
         />
       )}
 
-      {/* PATCH_17: Step 3 - Filters + Results */}
+      {/* PATCH_19: Step 3 - Filters + Results */}
       {step === 3 && (
         <>
           {/* Search and Filters */}
@@ -461,9 +478,9 @@ export default function BuyServicePage() {
                               {s.category.replace(/_/g, " ")}
                             </span>
                           )}
-                          {s.subcategory && (
+                          {s.listingType && (
                             <span className="u-pill text-slate-200">
-                              {s.subcategory.replace(/_/g, " ")}
+                              {s.listingType.replace(/_/g, " ")}
                             </span>
                           )}
                           {s.platform && (

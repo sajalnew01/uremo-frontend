@@ -23,9 +23,11 @@ function RefreshIcon({ className }: { className?: string }) {
   );
 }
 
+// PATCH_19: Updated FiltersState with subcategory
 type FiltersState = {
   category: string;
   subcategory: string;
+  listingType: string; // Legacy compatibility
   country: string;
   platform: string;
   subject: string;
@@ -59,29 +61,28 @@ export default function ServiceFilters({
   onBack,
   loading,
 }: ServiceFiltersProps) {
-  const isFreshAccount = filters.subcategory === "fresh_account";
-  const isAlreadyOnboarded = filters.subcategory === "already_onboarded";
+  // PATCH_19: Use subcategory for conditional rendering
+  const subcategory = filters.subcategory || filters.listingType;
+  const isFreshAccount = subcategory === "fresh_account";
+  const isAlreadyOnboarded = subcategory === "already_onboarded";
 
-  // Get category label for display
+  // Get category and subcategory labels for display
   const getCategoryLabel = (id: string) => {
     const labels: Record<string, string> = {
       microjobs: "Microjobs",
       forex_crypto: "Forex / Crypto",
       banks_gateways_wallets: "Banks / Gateways / Wallets",
     };
-    return labels[id] || id;
+    return labels[id] || id.replace(/_/g, " ");
   };
 
-  // PATCH_19: Subcategory labels for all categories
+  // PATCH_19: Updated subcategory labels
   const getSubcategoryLabel = (id: string) => {
     const labels: Record<string, string> = {
-      // Microjobs
       fresh_account: "Fresh Account",
       already_onboarded: "Already Onboarded",
-      // Forex/Crypto
-      forex_platform_creation: "Forex Trading Platform Creation",
+      forex_platform_creation: "Forex Platform Creation",
       crypto_platform_creation: "Crypto Platform Creation",
-      // Banks/Gateways/Wallets
       banks: "Banks",
       payment_gateways: "Payment Gateways",
       wallets: "Wallets",
@@ -108,14 +109,14 @@ export default function ServiceFilters({
           </span>
           <span className="text-slate-500">→</span>
           <span className="px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">
-            {getSubcategoryLabel(filters.subcategory)}
+            {getSubcategoryLabel(subcategory)}
           </span>
         </div>
       </div>
 
       {/* Dynamic filters based on subcategory */}
       <div className="flex flex-wrap gap-3 items-center p-4 rounded-xl border border-white/10 bg-white/5">
-        {/* PATCH_19: Country Filter - Only show if countries available */}
+        {/* Country Filter - Only show if countries available */}
         {availableCountries.length > 0 && (
           <select
             value={filters.country}
@@ -133,7 +134,7 @@ export default function ServiceFilters({
           </select>
         )}
 
-        {/* PATCH_18: Platform Filter - Only show if platforms available */}
+        {/* Platform Filter - Only show if platforms available */}
         {availablePlatforms.length > 0 && (
           <select
             value={filters.platform}
@@ -151,7 +152,7 @@ export default function ServiceFilters({
           </select>
         )}
 
-        {/* PATCH_18: Subject Filter - Only for fresh_account AND only if subjects available */}
+        {/* Subject Filter - Only for fresh_account AND only if subjects available */}
         {isFreshAccount && availableSubjects.length > 0 && (
           <select
             value={filters.subject}
@@ -169,7 +170,7 @@ export default function ServiceFilters({
           </select>
         )}
 
-        {/* PATCH_18: Project Filter - Only for already_onboarded AND only if projects available */}
+        {/* Project Filter - Only for already_onboarded AND only if projects available */}
         {isAlreadyOnboarded && availableProjects.length > 0 && (
           <select
             value={filters.projectName}
@@ -187,7 +188,7 @@ export default function ServiceFilters({
           </select>
         )}
 
-        {/* PATCH_18: Min Pay Rate Filter - Only for already_onboarded */}
+        {/* Min Pay Rate Filter - Only for already_onboarded */}
         {isAlreadyOnboarded && (
           <div className="flex items-center gap-2">
             <label className="text-xs text-slate-400">Min Pay:</label>

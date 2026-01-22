@@ -1,9 +1,9 @@
 "use client";
 
 // PATCH_19: Subcategory Picker for Step 2 of Buy Service 3-step flow
-// Each category has its OWN subcategories (not universal fresh_account/already_onboarded)
+// Now shows correct subcategories based on selected category
 
-type Subcategory = {
+type SubcategoryItem = {
   id: string;
   label: string;
   description: string;
@@ -11,8 +11,8 @@ type Subcategory = {
   badge?: string;
 };
 
-// PATCH_19: Category-specific subcategories
-const SUBCATEGORIES_BY_CATEGORY: Record<string, Subcategory[]> = {
+// PATCH_19: Subcategories mapped by category
+const SUBCATEGORIES_BY_CATEGORY: Record<string, SubcategoryItem[]> = {
   microjobs: [
     {
       id: "fresh_account",
@@ -35,15 +35,15 @@ const SUBCATEGORIES_BY_CATEGORY: Record<string, Subcategory[]> = {
       id: "forex_platform_creation",
       label: "Forex Trading Platform Creation Assistance",
       description:
-        "Get help setting up forex trading platform accounts with proper verification.",
-      icon: "📊",
-      badge: "Forex",
+        "Get help setting up verified forex trading accounts on major platforms.",
+      icon: "📈",
+      badge: "Trading",
     },
     {
       id: "crypto_platform_creation",
       label: "Crypto Platform Creation Assistance",
       description:
-        "Assistance with cryptocurrency exchange and wallet account setup.",
+        "Assistance with crypto exchange account creation and verification.",
       icon: "🪙",
       badge: "Crypto",
     },
@@ -52,8 +52,7 @@ const SUBCATEGORIES_BY_CATEGORY: Record<string, Subcategory[]> = {
     {
       id: "banks",
       label: "Banks",
-      description:
-        "Traditional bank account setup and verification assistance.",
+      description: "Bank account creation and verification assistance.",
       icon: "🏦",
       badge: "Banking",
     },
@@ -61,14 +60,14 @@ const SUBCATEGORIES_BY_CATEGORY: Record<string, Subcategory[]> = {
       id: "payment_gateways",
       label: "Payment Gateways",
       description:
-        "Payment processor accounts like Stripe, PayPal, Payoneer setup.",
+        "Payment gateway accounts like PayPal, Stripe, Payoneer setup help.",
       icon: "💳",
       badge: "Payments",
     },
     {
       id: "wallets",
       label: "Wallets",
-      description: "Digital wallet and e-wallet account creation assistance.",
+      description: "E-wallet and digital wallet creation assistance.",
       icon: "👛",
       badge: "E-Wallets",
     },
@@ -101,10 +100,6 @@ export default function ListingTypePicker({
   // PATCH_19: Get subcategories for the selected category
   const subcategories = SUBCATEGORIES_BY_CATEGORY[category] || [];
 
-  // Determine grid columns based on number of subcategories
-  const gridCols =
-    subcategories.length === 3 ? "md:grid-cols-3" : "md:grid-cols-2";
-
   return (
     <div className="space-y-4">
       {/* Back button */}
@@ -131,29 +126,37 @@ export default function ListingTypePicker({
         </p>
       </div>
 
-      <div className={`grid grid-cols-1 ${gridCols} gap-6 max-w-4xl mx-auto`}>
-        {subcategories.map((sub) => (
+      <div
+        className={`grid grid-cols-1 ${subcategories.length === 2 ? "md:grid-cols-2" : "md:grid-cols-3"} gap-6 max-w-4xl mx-auto`}
+      >
+        {subcategories.map((type) => (
           <button
-            key={sub.id}
+            key={type.id}
             type="button"
-            onClick={() => onSelect(sub.id)}
+            onClick={() => onSelect(type.id)}
             className={`group relative p-8 rounded-2xl border text-left transition-all duration-300 ${
-              selected === sub.id
+              selected === type.id
                 ? "border-emerald-500 bg-emerald-500/10 shadow-[0_0_30px_rgba(16,185,129,0.2)]"
                 : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
             }`}
           >
             {/* Badge */}
-            {sub.badge && (
+            {type.badge && (
               <div className="absolute top-4 right-4">
-                <span className="px-2 py-1 text-xs rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                  {sub.badge}
+                <span
+                  className={`px-2 py-1 text-xs rounded-full ${
+                    type.id === "already_onboarded"
+                      ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30"
+                      : "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                  }`}
+                >
+                  {type.badge}
                 </span>
               </div>
             )}
 
             {/* Selected indicator */}
-            {selected === sub.id && (
+            {selected === type.id && (
               <div className="absolute top-4 left-4">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white text-xs">
                   ✓
@@ -161,22 +164,36 @@ export default function ListingTypePicker({
               </div>
             )}
 
-            <div className="text-4xl mb-4">{sub.icon}</div>
-            <h3 className="text-xl font-semibold text-white mb-2 group-hover:text-emerald-300 transition">
-              {sub.label}
+            <div className="text-4xl mb-4">{type.icon}</div>
+            <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-emerald-300 transition">
+              {type.label}
             </h3>
-            <p className="text-sm text-slate-400">{sub.description}</p>
+            <p className="text-sm text-slate-400 line-clamp-3">
+              {type.description}
+            </p>
           </button>
         ))}
       </div>
 
-      {/* Selection info */}
+      {/* No subcategories fallback */}
+      {subcategories.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-slate-400">
+            No subcategories available for this category.
+          </p>
+          <button type="button" onClick={onBack} className="mt-4 btn-secondary">
+            Choose a different category
+          </button>
+        </div>
+      )}
+
+      {/* Continue hint */}
       {selected && (
         <div className="mt-6 text-center">
           <p className="text-slate-400 text-sm">
             Selected:{" "}
             <span className="text-white font-medium">
-              {subcategories.find((s) => s.id === selected)?.label}
+              {subcategories.find((c) => c.id === selected)?.label}
             </span>
           </p>
         </div>
