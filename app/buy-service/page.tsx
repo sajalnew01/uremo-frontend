@@ -24,6 +24,7 @@ type Service = {
   description?: string;
   shortDescription?: string;
   category?: string;
+  subcategory?: string;
   listingType?: string;
   serviceType?: string;
   countries?: string[];
@@ -44,7 +45,7 @@ type Service = {
 
 type FiltersState = {
   category: string;
-  listingType: string;
+  subcategory: string;
   country: string;
   platform: string;
   subject: string;
@@ -67,10 +68,10 @@ export default function BuyServicePage() {
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
 
-  // PATCH_17: Vision-aligned filters with new fields
+  // PATCH_19: Vision-aligned filters with subcategory (not listingType)
   const [filters, setFilters] = useState<FiltersState>({
     category: "",
-    listingType: "",
+    subcategory: "",
     country: "all",
     platform: "all",
     subject: "all",
@@ -92,12 +93,12 @@ export default function BuyServicePage() {
 
   const getStartedHref = isAuthenticated ? "/dashboard" : "/login";
 
-  // PATCH_17: Step navigation handlers
+  // PATCH_19: Step navigation handlers
   const handleCategorySelect = (categoryId: string) => {
     setFilters((prev) => ({
       ...prev,
       category: categoryId,
-      listingType: "",
+      subcategory: "",
       country: "all",
       platform: "all",
       subject: "all",
@@ -107,10 +108,10 @@ export default function BuyServicePage() {
     setStep(2);
   };
 
-  const handleListingTypeSelect = (listingTypeId: string) => {
+  const handleSubcategorySelect = (subcategoryId: string) => {
     setFilters((prev) => ({
       ...prev,
-      listingType: listingTypeId,
+      subcategory: subcategoryId,
       country: "all",
       platform: "all",
       subject: "all",
@@ -124,7 +125,7 @@ export default function BuyServicePage() {
     setStep(1);
     setFilters({
       category: "",
-      listingType: "",
+      subcategory: "",
       country: "all",
       platform: "all",
       subject: "all",
@@ -135,11 +136,11 @@ export default function BuyServicePage() {
     setServices([]);
   };
 
-  const handleBackToListingTypes = () => {
+  const handleBackToSubcategories = () => {
     setStep(2);
     setFilters((prev) => ({
       ...prev,
-      listingType: "",
+      subcategory: "",
       country: "all",
       platform: "all",
       subject: "all",
@@ -149,9 +150,9 @@ export default function BuyServicePage() {
     setServices([]);
   };
 
-  // PATCH_19: Fetch services with subcategory filter
+  // PATCH_19: Fetch services with subcategory-based filtering
   const loadServices = useCallback(async () => {
-    if (step !== 3 || !filters.category || !filters.listingType) return;
+    if (step !== 3 || !filters.category || !filters.subcategory) return;
 
     setLoading(true);
     try {
@@ -159,10 +160,9 @@ export default function BuyServicePage() {
       const params = new URLSearchParams();
       params.set("limit", "100");
       params.set("category", filters.category);
-      // PATCH_19: Send as subcategory (backend now uses this)
-      params.set("subcategory", filters.listingType);
+      params.set("subcategory", filters.subcategory);
 
-      // PATCH_19: Country filter applies to all categories
+      // PATCH_19: Only send filters that apply to current subcategory
       if (filters.country && filters.country !== "all") {
         params.set("country", filters.country);
       }
@@ -170,17 +170,17 @@ export default function BuyServicePage() {
         params.set("platform", filters.platform);
       }
 
-      // Subject only for fresh_account (microjobs)
+      // Subject only for fresh_account subcategory
       if (
-        filters.listingType === "fresh_account" &&
+        filters.subcategory === "fresh_account" &&
         filters.subject &&
         filters.subject !== "all"
       ) {
         params.set("subject", filters.subject);
       }
 
-      // projectName and minPayRate only for already_onboarded (microjobs)
-      if (filters.listingType === "already_onboarded") {
+      // projectName and minPayRate only for already_onboarded subcategory
+      if (filters.subcategory === "already_onboarded") {
         if (filters.projectName && filters.projectName !== "all") {
           params.set("projectName", filters.projectName);
         }
@@ -301,13 +301,13 @@ export default function BuyServicePage() {
           </div>
         </div>
 
-        {/* PATCH_17: Step indicator */}
+        {/* PATCH_19: Step indicator */}
         {step > 1 && (
           <div className="mt-4 flex items-center gap-2 text-sm text-slate-400">
             <button
               type="button"
               onClick={() => {
-                if (step === 3) handleBackToListingTypes();
+                if (step === 3) handleBackToSubcategories();
                 else if (step === 2) handleBackToCategories();
               }}
               className="text-blue-400 hover:text-blue-300 transition"
@@ -319,7 +319,7 @@ export default function BuyServicePage() {
               {step === 2 &&
                 `Category: ${filters.category?.replace(/_/g, " ")}`}
               {step === 3 &&
-                `${filters.category?.replace(/_/g, " ")} → ${filters.listingType?.replace(/_/g, " ")}`}
+                `${filters.category?.replace(/_/g, " ")} → ${filters.subcategory?.replace(/_/g, " ")}`}
             </span>
           </div>
         )}
@@ -333,12 +333,12 @@ export default function BuyServicePage() {
         />
       )}
 
-      {/* PATCH_17: Step 2 - Listing Type Selection */}
+      {/* PATCH_19: Step 2 - Subcategory Selection */}
       {step === 2 && (
         <ListingTypePicker
           category={filters.category}
-          selected={filters.listingType}
-          onSelect={handleListingTypeSelect}
+          selected={filters.subcategory}
+          onSelect={handleSubcategorySelect}
           onBack={handleBackToCategories}
         />
       )}
@@ -366,7 +366,7 @@ export default function BuyServicePage() {
               availableProjects={availableProjects}
               payRateRange={payRateRange}
               onRefresh={loadServices}
-              onBack={handleBackToListingTypes}
+              onBack={handleBackToSubcategories}
               loading={loading}
             />
           </div>
@@ -461,9 +461,9 @@ export default function BuyServicePage() {
                               {s.category.replace(/_/g, " ")}
                             </span>
                           )}
-                          {s.listingType && (
+                          {s.subcategory && (
                             <span className="u-pill text-slate-200">
-                              {s.listingType.replace(/_/g, " ")}
+                              {s.subcategory.replace(/_/g, " ")}
                             </span>
                           )}
                           {s.platform && (

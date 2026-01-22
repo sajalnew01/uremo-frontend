@@ -1,8 +1,9 @@
 "use client";
 
-// PATCH_19: Subcategory Picker - shows different options per category
+// PATCH_19: Subcategory Picker for Step 2 of Buy Service 3-step flow
+// Each category has its OWN subcategories (not universal fresh_account/already_onboarded)
 
-type SubcategoryOption = {
+type Subcategory = {
   id: string;
   label: string;
   description: string;
@@ -10,8 +11,8 @@ type SubcategoryOption = {
   badge?: string;
 };
 
-// Subcategories per category - MUST match backend Service.js
-const SUBCATEGORIES_BY_CATEGORY: Record<string, SubcategoryOption[]> = {
+// PATCH_19: Category-specific subcategories
+const SUBCATEGORIES_BY_CATEGORY: Record<string, Subcategory[]> = {
   microjobs: [
     {
       id: "fresh_account",
@@ -32,15 +33,17 @@ const SUBCATEGORIES_BY_CATEGORY: Record<string, SubcategoryOption[]> = {
   forex_crypto: [
     {
       id: "forex_platform_creation",
-      label: "Forex Platform Creation",
-      description: "Full setup and verification for forex trading platforms.",
+      label: "Forex Trading Platform Creation Assistance",
+      description:
+        "Get help setting up forex trading platform accounts with proper verification.",
       icon: "📊",
-      badge: "Trading",
+      badge: "Forex",
     },
     {
       id: "crypto_platform_creation",
-      label: "Crypto Platform Creation",
-      description: "Crypto exchange account setup and KYC verification.",
+      label: "Crypto Platform Creation Assistance",
+      description:
+        "Assistance with cryptocurrency exchange and wallet account setup.",
       icon: "🪙",
       badge: "Crypto",
     },
@@ -48,24 +51,26 @@ const SUBCATEGORIES_BY_CATEGORY: Record<string, SubcategoryOption[]> = {
   banks_gateways_wallets: [
     {
       id: "banks",
-      label: "Bank Accounts",
-      description: "Traditional bank account setup and verification services.",
+      label: "Banks",
+      description:
+        "Traditional bank account setup and verification assistance.",
       icon: "🏦",
       badge: "Banking",
     },
     {
       id: "payment_gateways",
       label: "Payment Gateways",
-      description: "Stripe, PayPal, and other payment processor accounts.",
+      description:
+        "Payment processor accounts like Stripe, PayPal, Payoneer setup.",
       icon: "💳",
       badge: "Payments",
     },
     {
       id: "wallets",
-      label: "Digital Wallets",
-      description: "E-wallet and mobile money account services.",
-      icon: "👝",
-      badge: "Wallets",
+      label: "Wallets",
+      description: "Digital wallet and e-wallet account creation assistance.",
+      icon: "👛",
+      badge: "E-Wallets",
     },
   ],
 };
@@ -93,9 +98,12 @@ export default function ListingTypePicker({
     return labels[id] || id;
   };
 
-  // Get subcategories for the selected category
-  const subcategories =
-    SUBCATEGORIES_BY_CATEGORY[category] || SUBCATEGORIES_BY_CATEGORY.microjobs;
+  // PATCH_19: Get subcategories for the selected category
+  const subcategories = SUBCATEGORIES_BY_CATEGORY[category] || [];
+
+  // Determine grid columns based on number of subcategories
+  const gridCols =
+    subcategories.length === 3 ? "md:grid-cols-3" : "md:grid-cols-2";
 
   return (
     <div className="space-y-4">
@@ -123,37 +131,29 @@ export default function ListingTypePicker({
         </p>
       </div>
 
-      <div
-        className={`grid grid-cols-1 ${subcategories.length <= 2 ? "md:grid-cols-2" : "md:grid-cols-3"} gap-6 max-w-4xl mx-auto`}
-      >
-        {subcategories.map((type) => (
+      <div className={`grid grid-cols-1 ${gridCols} gap-6 max-w-4xl mx-auto`}>
+        {subcategories.map((sub) => (
           <button
-            key={type.id}
+            key={sub.id}
             type="button"
-            onClick={() => onSelect(type.id)}
+            onClick={() => onSelect(sub.id)}
             className={`group relative p-8 rounded-2xl border text-left transition-all duration-300 ${
-              selected === type.id
+              selected === sub.id
                 ? "border-emerald-500 bg-emerald-500/10 shadow-[0_0_30px_rgba(16,185,129,0.2)]"
                 : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
             }`}
           >
             {/* Badge */}
-            {type.badge && (
+            {sub.badge && (
               <div className="absolute top-4 right-4">
-                <span
-                  className={`px-2 py-1 text-xs rounded-full ${
-                    type.id === "already_onboarded"
-                      ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30"
-                      : "bg-blue-500/20 text-blue-300 border border-blue-500/30"
-                  }`}
-                >
-                  {type.badge}
+                <span className="px-2 py-1 text-xs rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                  {sub.badge}
                 </span>
               </div>
             )}
 
             {/* Selected indicator */}
-            {selected === type.id && (
+            {selected === sub.id && (
               <div className="absolute top-4 left-4">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white text-xs">
                   ✓
@@ -161,11 +161,11 @@ export default function ListingTypePicker({
               </div>
             )}
 
-            <div className="text-4xl mb-4">{type.icon}</div>
+            <div className="text-4xl mb-4">{sub.icon}</div>
             <h3 className="text-xl font-semibold text-white mb-2 group-hover:text-emerald-300 transition">
-              {type.label}
+              {sub.label}
             </h3>
-            <p className="text-sm text-slate-400">{type.description}</p>
+            <p className="text-sm text-slate-400">{sub.description}</p>
           </button>
         ))}
       </div>
@@ -176,7 +176,7 @@ export default function ListingTypePicker({
           <p className="text-slate-400 text-sm">
             Selected:{" "}
             <span className="text-white font-medium">
-              {subcategories.find((t) => t.id === selected)?.label}
+              {subcategories.find((s) => s.id === selected)?.label}
             </span>
           </p>
         </div>

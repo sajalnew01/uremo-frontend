@@ -1,6 +1,6 @@
 "use client";
 
-// PATCH_17: Dynamic filters based on listingType for 3-step flow
+// PATCH_19: Dynamic filters based on subcategory for 3-step flow
 
 // Inline RefreshCw icon to avoid lucide-react dependency
 function RefreshIcon({ className }: { className?: string }) {
@@ -25,7 +25,7 @@ function RefreshIcon({ className }: { className?: string }) {
 
 type FiltersState = {
   category: string;
-  listingType: string;
+  subcategory: string;
   country: string;
   platform: string;
   subject: string;
@@ -59,10 +59,10 @@ export default function ServiceFilters({
   onBack,
   loading,
 }: ServiceFiltersProps) {
-  const isFreshAccount = filters.listingType === "fresh_account";
-  const isAlreadyOnboarded = filters.listingType === "already_onboarded";
+  const isFreshAccount = filters.subcategory === "fresh_account";
+  const isAlreadyOnboarded = filters.subcategory === "already_onboarded";
 
-  // Get category and listing type labels for display
+  // Get category label for display
   const getCategoryLabel = (id: string) => {
     const labels: Record<string, string> = {
       microjobs: "Microjobs",
@@ -72,12 +72,21 @@ export default function ServiceFilters({
     return labels[id] || id;
   };
 
-  const getListingTypeLabel = (id: string) => {
+  // PATCH_19: Subcategory labels for all categories
+  const getSubcategoryLabel = (id: string) => {
     const labels: Record<string, string> = {
+      // Microjobs
       fresh_account: "Fresh Account",
       already_onboarded: "Already Onboarded",
+      // Forex/Crypto
+      forex_platform_creation: "Forex Trading Platform Creation",
+      crypto_platform_creation: "Crypto Platform Creation",
+      // Banks/Gateways/Wallets
+      banks: "Banks",
+      payment_gateways: "Payment Gateways",
+      wallets: "Wallets",
     };
-    return labels[id] || id;
+    return labels[id] || id.replace(/_/g, " ");
   };
 
   return (
@@ -99,14 +108,14 @@ export default function ServiceFilters({
           </span>
           <span className="text-slate-500">→</span>
           <span className="px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">
-            {getListingTypeLabel(filters.listingType)}
+            {getSubcategoryLabel(filters.subcategory)}
           </span>
         </div>
       </div>
 
-      {/* Dynamic filters based on listing type */}
+      {/* Dynamic filters based on subcategory */}
       <div className="flex flex-wrap gap-3 items-center p-4 rounded-xl border border-white/10 bg-white/5">
-        {/* PATCH_18: Country Filter - Only show if countries available */}
+        {/* PATCH_19: Country Filter - Only show if countries available */}
         {availableCountries.length > 0 && (
           <select
             value={filters.country}

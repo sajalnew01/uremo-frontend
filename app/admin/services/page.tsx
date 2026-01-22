@@ -6,6 +6,27 @@ import { useToast } from "@/hooks/useToast";
 import { withCacheBust } from "@/lib/cacheBust";
 import { emitServicesRefresh, onServicesRefresh } from "@/lib/events";
 
+// PATCH_19: Category and subcategory enums for admin form
+const CATEGORIES = [
+  "microjobs",
+  "forex_crypto",
+  "banks_gateways_wallets",
+] as const;
+const SUBCATEGORIES_BY_CATEGORY: Record<string, string[]> = {
+  microjobs: ["fresh_account", "already_onboarded"],
+  forex_crypto: ["forex_platform_creation", "crypto_platform_creation"],
+  banks_gateways_wallets: ["banks", "payment_gateways", "wallets"],
+};
+const SUBCATEGORY_LABELS: Record<string, string> = {
+  fresh_account: "Fresh Account",
+  already_onboarded: "Already Onboarded",
+  forex_platform_creation: "Forex Trading Platform Creation",
+  crypto_platform_creation: "Crypto Platform Creation",
+  banks: "Banks",
+  payment_gateways: "Payment Gateways",
+  wallets: "Wallets",
+};
+
 export default function AdminServicesPage() {
   const { toast } = useToast();
   const [services, setServices] = useState<any[]>([]);
@@ -14,6 +35,7 @@ export default function AdminServicesPage() {
   const [editing, setEditing] = useState<any | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editCategory, setEditCategory] = useState("");
+  const [editSubcategory, setEditSubcategory] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editRequirements, setEditRequirements] = useState("");
   const [editPrice, setEditPrice] = useState("");
@@ -24,8 +46,7 @@ export default function AdminServicesPage() {
   const [editImagePreviewBust, setEditImagePreviewBust] = useState<number>(() =>
     Date.now(),
   );
-  // PATCH_17: Edit state for new fields
-  const [editSubcategory, setEditSubcategory] = useState("");
+  // PATCH_19: Edit state for new fields
   const [editPlatform, setEditPlatform] = useState("");
   const [editSubject, setEditSubject] = useState("");
   const [editProjectName, setEditProjectName] = useState("");
@@ -39,6 +60,7 @@ export default function AdminServicesPage() {
   // form state
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
+  const [subcategory, setSubcategory] = useState("");
   const [description, setDescription] = useState("");
   const [requirements, setRequirements] = useState("");
   const [price, setPrice] = useState("");
@@ -48,8 +70,7 @@ export default function AdminServicesPage() {
   const [imagePreviewBust, setImagePreviewBust] = useState<number>(() =>
     Date.now(),
   );
-  // PATCH_17: Create state for new fields
-  const [subcategory, setSubcategory] = useState("");
+  // PATCH_19: Create state for new fields
   const [platform, setPlatform] = useState("");
   const [subject, setSubject] = useState("");
   const [projectName, setProjectName] = useState("");
@@ -139,6 +160,7 @@ export default function AdminServicesPage() {
         {
           title,
           category,
+          subcategory: subcategory || undefined,
           description,
           shortDescription: shortDescription || undefined,
           requirements,
@@ -146,8 +168,7 @@ export default function AdminServicesPage() {
           deliveryType,
           images,
           imageUrl,
-          // PATCH_19: Use subcategory instead of listingType
-          subcategory: subcategory || undefined,
+          // PATCH_19: New fields
           platform: platform || undefined,
           subject: subject || undefined,
           projectName: projectName || undefined,
@@ -167,6 +188,7 @@ export default function AdminServicesPage() {
 
       setTitle("");
       setCategory("");
+      setSubcategory("");
       setDescription("");
       setShortDescription("");
       setRequirements("");
@@ -175,7 +197,6 @@ export default function AdminServicesPage() {
       setImages([]);
       setImageUrl("");
       // PATCH_19: Reset new fields
-      setSubcategory("");
       setPlatform("");
       setSubject("");
       setProjectName("");
@@ -231,8 +252,8 @@ export default function AdminServicesPage() {
     setEditDeliveryType(service?.deliveryType || "manual");
     setEditActive(Boolean(service?.active));
     setEditImageUrl(service?.imageUrl || "");
-    // PATCH_19: Load subcategory (fallback to listingType for existing data)
-    setEditSubcategory(service?.subcategory || service?.listingType || "");
+    // PATCH_19: Load subcategory (renamed from listingType)
+    setEditSubcategory(service?.subcategory || "");
     setEditPlatform(service?.platform || "");
     setEditSubject(service?.subject || "");
     setEditProjectName(service?.projectName || "");
@@ -273,7 +294,7 @@ export default function AdminServicesPage() {
           deliveryType: editDeliveryType,
           imageUrl: editImageUrl,
           active: editActive,
-          // PATCH_19: Use subcategory instead of listingType
+          // PATCH_19: Subcategory (renamed from listingType)
           subcategory: editSubcategory || undefined,
           platform: editPlatform || undefined,
           subject: editSubject || undefined,
@@ -349,22 +370,12 @@ export default function AdminServicesPage() {
           className="u-input"
         />
 
-        {/* PATCH_19: Category dropdown */}
-        <select
+        <input
+          placeholder="Category (KYC / Onboarding / Gig)"
           value={category}
-          onChange={(e) => {
-            setCategory(e.target.value);
-            setSubcategory(""); // Reset subcategory when category changes
-          }}
-          className="u-select"
-        >
-          <option value="">Select Category</option>
-          <option value="microjobs">Microjobs</option>
-          <option value="forex_crypto">Forex / Crypto</option>
-          <option value="banks_gateways_wallets">
-            Banks / Gateways / Wallets
-          </option>
-        </select>
+          onChange={(e) => setCategory(e.target.value)}
+          className="u-input"
+        />
 
         <input
           placeholder="Short Description (optional, for cards)"
@@ -405,7 +416,7 @@ export default function AdminServicesPage() {
           <option value="instant">Instant</option>
         </select>
 
-        {/* PATCH_19: Subcategory options per category */}
+        {/* PATCH_19: Subcategory - dynamic based on category */}
         <div className="grid grid-cols-2 gap-4">
           <select
             value={subcategory}
@@ -413,30 +424,18 @@ export default function AdminServicesPage() {
             className="u-select"
             disabled={!category}
           >
-            <option value="">Select Subcategory</option>
-            {category === "microjobs" && (
-              <>
-                <option value="fresh_account">Fresh Account</option>
-                <option value="already_onboarded">Already Onboarded</option>
-              </>
-            )}
-            {category === "forex_crypto" && (
-              <>
-                <option value="forex_platform_creation">
-                  Forex Platform Creation
+            <option value="">
+              {category ? "Select Subcategory" : "Select Category First"}
+            </option>
+            {category &&
+              SUBCATEGORIES_BY_CATEGORY[
+                category as keyof typeof SUBCATEGORIES_BY_CATEGORY
+              ]?.map((sub) => (
+                <option key={sub} value={sub}>
+                  {SUBCATEGORY_LABELS[sub as keyof typeof SUBCATEGORY_LABELS] ||
+                    sub}
                 </option>
-                <option value="crypto_platform_creation">
-                  Crypto Platform Creation
-                </option>
-              </>
-            )}
-            {category === "banks_gateways_wallets" && (
-              <>
-                <option value="banks">Banks</option>
-                <option value="payment_gateways">Payment Gateways</option>
-                <option value="wallets">Wallets</option>
-              </>
-            )}
+              ))}
           </select>
 
           <select
@@ -667,22 +666,12 @@ export default function AdminServicesPage() {
                   onChange={(e) => setEditTitle(e.target.value)}
                   className="u-input"
                 />
-                {/* PATCH_19: Category dropdown */}
-                <select
+                <input
+                  placeholder="Category"
                   value={editCategory}
-                  onChange={(e) => {
-                    setEditCategory(e.target.value);
-                    setEditSubcategory(""); // Reset subcategory when category changes
-                  }}
-                  className="u-select"
-                >
-                  <option value="">Select Category</option>
-                  <option value="microjobs">Microjobs</option>
-                  <option value="forex_crypto">Forex / Crypto</option>
-                  <option value="banks_gateways_wallets">
-                    Banks / Gateways / Wallets
-                  </option>
-                </select>
+                  onChange={(e) => setEditCategory(e.target.value)}
+                  className="u-input"
+                />
                 <input
                   placeholder="Short Description (optional)"
                   value={editShortDescription}
@@ -720,7 +709,7 @@ export default function AdminServicesPage() {
                   </select>
                 </div>
 
-                {/* PATCH_19: Subcategory options per category */}
+                {/* PATCH_19: Subcategory - dynamic based on category */}
                 <div className="grid grid-cols-2 gap-3">
                   <select
                     value={editSubcategory}
@@ -728,34 +717,21 @@ export default function AdminServicesPage() {
                     className="u-select"
                     disabled={!editCategory}
                   >
-                    <option value="">Select Subcategory</option>
-                    {editCategory === "microjobs" && (
-                      <>
-                        <option value="fresh_account">Fresh Account</option>
-                        <option value="already_onboarded">
-                          Already Onboarded
+                    <option value="">
+                      {editCategory
+                        ? "Select Subcategory"
+                        : "Select Category First"}
+                    </option>
+                    {editCategory &&
+                      SUBCATEGORIES_BY_CATEGORY[
+                        editCategory as keyof typeof SUBCATEGORIES_BY_CATEGORY
+                      ]?.map((sub) => (
+                        <option key={sub} value={sub}>
+                          {SUBCATEGORY_LABELS[
+                            sub as keyof typeof SUBCATEGORY_LABELS
+                          ] || sub}
                         </option>
-                      </>
-                    )}
-                    {editCategory === "forex_crypto" && (
-                      <>
-                        <option value="forex_platform_creation">
-                          Forex Platform Creation
-                        </option>
-                        <option value="crypto_platform_creation">
-                          Crypto Platform Creation
-                        </option>
-                      </>
-                    )}
-                    {editCategory === "banks_gateways_wallets" && (
-                      <>
-                        <option value="banks">Banks</option>
-                        <option value="payment_gateways">
-                          Payment Gateways
-                        </option>
-                        <option value="wallets">Wallets</option>
-                      </>
-                    )}
+                      ))}
                   </select>
                   <select
                     value={editStatus}
