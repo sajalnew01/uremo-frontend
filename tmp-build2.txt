@@ -1,0 +1,67 @@
+﻿Ôû▓ Next.js 16.1.1 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+Ô£ô Compiled successfully in 17.1s
+  Running TypeScript ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/41) ...
+  Generating static pages using 7 workers (10/41) 
+  Generating static pages using 7 workers (20/41) 
+  Generating static pages using 7 workers (30/41) 
+Ô£ô Generating static pages using 7 workers (41/41) in 3.2s
+  Finalizing page optimization ...
+
+Route (app)
+Ôöî Ôùï /
+Ôö£ Ôùï /_not-found
+Ôö£ Ôùï /admin
+Ôö£ Ôùï /admin/applications
+Ôö£ Ôùï /admin/apply-work
+Ôö£ Ôùï /admin/email
+Ôö£ Ôùï /admin/jarvisx
+Ôö£ Ôùï /admin/jarvisx-write
+Ôö£ Ôùï /admin/messages
+Ôö£ Ôùï /admin/orders
+Ôö£ ãÆ /admin/orders/[orderId]
+Ôö£ Ôùï /admin/payment-methods
+Ôö£ Ôùï /admin/payments
+Ôö£ Ôùï /admin/rejected-orders
+Ôö£ Ôùï /admin/service-requests
+Ôö£ Ôùï /admin/services
+Ôö£ Ôùï /admin/settings
+Ôö£ Ôùï /admin/work-applications
+Ôö£ Ôùï /admin/work-positions
+Ôö£ Ôùï /api-debug
+Ôö£ ãÆ /api/jarvisx/chat
+Ôö£ ãÆ /api/jarvisx/context/admin
+Ôö£ ãÆ /api/jarvisx/context/public
+Ôö£ ãÆ /api/jarvisx/custom-request
+Ôö£ ãÆ /api/jarvisx/health-report
+Ôö£ ãÆ /api/jarvisx/ping
+Ôö£ ãÆ /api/jarvisx/request-service
+Ôö£ ãÆ /api/jarvisx/write/[...path]
+Ôö£ Ôùï /apply-to-work
+Ôö£ Ôùï /buy-service
+Ôö£ Ôùï /dashboard
+Ôö£ Ôùï /login
+Ôö£ Ôùï /orders
+Ôö£ ãÆ /orders/[id]
+Ôö£ Ôùï /payment
+Ôö£ Ôùï /payment-success
+Ôö£ ãÆ /payment/[orderId]
+Ôö£ Ôùï /profile
+Ôö£ Ôùï /robots.txt
+Ôö£ Ôùï /services
+Ôö£ ãÆ /services/[id]
+Ôö£ Ôùï /signup
+Ôö£ Ôùï /sitemap.xml
+Ôö£ Ôùï /support
+Ôöö Ôùï /upload
+
+
+ãÆ Proxy (Middleware)
+
+Ôùï  (Static)   prerendered as static content
+ãÆ  (Dynamic)  server-rendered on demand
+

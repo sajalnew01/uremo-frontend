@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import { withCacheBust } from "@/lib/cacheBust";
+import { emitServicesRefresh, onServicesRefresh } from "@/lib/events";
 
 export default function AdminServicesPage() {
   const { toast } = useToast();
@@ -21,8 +22,19 @@ export default function AdminServicesPage() {
   const [editImageUrl, setEditImageUrl] = useState("");
   const [editSaving, setEditSaving] = useState(false);
   const [editImagePreviewBust, setEditImagePreviewBust] = useState<number>(() =>
-    Date.now()
+    Date.now(),
   );
+  // PATCH_17: Edit state for new fields
+  const [editListingType, setEditListingType] = useState("");
+  const [editPlatform, setEditPlatform] = useState("");
+  const [editSubject, setEditSubject] = useState("");
+  const [editProjectName, setEditProjectName] = useState("");
+  const [editPayRate, setEditPayRate] = useState("");
+  const [editInstantDelivery, setEditInstantDelivery] = useState(false);
+  // PATCH_18: Additional edit state
+  const [editStatus, setEditStatus] = useState("active");
+  const [editCountries, setEditCountries] = useState("");
+  const [editShortDescription, setEditShortDescription] = useState("");
 
   // form state
   const [title, setTitle] = useState("");
@@ -34,8 +46,19 @@ export default function AdminServicesPage() {
   const [images, setImages] = useState<string[]>([]);
   const [imageUrl, setImageUrl] = useState("");
   const [imagePreviewBust, setImagePreviewBust] = useState<number>(() =>
-    Date.now()
+    Date.now(),
   );
+  // PATCH_17: Create state for new fields
+  const [listingType, setListingType] = useState("");
+  const [platform, setPlatform] = useState("");
+  const [subject, setSubject] = useState("");
+  const [projectName, setProjectName] = useState("");
+  const [payRate, setPayRate] = useState("");
+  const [instantDelivery, setInstantDelivery] = useState(false);
+  // PATCH_18: Additional create state
+  const [status, setStatus] = useState("active");
+  const [countries, setCountries] = useState("");
+  const [shortDescription, setShortDescription] = useState("");
 
   useEffect(() => {
     if (imageUrl) setImagePreviewBust(Date.now());
@@ -45,11 +68,37 @@ export default function AdminServicesPage() {
     if (editImageUrl) setEditImagePreviewBust(Date.now());
   }, [editImageUrl]);
 
+  // PATCH_18: Listen for services:refresh events (e.g., from JarvisX)
+  useEffect(() => {
+    const cleanup = onServicesRefresh(() => {
+      loadServices();
+    });
+    return cleanup;
+  }, []);
+
+  // PATCH_18: Lock body scroll when modal is open
+  useEffect(() => {
+    if (editing) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [editing]);
+
   // load services
   const loadServices = async () => {
     try {
       const data = await apiRequest("/api/admin/services", "GET", null, true);
-      setServices(data);
+      // PATCH_18: Handle new response format
+      const servicesList = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.services)
+          ? data.services
+          : [];
+      setServices(servicesList);
     } catch (err) {
       console.error(err);
     }
@@ -67,7 +116,7 @@ export default function AdminServicesPage() {
         "POST",
         formData,
         true,
-        true
+        true,
       );
       setImages(res.urls);
     } catch (err) {
@@ -91,25 +140,53 @@ export default function AdminServicesPage() {
           title,
           category,
           description,
+          shortDescription: shortDescription || undefined,
           requirements,
           price: Number(price),
           deliveryType,
           images,
           imageUrl,
+          // PATCH_17: New fields
+          listingType: listingType || undefined,
+          platform: platform || undefined,
+          subject: subject || undefined,
+          projectName: projectName || undefined,
+          payRate: payRate ? Number(payRate) : undefined,
+          instantDelivery,
+          // PATCH_18: Status and countries
+          status: status || "active",
+          countries: countries
+            ? countries
+                .split(",")
+                .map((c) => c.trim())
+                .filter(Boolean)
+            : undefined,
         },
-        true
+        true,
       );
 
       setTitle("");
       setCategory("");
       setDescription("");
+      setShortDescription("");
       setRequirements("");
       setPrice("");
       setDeliveryType("manual");
       setImages([]);
       setImageUrl("");
+      // PATCH_17: Reset new fields
+      setListingType("");
+      setPlatform("");
+      setSubject("");
+      setProjectName("");
+      setPayRate("");
+      setInstantDelivery(false);
+      // PATCH_18: Reset new fields
+      setStatus("active");
+      setCountries("");
 
       await loadServices();
+      emitServicesRefresh(); // PATCH_18: Notify buy-service page
       toast("Service added successfully and is now live.", "success");
     } catch (err: any) {
       toast(err.message || "Failed to create service", "error");
@@ -124,9 +201,10 @@ export default function AdminServicesPage() {
         `/api/admin/services/${id}`,
         "PUT",
         { active: !active },
-        true
+        true,
       );
-      loadServices();
+      await loadServices();
+      emitServicesRefresh(); // PATCH_18: Notify buy-service page
     } catch (err) {
       toast("Failed to update service", "error");
     }
@@ -136,7 +214,8 @@ export default function AdminServicesPage() {
     if (!confirm("Delete this service?")) return;
     try {
       await apiRequest(`/api/admin/services/${id}`, "DELETE", null, true);
-      loadServices();
+      await loadServices();
+      emitServicesRefresh(); // PATCH_18: Notify buy-service page
     } catch (err) {
       toast("Failed to delete service", "error");
     }
@@ -152,6 +231,19 @@ export default function AdminServicesPage() {
     setEditDeliveryType(service?.deliveryType || "manual");
     setEditActive(Boolean(service?.active));
     setEditImageUrl(service?.imageUrl || "");
+    // PATCH_17: Load new fields
+    setEditListingType(service?.listingType || "");
+    setEditPlatform(service?.platform || "");
+    setEditSubject(service?.subject || "");
+    setEditProjectName(service?.projectName || "");
+    setEditPayRate(String(service?.payRate ?? ""));
+    setEditInstantDelivery(Boolean(service?.instantDelivery));
+    // PATCH_18: Load new fields
+    setEditStatus(service?.status || "active");
+    setEditCountries(
+      Array.isArray(service?.countries) ? service.countries.join(", ") : "",
+    );
+    setEditShortDescription(service?.shortDescription || "");
   };
 
   const closeEdit = () => {
@@ -175,18 +267,35 @@ export default function AdminServicesPage() {
           title: editTitle,
           category: editCategory,
           description: editDescription,
+          shortDescription: editShortDescription || undefined,
           requirements: editRequirements,
           price: Number(editPrice),
           deliveryType: editDeliveryType,
           imageUrl: editImageUrl,
           active: editActive,
+          // PATCH_17: New fields
+          listingType: editListingType || undefined,
+          platform: editPlatform || undefined,
+          subject: editSubject || undefined,
+          projectName: editProjectName || undefined,
+          payRate: editPayRate ? Number(editPayRate) : undefined,
+          instantDelivery: editInstantDelivery,
+          // PATCH_18: Status and countries
+          status: editStatus || "active",
+          countries: editCountries
+            ? editCountries
+                .split(",")
+                .map((c) => c.trim())
+                .filter(Boolean)
+            : undefined,
         },
-        true
+        true,
       );
 
       toast("Service updated", "success");
       closeEdit();
       await loadServices();
+      emitServicesRefresh(); // PATCH_18: Notify buy-service page
     } catch (err: any) {
       toast(err?.message || "Failed to update service", "error");
     } finally {
@@ -205,7 +314,7 @@ export default function AdminServicesPage() {
         "POST",
         formData,
         true,
-        true
+        true,
       );
 
       const url = Array.isArray(res?.urls) ? res.urls[0] : "";
@@ -247,6 +356,13 @@ export default function AdminServicesPage() {
           className="u-input"
         />
 
+        <input
+          placeholder="Short Description (optional, for cards)"
+          value={shortDescription}
+          onChange={(e) => setShortDescription(e.target.value)}
+          className="u-input"
+        />
+
         <textarea
           placeholder="Description"
           value={description}
@@ -278,6 +394,83 @@ export default function AdminServicesPage() {
           <option value="assisted">Assisted</option>
           <option value="instant">Instant</option>
         </select>
+
+        {/* PATCH_17: New fields */}
+        <div className="grid grid-cols-2 gap-4">
+          <select
+            value={listingType}
+            onChange={(e) => setListingType(e.target.value)}
+            className="u-select"
+          >
+            <option value="">Listing Type</option>
+            <option value="fresh_account">Fresh Account</option>
+            <option value="already_onboarded">Already Onboarded</option>
+            <option value="general">General</option>
+          </select>
+
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="u-select"
+          >
+            <option value="active">Active</option>
+            <option value="draft">Draft</option>
+            <option value="archived">Archived</option>
+          </select>
+        </div>
+
+        <input
+          placeholder="Countries (comma-separated: US, UK, Global)"
+          value={countries}
+          onChange={(e) => setCountries(e.target.value)}
+          className="u-input"
+        />
+
+        <div className="grid grid-cols-2 gap-4">
+          <input
+            placeholder="Platform (e.g., Appen, Remotasks)"
+            value={platform}
+            onChange={(e) => setPlatform(e.target.value)}
+            className="u-input"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <input
+            placeholder="Subject (e.g., Math, Coding)"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            className="u-input"
+          />
+
+          <input
+            placeholder="Project Name (e.g., Arrow)"
+            value={projectName}
+            onChange={(e) => setProjectName(e.target.value)}
+            className="u-input"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <input
+            placeholder="Pay Rate ($/hr)"
+            type="number"
+            step="0.01"
+            value={payRate}
+            onChange={(e) => setPayRate(e.target.value)}
+            className="u-input"
+          />
+
+          <label className="flex items-center gap-3 text-sm text-white">
+            <input
+              type="checkbox"
+              checked={instantDelivery}
+              onChange={(e) => setInstantDelivery(e.target.checked)}
+              className="w-4 h-4 accent-blue-500"
+            />
+            Instant Delivery
+          </label>
+        </div>
 
         <input
           placeholder="Image URL (hero image for service)"
@@ -409,127 +602,216 @@ export default function AdminServicesPage() {
 
       {/* EDIT MODAL */}
       {editing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-2xl rounded-xl border border-white/10 bg-[#0B1220] u-modal">
-            <div className="flex items-center justify-between p-4 border-b border-white/10">
-              <div>
-                <p className="text-xs text-[#9CA3AF]">Quick edit</p>
-                <h3 className="text-lg font-semibold text-white">
-                  {editing.title}
-                </h3>
+        <div
+          className="fixed inset-0 z-50 bg-black/60 overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeEdit();
+          }}
+        >
+          <div className="min-h-full flex items-center justify-center p-4 py-8">
+            <div
+              className="w-full max-w-2xl rounded-xl border border-white/10 bg-[#0B1220] u-modal max-h-[85vh] flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
+                <div>
+                  <p className="text-xs text-[#9CA3AF]">Quick edit</p>
+                  <h3 className="text-lg font-semibold text-white">
+                    {editing.title}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeEdit}
+                  className="text-sm text-[#9CA3AF] hover:text-white"
+                >
+                  Close
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={closeEdit}
-                className="text-sm text-[#9CA3AF] hover:text-white"
-              >
-                Close
-              </button>
-            </div>
 
-            <div className="p-4 space-y-3">
-              <input
-                placeholder="Title"
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                className="u-input"
-              />
-              <input
-                placeholder="Category"
-                value={editCategory}
-                onChange={(e) => setEditCategory(e.target.value)}
-                className="u-input"
-              />
-              <textarea
-                placeholder="Description"
-                value={editDescription}
-                onChange={(e) => setEditDescription(e.target.value)}
-                className="u-textarea"
-              />
-              <textarea
-                placeholder="Requirements"
-                value={editRequirements}
-                onChange={(e) => setEditRequirements(e.target.value)}
-                className="u-textarea"
-              />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="p-4 space-y-3 overflow-y-auto flex-1">
                 <input
-                  placeholder="Price"
-                  type="number"
-                  value={editPrice}
-                  onChange={(e) => setEditPrice(e.target.value)}
+                  placeholder="Title"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
                   className="u-input"
                 />
-                <select
-                  value={editDeliveryType}
-                  onChange={(e) => setEditDeliveryType(e.target.value)}
-                  className="u-select"
-                >
-                  <option value="manual">Manual</option>
-                  <option value="assisted">Assisted</option>
-                  <option value="instant">Instant</option>
-                </select>
-              </div>
-
-              <input
-                placeholder="Image URL (hero image for service)"
-                value={editImageUrl}
-                onChange={(e) => setEditImageUrl(e.target.value)}
-                className="u-input"
-              />
-
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <p className="text-xs text-[#9CA3AF]">
-                  Upload will set the Image URL automatically.
-                </p>
-                <label className="px-3 py-2 rounded bg-white/5 border border-white/10 text-white text-sm hover:bg-white/10 cursor-pointer">
-                  Upload hero image
+                <input
+                  placeholder="Category"
+                  value={editCategory}
+                  onChange={(e) => setEditCategory(e.target.value)}
+                  className="u-input"
+                />
+                <input
+                  placeholder="Short Description (optional)"
+                  value={editShortDescription}
+                  onChange={(e) => setEditShortDescription(e.target.value)}
+                  className="u-input"
+                />
+                <textarea
+                  placeholder="Description"
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  className="u-textarea"
+                />
+                <textarea
+                  placeholder="Requirements"
+                  value={editRequirements}
+                  onChange={(e) => setEditRequirements(e.target.value)}
+                  className="u-textarea"
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => uploadEditHeroImage(e.target.files)}
+                    placeholder="Price"
+                    type="number"
+                    value={editPrice}
+                    onChange={(e) => setEditPrice(e.target.value)}
+                    className="u-input"
                   />
+                  <select
+                    value={editDeliveryType}
+                    onChange={(e) => setEditDeliveryType(e.target.value)}
+                    className="u-select"
+                  >
+                    <option value="manual">Manual</option>
+                    <option value="assisted">Assisted</option>
+                    <option value="instant">Instant</option>
+                  </select>
+                </div>
+
+                {/* PATCH_17: New fields */}
+                <div className="grid grid-cols-2 gap-3">
+                  <select
+                    value={editListingType}
+                    onChange={(e) => setEditListingType(e.target.value)}
+                    className="u-select"
+                  >
+                    <option value="">Listing Type</option>
+                    <option value="fresh_account">Fresh Account</option>
+                    <option value="already_onboarded">Already Onboarded</option>
+                    <option value="general">General</option>
+                  </select>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value)}
+                    className="u-select"
+                  >
+                    <option value="active">Active</option>
+                    <option value="draft">Draft</option>
+                    <option value="archived">Archived</option>
+                  </select>
+                </div>
+
+                <input
+                  placeholder="Countries (comma-separated)"
+                  value={editCountries}
+                  onChange={(e) => setEditCountries(e.target.value)}
+                  className="u-input"
+                />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    placeholder="Platform"
+                    value={editPlatform}
+                    onChange={(e) => setEditPlatform(e.target.value)}
+                    className="u-input"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    placeholder="Subject"
+                    value={editSubject}
+                    onChange={(e) => setEditSubject(e.target.value)}
+                    className="u-input"
+                  />
+                  <input
+                    placeholder="Project Name"
+                    value={editProjectName}
+                    onChange={(e) => setEditProjectName(e.target.value)}
+                    className="u-input"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    placeholder="Pay Rate ($/hr)"
+                    type="number"
+                    step="0.01"
+                    value={editPayRate}
+                    onChange={(e) => setEditPayRate(e.target.value)}
+                    className="u-input"
+                  />
+                  <label className="flex items-center gap-2 text-sm text-slate-200">
+                    <input
+                      type="checkbox"
+                      checked={editInstantDelivery}
+                      onChange={(e) => setEditInstantDelivery(e.target.checked)}
+                    />
+                    Instant Delivery
+                  </label>
+                </div>
+
+                <input
+                  placeholder="Image URL (hero image for service)"
+                  value={editImageUrl}
+                  onChange={(e) => setEditImageUrl(e.target.value)}
+                  className="u-input"
+                />
+
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <p className="text-xs text-[#9CA3AF]">
+                    Upload will set the Image URL automatically.
+                  </p>
+                  <label className="px-3 py-2 rounded bg-white/5 border border-white/10 text-white text-sm hover:bg-white/10 cursor-pointer">
+                    Upload hero image
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => uploadEditHeroImage(e.target.files)}
+                    />
+                  </label>
+                </div>
+
+                {editImageUrl && (
+                  <div className="rounded-lg overflow-hidden border border-white/10">
+                    <img
+                      src={withCacheBust(editImageUrl, editImagePreviewBust)}
+                      alt="preview"
+                      className="w-full h-40 object-cover"
+                    />
+                  </div>
+                )}
+
+                <label className="flex items-center gap-2 text-sm text-slate-200">
+                  <input
+                    type="checkbox"
+                    checked={editActive}
+                    onChange={(e) => setEditActive(e.target.checked)}
+                  />
+                  Active
                 </label>
               </div>
 
-              {editImageUrl && (
-                <div className="rounded-lg overflow-hidden border border-white/10">
-                  <img
-                    src={withCacheBust(editImageUrl, editImagePreviewBust)}
-                    alt="preview"
-                    className="w-full h-40 object-cover"
-                  />
-                </div>
-              )}
-
-              <label className="flex items-center gap-2 text-sm text-slate-200">
-                <input
-                  type="checkbox"
-                  checked={editActive}
-                  onChange={(e) => setEditActive(e.target.checked)}
-                />
-                Active
-              </label>
-            </div>
-
-            <div className="p-4 border-t border-white/10 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={closeEdit}
-                className="px-4 py-2 rounded bg-white/5 border border-white/10 text-white hover:bg-white/10"
-                disabled={editSaving}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={saveEdit}
-                disabled={editSaving}
-                className="px-4 py-2 rounded bg-[#3B82F6] text-white text-sm disabled:opacity-50"
-              >
-                {editSaving ? "Saving..." : "Save changes"}
-              </button>
+              <div className="p-4 border-t border-white/10 flex items-center justify-end gap-2 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={closeEdit}
+                  className="px-4 py-2 rounded bg-white/5 border border-white/10 text-white hover:bg-white/10"
+                  disabled={editSaving}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={saveEdit}
+                  disabled={editSaving}
+                  className="px-4 py-2 rounded bg-[#3B82F6] text-white text-sm disabled:opacity-50"
+                >
+                  {editSaving ? "Saving..." : "Save changes"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

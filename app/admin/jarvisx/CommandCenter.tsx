@@ -6,6 +6,7 @@ import { apiRequest } from "@/lib/api";
 import { jarvisxApi } from "@/lib/api/jarvisx";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/useToast";
+import { emitServicesRefresh } from "@/lib/events";
 
 type JarvisSuggestedAction = { label: string; url: string };
 
@@ -124,7 +125,7 @@ function isLegacyPreGroqProposal(p: Proposal): boolean {
 
 function shouldHideLegacyArtifactsFromHistory(p: Proposal): boolean {
   const haystack = `${String(p.rawAdminCommand || "")}\n${String(
-    p.previewText || ""
+    p.previewText || "",
   )}`.toLowerCase();
 
   return (
@@ -236,7 +237,7 @@ export default function AdminJarvisXCommandCenter() {
         "/api/jarvisx/context/admin",
         "GET",
         null,
-        true
+        true,
       );
       setContext(ctx);
     } catch {
@@ -253,7 +254,7 @@ export default function AdminJarvisXCommandCenter() {
         "/api/jarvisx/health-report",
         "GET",
         null,
-        true
+        true,
       );
       // Ensure safe defaults for all nested objects to prevent crashes
       const safeHealth: HealthReport = {
@@ -300,10 +301,10 @@ export default function AdminJarvisXCommandCenter() {
         "/api/jarvisx/write/proposals?limit=10",
         "GET",
         null,
-        true
+        true,
       );
       const cleaned = (Array.isArray(list) ? list : []).filter(
-        (p) => !shouldHideLegacyArtifactsFromHistory(p)
+        (p) => !shouldHideLegacyArtifactsFromHistory(p),
       );
       setHistory(cleaned);
     } catch {
@@ -320,7 +321,7 @@ export default function AdminJarvisXCommandCenter() {
         "/api/jarvisx/write/memory?limit=100",
         "GET",
         null,
-        true
+        true,
       );
       setMemories(Array.isArray(list) ? list : []);
     } catch {
@@ -387,7 +388,7 @@ export default function AdminJarvisXCommandCenter() {
           _id: res.proposalId,
           createdAt: new Date().toISOString(),
           createdByAdminId: String(
-            (user as any)?.id || (user as any)?._id || ""
+            (user as any)?.id || (user as any)?._id || "",
           ),
           rawAdminCommand: cleaned,
           status: "pending",
@@ -527,7 +528,7 @@ export default function AdminJarvisXCommandCenter() {
         `/api/jarvisx/write/proposals/${activeProposal._id}`,
         "PUT",
         { actions: parsed },
-        true
+        true,
       );
       setActiveProposal(updated);
       toast("Edits saved.", "success");
@@ -549,13 +550,15 @@ export default function AdminJarvisXCommandCenter() {
         `/api/jarvisx/write/proposals/${activeProposal._id}/approve`,
         "POST",
         {},
-        true
+        true,
       );
       setActiveProposal(updated);
 
-      if (updated.status === "executed")
+      if (updated.status === "executed") {
         toast("Executed successfully.", "success");
-      else if (updated.status === "failed")
+        // PATCH_18: Emit refresh event so other admin pages update
+        emitServicesRefresh();
+      } else if (updated.status === "failed")
         toast("Executed with errors.", "error");
       else toast("Updated.", "success");
 
@@ -574,13 +577,13 @@ export default function AdminJarvisXCommandCenter() {
             (e: any) =>
               `Action ${e.index + 1} (${e.type}): Missing ${
                 e.missingFields?.join(", ") || "unknown fields"
-              }`
+              }`,
           )
           .join("\n");
         setExecutionError(`Validation failed:\n${errorMsg}`);
         toast(
           "Proposal has missing required fields. Please edit before executing.",
-          "error"
+          "error",
         );
       } else if (details) {
         setExecutionError(details);
@@ -601,7 +604,7 @@ export default function AdminJarvisXCommandCenter() {
         `/api/jarvisx/write/proposals/${activeProposal._id}/reject`,
         "POST",
         { reason: "Rejected by admin" },
-        true
+        true,
       );
       setActiveProposal(updated);
       toast("Proposal rejected.", "success");
@@ -620,7 +623,7 @@ export default function AdminJarvisXCommandCenter() {
         `/api/jarvisx/write/proposals/${id}`,
         "GET",
         null,
-        true
+        true,
       );
       setDetailsProposal(doc);
     } catch {
@@ -748,7 +751,7 @@ export default function AdminJarvisXCommandCenter() {
                   <p>
                     Error rate:{" "}
                     {((health?.jarvisx?.chatErrorRate24h ?? 0) * 100).toFixed(
-                      2
+                      2,
                     )}
                     %
                   </p>
@@ -904,7 +907,7 @@ export default function AdminJarvisXCommandCenter() {
                 <div className="flex items-center justify-between gap-3">
                   <span
                     className={`inline-flex items-center px-3 py-1 rounded-full border text-xs ${statusPill(
-                      activeProposal.status
+                      activeProposal.status,
                     )}`}
                   >
                     {activeProposal.status.toUpperCase()}
@@ -1065,7 +1068,7 @@ export default function AdminJarvisXCommandCenter() {
                       <div className="flex items-center gap-2">
                         <span
                           className={`inline-flex items-center px-3 py-1 rounded-full border text-xs ${statusPill(
-                            p.status
+                            p.status,
                           )}`}
                         >
                           {p.status.toUpperCase()}
@@ -1114,7 +1117,7 @@ export default function AdminJarvisXCommandCenter() {
                       <div className="flex items-center gap-2">
                         <span
                           className={`inline-flex items-center px-3 py-1 rounded-full border text-xs ${statusPill(
-                            detailsProposal.status
+                            detailsProposal.status,
                           )}`}
                         >
                           {detailsProposal.status.toUpperCase()}

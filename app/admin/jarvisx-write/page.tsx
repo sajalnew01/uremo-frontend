@@ -338,7 +338,7 @@ export default function AdminJarvisXWritePage() {
           <textarea
             value={command}
             onChange={(e) => setCommand(e.target.value)}
-            placeholder="Tell Jarvis what to do… (e.g., Add new service Handshake AI screening for $20, manual delivery, category KYC, active true)"
+            placeholder="Tell Jarvis what to do… (e.g., Add fresh account service for Appen platform, $15 pay rate, category microjobs, country USA, instant delivery)"
             className="w-full min-h-[120px] rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-blue-500/30"
             disabled={loadingPropose}
           />
