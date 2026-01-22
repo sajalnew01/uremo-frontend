@@ -149,7 +149,7 @@ export default function BuyServicePage() {
     setServices([]);
   };
 
-  // PATCH_18: Fetch services with filter-safe API
+  // PATCH_19: Fetch services with subcategory filter
   const loadServices = useCallback(async () => {
     if (step !== 3 || !filters.category || !filters.listingType) return;
 
@@ -159,9 +159,10 @@ export default function BuyServicePage() {
       const params = new URLSearchParams();
       params.set("limit", "100");
       params.set("category", filters.category);
-      params.set("listingType", filters.listingType);
+      // PATCH_19: Send as subcategory (backend now uses this)
+      params.set("subcategory", filters.listingType);
 
-      // PATCH_18: Only send filters that apply to current listingType
+      // PATCH_19: Country filter applies to all categories
       if (filters.country && filters.country !== "all") {
         params.set("country", filters.country);
       }
@@ -169,7 +170,7 @@ export default function BuyServicePage() {
         params.set("platform", filters.platform);
       }
 
-      // Subject only for fresh_account
+      // Subject only for fresh_account (microjobs)
       if (
         filters.listingType === "fresh_account" &&
         filters.subject &&
@@ -178,7 +179,7 @@ export default function BuyServicePage() {
         params.set("subject", filters.subject);
       }
 
-      // projectName and minPayRate only for already_onboarded
+      // projectName and minPayRate only for already_onboarded (microjobs)
       if (filters.listingType === "already_onboarded") {
         if (filters.projectName && filters.projectName !== "all") {
           params.set("projectName", filters.projectName);

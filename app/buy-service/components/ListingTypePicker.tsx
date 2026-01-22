@@ -1,8 +1,8 @@
 "use client";
 
-// PATCH_17: Listing Type Picker for Step 2 of Buy Service 3-step flow
+// PATCH_19: Subcategory Picker - shows different options per category
 
-type ListingType = {
+type SubcategoryOption = {
   id: string;
   label: string;
   description: string;
@@ -10,28 +10,70 @@ type ListingType = {
   badge?: string;
 };
 
-const LISTING_TYPES: ListingType[] = [
-  {
-    id: "fresh_account",
-    label: "Fresh Account",
-    description:
-      "Apply fresh with screening assessment. Get verified accounts ready for onboarding.",
-    icon: "🆕",
-    badge: "With Screening",
-  },
-  {
-    id: "already_onboarded",
-    label: "Already Onboarded",
-    description: "Instant project-ready accounts. Start earning immediately.",
-    icon: "⚡",
-    badge: "Instant",
-  },
-];
+// Subcategories per category - MUST match backend Service.js
+const SUBCATEGORIES_BY_CATEGORY: Record<string, SubcategoryOption[]> = {
+  microjobs: [
+    {
+      id: "fresh_account",
+      label: "Fresh Account",
+      description:
+        "Apply fresh with screening assessment. Get verified accounts ready for onboarding.",
+      icon: "🆕",
+      badge: "With Screening",
+    },
+    {
+      id: "already_onboarded",
+      label: "Already Onboarded",
+      description: "Instant project-ready accounts. Start earning immediately.",
+      icon: "⚡",
+      badge: "Instant",
+    },
+  ],
+  forex_crypto: [
+    {
+      id: "forex_platform_creation",
+      label: "Forex Platform Creation",
+      description: "Full setup and verification for forex trading platforms.",
+      icon: "📊",
+      badge: "Trading",
+    },
+    {
+      id: "crypto_platform_creation",
+      label: "Crypto Platform Creation",
+      description: "Crypto exchange account setup and KYC verification.",
+      icon: "🪙",
+      badge: "Crypto",
+    },
+  ],
+  banks_gateways_wallets: [
+    {
+      id: "banks",
+      label: "Bank Accounts",
+      description: "Traditional bank account setup and verification services.",
+      icon: "🏦",
+      badge: "Banking",
+    },
+    {
+      id: "payment_gateways",
+      label: "Payment Gateways",
+      description: "Stripe, PayPal, and other payment processor accounts.",
+      icon: "💳",
+      badge: "Payments",
+    },
+    {
+      id: "wallets",
+      label: "Digital Wallets",
+      description: "E-wallet and mobile money account services.",
+      icon: "👝",
+      badge: "Wallets",
+    },
+  ],
+};
 
 type ListingTypePickerProps = {
   category: string;
   selected: string | null;
-  onSelect: (listingTypeId: string) => void;
+  onSelect: (subcategoryId: string) => void;
   onBack: () => void;
 };
 
@@ -50,6 +92,10 @@ export default function ListingTypePicker({
     };
     return labels[id] || id;
   };
+
+  // Get subcategories for the selected category
+  const subcategories =
+    SUBCATEGORIES_BY_CATEGORY[category] || SUBCATEGORIES_BY_CATEGORY.microjobs;
 
   return (
     <div className="space-y-4">
@@ -70,15 +116,17 @@ export default function ListingTypePicker({
           </span>
         </div>
         <h2 className="text-2xl font-bold text-white mb-2">
-          Choose Listing Type
+          Choose Subcategory
         </h2>
         <p className="text-slate-400 text-sm">
-          Select how you want your account delivered
+          Select the type of service you need
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-        {LISTING_TYPES.map((type) => (
+      <div
+        className={`grid grid-cols-1 ${subcategories.length <= 2 ? "md:grid-cols-2" : "md:grid-cols-3"} gap-6 max-w-4xl mx-auto`}
+      >
+        {subcategories.map((type) => (
           <button
             key={type.id}
             type="button"
@@ -128,7 +176,7 @@ export default function ListingTypePicker({
           <p className="text-slate-400 text-sm">
             Selected:{" "}
             <span className="text-white font-medium">
-              {LISTING_TYPES.find((t) => t.id === selected)?.label}
+              {subcategories.find((t) => t.id === selected)?.label}
             </span>
           </p>
         </div>
