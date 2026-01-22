@@ -69,6 +69,8 @@ export default function AdminServicesPage() {
   const [editStatus, setEditStatus] = useState("active");
   const [editCountries, setEditCountries] = useState("");
   const [editShortDescription, setEditShortDescription] = useState("");
+  // PATCH_20: Country-based pricing edit state
+  const [editCountryPricing, setEditCountryPricing] = useState("");
 
   // form state
   const [title, setTitle] = useState("");
@@ -95,6 +97,8 @@ export default function AdminServicesPage() {
   const [status, setStatus] = useState("active");
   const [countries, setCountries] = useState("");
   const [shortDescription, setShortDescription] = useState("");
+  // PATCH_20: Country-based pricing (JSON string input)
+  const [countryPricing, setCountryPricing] = useState("");
 
   // PATCH_19: Get available subcategories based on selected category
   const availableSubcategories = SUBCATEGORIES_BY_CATEGORY[category] || [];
@@ -239,6 +243,26 @@ export default function AdminServicesPage() {
                 .map((c) => c.trim())
                 .filter(Boolean)
             : undefined,
+          // PATCH_20: Country-based pricing
+          countryPricing: countryPricing
+            ? (() => {
+                try {
+                  return JSON.parse(countryPricing);
+                } catch {
+                  // Parse simple format like "India:20, USA:25, UK:22"
+                  const pricing: Record<string, number> = {};
+                  countryPricing.split(",").forEach((pair) => {
+                    const [country, priceStr] = pair
+                      .split(":")
+                      .map((s) => s.trim());
+                    if (country && priceStr) {
+                      pricing[country] = Number(priceStr);
+                    }
+                  });
+                  return Object.keys(pricing).length > 0 ? pricing : undefined;
+                }
+              })()
+            : undefined,
         },
         true,
       );
@@ -264,6 +288,8 @@ export default function AdminServicesPage() {
       // PATCH_18: Reset new fields
       setStatus("active");
       setCountries("");
+      // PATCH_20: Reset country pricing
+      setCountryPricing("");
 
       await loadServices();
       emitServicesRefresh(); // PATCH_18: Notify buy-service page
@@ -326,6 +352,12 @@ export default function AdminServicesPage() {
       Array.isArray(service?.countries) ? service.countries.join(", ") : "",
     );
     setEditShortDescription(service?.shortDescription || "");
+    // PATCH_20: Load country pricing
+    const cp = service?.countryPricing || {};
+    const cpStr = Object.entries(cp)
+      .map(([k, v]) => `${k}:${v}`)
+      .join(", ");
+    setEditCountryPricing(cpStr);
   };
 
   const closeEdit = () => {
@@ -381,6 +413,25 @@ export default function AdminServicesPage() {
                 .split(",")
                 .map((c) => c.trim())
                 .filter(Boolean)
+            : undefined,
+          // PATCH_20: Country-based pricing
+          countryPricing: editCountryPricing
+            ? (() => {
+                try {
+                  return JSON.parse(editCountryPricing);
+                } catch {
+                  const pricing: Record<string, number> = {};
+                  editCountryPricing.split(",").forEach((pair) => {
+                    const [country, priceStr] = pair
+                      .split(":")
+                      .map((s) => s.trim());
+                    if (country && priceStr) {
+                      pricing[country] = Number(priceStr);
+                    }
+                  });
+                  return Object.keys(pricing).length > 0 ? pricing : undefined;
+                }
+              })()
             : undefined,
         },
         true,
@@ -527,11 +578,23 @@ export default function AdminServicesPage() {
         </div>
 
         <input
-          placeholder="Countries (comma-separated: US, UK, Global)"
+          placeholder="Countries (comma-separated: India, USA, UK, Global)"
           value={countries}
           onChange={(e) => setCountries(e.target.value)}
           className="u-input"
         />
+
+        {/* PATCH_20: Country-based pricing */}
+        <input
+          placeholder="Country Pricing (e.g., India:20, USA:25, UK:22)"
+          value={countryPricing}
+          onChange={(e) => setCountryPricing(e.target.value)}
+          className="u-input"
+        />
+        <p className="text-xs text-slate-500 -mt-2">
+          Base price is default. Add country-specific prices to override when
+          user filters by country.
+        </p>
 
         <div className="grid grid-cols-2 gap-4">
           <input
@@ -827,6 +890,17 @@ export default function AdminServicesPage() {
                   onChange={(e) => setEditCountries(e.target.value)}
                   className="u-input"
                 />
+
+                {/* PATCH_20: Country-based pricing */}
+                <input
+                  placeholder="Country Pricing (e.g., India:20, USA:25)"
+                  value={editCountryPricing}
+                  onChange={(e) => setEditCountryPricing(e.target.value)}
+                  className="u-input"
+                />
+                <p className="text-xs text-slate-500 -mt-2">
+                  Country-specific prices override base price.
+                </p>
 
                 <div className="grid grid-cols-2 gap-3">
                   <input

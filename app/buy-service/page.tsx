@@ -35,6 +35,8 @@ type Service = {
   instantDelivery?: boolean;
   deliveryType?: string;
   price: number;
+  basePrice?: number; // PATCH_20: Original price before country adjustment
+  countryPricing?: Record<string, number>; // PATCH_20: Country-specific prices
   currency?: string;
   images?: string[];
   imageUrl?: string;
@@ -457,6 +459,12 @@ export default function BuyServicePage() {
                       <div className="absolute top-3 right-3">
                         <span className="px-3 py-1 rounded-full text-xs border border-emerald-500/25 bg-emerald-500/10 text-emerald-200 font-semibold">
                           ${s.price}
+                          {/* PATCH_20: Show if price was adjusted for country */}
+                          {s.basePrice && s.basePrice !== s.price && (
+                            <span className="ml-1 line-through text-slate-400 text-[10px]">
+                              ${s.basePrice}
+                            </span>
+                          )}
                         </span>
                       </div>
 
@@ -502,6 +510,12 @@ export default function BuyServicePage() {
                         </p>
                         <p className="text-2xl font-bold text-emerald-300">
                           ${s.price}
+                          {/* PATCH_20: Show original price if different */}
+                          {s.basePrice && s.basePrice !== s.price && (
+                            <span className="block text-xs line-through text-slate-500">
+                              ${s.basePrice}
+                            </span>
+                          )}
                         </p>
                       </div>
                     </div>
