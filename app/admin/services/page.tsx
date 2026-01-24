@@ -6,11 +6,13 @@ import { useToast } from "@/hooks/useToast";
 import { withCacheBust } from "@/lib/cacheBust";
 import { emitServicesRefresh, onServicesRefresh } from "@/lib/events";
 
-// PATCH_19: Category and Subcategory constants
+// PATCH_19/21: Category and Subcategory constants - synced with backend
 const CATEGORIES = [
   { id: "microjobs", label: "Microjobs" },
   { id: "forex_crypto", label: "Forex / Crypto" },
   { id: "banks_gateways_wallets", label: "Banks / Gateways / Wallets" },
+  // PATCH_21: New rentals category for account rental services
+  { id: "rentals", label: "Rentals (Account Rental Services)" },
 ];
 
 const SUBCATEGORIES_BY_CATEGORY: Record<
@@ -35,6 +37,16 @@ const SUBCATEGORIES_BY_CATEGORY: Record<
     { id: "banks", label: "Banks" },
     { id: "payment_gateways", label: "Payment Gateways" },
     { id: "wallets", label: "Wallets" },
+  ],
+  // PATCH_21: Rental subcategories for WhatsApp, LinkedIn, and other verified accounts
+  rentals: [
+    {
+      id: "whatsapp_business_verified",
+      label: "WhatsApp Business (Meta Verified)",
+    },
+    { id: "linkedin_premium_account", label: "LinkedIn Premium Account" },
+    { id: "social_media_verified", label: "Social Media Verified Accounts" },
+    { id: "email_accounts", label: "Email Accounts (Aged/Verified)" },
   ],
 };
 

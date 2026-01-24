@@ -11,7 +11,7 @@ type SubcategoryItem = {
   badge?: string;
 };
 
-// PATCH_19: Subcategories mapped by category
+// PATCH_19/21: Subcategories mapped by category
 const SUBCATEGORIES_BY_CATEGORY: Record<string, SubcategoryItem[]> = {
   microjobs: [
     {
@@ -72,6 +72,41 @@ const SUBCATEGORIES_BY_CATEGORY: Record<string, SubcategoryItem[]> = {
       badge: "E-Wallets",
     },
   ],
+  // PATCH_21: Rental subcategories
+  rentals: [
+    {
+      id: "whatsapp_business_verified",
+      label: "WhatsApp Business (Meta Verified)",
+      description:
+        "Rent Meta-verified WhatsApp Business accounts for marketing and customer engagement.",
+      icon: "📱",
+      badge: "Verified",
+    },
+    {
+      id: "linkedin_premium_account",
+      label: "LinkedIn Premium Account",
+      description:
+        "Access LinkedIn Premium features with good connection accounts for networking and leads.",
+      icon: "💼",
+      badge: "Premium",
+    },
+    {
+      id: "social_media_verified",
+      label: "Social Media Verified Accounts",
+      description:
+        "Rent verified social media accounts (Twitter, Instagram, Facebook) with badges.",
+      icon: "✓",
+      badge: "Social",
+    },
+    {
+      id: "email_accounts",
+      label: "Email Accounts (Aged/Verified)",
+      description:
+        "Rent aged and verified email accounts for marketing campaigns and business use.",
+      icon: "📧",
+      badge: "Email",
+    },
+  ],
 };
 
 type ListingTypePickerProps = {
@@ -87,12 +122,13 @@ export default function ListingTypePicker({
   onSelect,
   onBack,
 }: ListingTypePickerProps) {
-  // Get category label for display
+  // PATCH_21: Get category label for display
   const getCategoryLabel = (id: string) => {
     const labels: Record<string, string> = {
       microjobs: "Microjobs",
       forex_crypto: "Forex / Crypto",
       banks_gateways_wallets: "Banks / Gateways / Wallets",
+      rentals: "Rentals",
     };
     return labels[id] || id;
   };

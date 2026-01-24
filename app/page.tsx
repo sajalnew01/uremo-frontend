@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,6 +11,8 @@ import {
   DEFAULT_PUBLIC_SITE_SETTINGS,
   useSiteSettings,
 } from "@/hooks/useSiteSettings";
+// PATCH_21: Listen for services:refresh to update homepage in real-time
+import { onServicesRefresh } from "@/lib/events";
 
 type Service = {
   _id: string;
@@ -36,6 +38,19 @@ export default function LandingPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [servicesLoading, setServicesLoading] = useState(true);
 
+  // PATCH_21: Memoized fetch function for reuse
+  const fetchServices = useCallback(async () => {
+    setServicesLoading(true);
+    try {
+      const data = await apiRequest<Service[]>("/api/services");
+      setServices(Array.isArray(data) ? data : []);
+    } catch {
+      setServices([]);
+    } finally {
+      setServicesLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     // Redirect logged-in users to dashboard
     if (ready && isAuthenticated) {
@@ -43,29 +58,19 @@ export default function LandingPage() {
     }
   }, [ready, isAuthenticated, router]);
 
+  // PATCH_21: Initial fetch
   useEffect(() => {
     if (!ready || isAuthenticated) return;
+    fetchServices();
+  }, [ready, isAuthenticated, fetchServices]);
 
-    let mounted = true;
-    setServicesLoading(true);
-
-    apiRequest<Service[]>("/api/services")
-      .then((data) => {
-        if (!mounted) return;
-        setServices(Array.isArray(data) ? data : []);
-      })
-      .catch(() => {
-        if (!mounted) return;
-        setServices([]);
-      })
-      .finally(() => {
-        if (!mounted) return;
-        setServicesLoading(false);
-      });
-
-    return () => {
-      mounted = false;
-    };
+  // PATCH_21: Listen for services:refresh events to update in real-time
+  useEffect(() => {
+    if (!ready || isAuthenticated) return;
+    const cleanup = onServicesRefresh(() => {
+      fetchServices();
+    });
+    return cleanup;
   }, [ready, isAuthenticated]);
 
   const popularServices = useMemo(() => {
@@ -240,7 +245,7 @@ export default function LandingPage() {
                         <img
                           src={withCacheBust(
                             s.imageUrl || s.images?.[0],
-                            s.updatedAt || s._id
+                            s.updatedAt || s._id,
                           )}
                           alt={s.title}
                           className="h-full w-full object-cover opacity-90 group-hover:opacity-100 transition"

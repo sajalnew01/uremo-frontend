@@ -1,6 +1,6 @@
 "use client";
 
-// PATCH_17: Category Picker for Step 1 of Buy Service 3-step flow
+// PATCH_17/21: Category Picker for Step 1 of Buy Service 3-step flow
 
 type Category = {
   id: string;
@@ -27,6 +27,14 @@ const CATEGORIES: Category[] = [
     label: "Banks / Gateways / Wallets",
     description: "Payment gateways, bank accounts, and e-wallet services",
     icon: "🏦",
+  },
+  // PATCH_21: Rentals category for account rental services
+  {
+    id: "rentals",
+    label: "Rentals",
+    description:
+      "Rent verified accounts: WhatsApp Business, LinkedIn Premium, and more",
+    icon: "🔑",
   },
 ];
 
