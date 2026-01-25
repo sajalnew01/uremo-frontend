@@ -23,6 +23,10 @@ export default function ServiceDetailsPage() {
   const [service, setService] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
+  // PATCH_22: Selected rental plan for rental services
+  const [selectedRentalPlan, setSelectedRentalPlan] = useState<number | null>(
+    null,
+  );
 
   const template = (value: string, vars: Record<string, string>) => {
     let out = String(value || "");
@@ -77,6 +81,37 @@ export default function ServiceDetailsPage() {
       }
     } catch {
       // ignore
+    }
+
+    // PATCH_22: Validate rental plan selection for rental services
+    if (service?.isRental && selectedRentalPlan === null) {
+      toast("Please select a rental plan", "error");
+      return;
+    }
+
+    // PATCH_22: For rental services, create a rental order instead
+    if (service?.isRental && selectedRentalPlan !== null) {
+      try {
+        const plan = service.rentalPlans[selectedRentalPlan];
+        const res = await apiRequest(
+          "/api/rentals/create",
+          "POST",
+          {
+            serviceId: service._id,
+            rentalType: plan.unit,
+            duration: plan.duration,
+          },
+          true,
+        );
+        const orderId = res?.order?._id || res?.orderId;
+        if (!orderId) throw new Error("Failed to create rental order");
+
+        toast("Rental reserved. Complete payment to confirm.", "success");
+        router.push(`/payment/${orderId}`);
+      } catch (e: any) {
+        toast(e?.message || "Failed to create rental order", "error");
+      }
+      return;
     }
 
     try {
@@ -288,40 +323,112 @@ export default function ServiceDetailsPage() {
         {/* Sticky CTA */}
         <aside className="lg:sticky lg:top-24">
           <div className="card">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm text-[#9CA3AF]">{copy.priceLabel}</p>
-                <p className="mt-1 text-3xl font-bold text-emerald-300">
-                  ${service.price}
+            {/* PATCH_22: Rental Plans UI */}
+            {service?.isRental &&
+            Array.isArray(service.rentalPlans) &&
+            service.rentalPlans.length > 0 ? (
+              <>
+                <div className="mb-4">
+                  <p className="text-sm text-[#9CA3AF]">🔄 Rental Service</p>
+                  <p className="mt-1 text-lg font-semibold text-white">
+                    Choose a Plan
+                  </p>
+                  {service.rentalDescription && (
+                    <p className="mt-2 text-xs text-slate-400">
+                      {service.rentalDescription}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  {service.rentalPlans.map((plan: any, idx: number) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setSelectedRentalPlan(idx)}
+                      className={`w-full text-left p-3 rounded-lg border transition ${
+                        selectedRentalPlan === idx
+                          ? "border-purple-500 bg-purple-500/20"
+                          : "border-white/10 bg-white/5 hover:border-white/30"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-white font-medium">
+                            {plan.label}
+                          </span>
+                          {plan.isPopular && (
+                            <span className="text-xs bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded-full">
+                              ⭐ Popular
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-emerald-300 font-bold">
+                          ${plan.price}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-1">
+                        {plan.duration} {plan.unit}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-4 h-px bg-white/10" />
+                <button
+                  type="button"
+                  onClick={buyService}
+                  disabled={
+                    service?.active === false || selectedRentalPlan === null
+                  }
+                  className="btn-primary w-full disabled:opacity-50 mt-4"
+                >
+                  {service?.active === false
+                    ? copy.unavailableButtonText
+                    : selectedRentalPlan !== null
+                      ? `Rent for $${service.rentalPlans[selectedRentalPlan]?.price}`
+                      : "Select a Plan"}
+                </button>
+                <p className="mt-3 text-xs text-[#9CA3AF]">
+                  {copy.reserveHelpText}
                 </p>
-                <p className="text-xs text-[#9CA3AF] mt-1">
-                  {copy.priceSubtext}
+              </>
+            ) : (
+              <>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm text-[#9CA3AF]">{copy.priceLabel}</p>
+                    <p className="mt-1 text-3xl font-bold text-emerald-300">
+                      ${service.price}
+                    </p>
+                    <p className="text-xs text-[#9CA3AF] mt-1">
+                      {copy.priceSubtext}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                    <p className="text-xs text-[#9CA3AF]">{copy.typeLabel}</p>
+                    <p className="text-sm text-slate-200 font-medium">
+                      {deliveryLabel}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 h-px bg-white/10" />
+
+                <button
+                  type="button"
+                  onClick={buyService}
+                  disabled={service?.active === false}
+                  className="btn-primary w-full disabled:opacity-50"
+                >
+                  {service?.active === false
+                    ? copy.unavailableButtonText
+                    : copy.reserveButtonText}
+                </button>
+
+                <p className="mt-3 text-xs text-[#9CA3AF]">
+                  {copy.reserveHelpText}
                 </p>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-                <p className="text-xs text-[#9CA3AF]">{copy.typeLabel}</p>
-                <p className="text-sm text-slate-200 font-medium">
-                  {deliveryLabel}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4 h-px bg-white/10" />
-
-            <button
-              type="button"
-              onClick={buyService}
-              disabled={service?.active === false}
-              className="btn-primary w-full disabled:opacity-50"
-            >
-              {service?.active === false
-                ? copy.unavailableButtonText
-                : copy.reserveButtonText}
-            </button>
-
-            <p className="mt-3 text-xs text-[#9CA3AF]">
-              {copy.reserveHelpText}
-            </p>
+              </>
+            )}
           </div>
         </aside>
       </div>

@@ -83,6 +83,19 @@ export default function AdminServicesPage() {
   const [editShortDescription, setEditShortDescription] = useState("");
   // PATCH_20: Country-based pricing edit state
   const [editCountryPricing, setEditCountryPricing] = useState("");
+  // PATCH_22: Rental service edit state
+  const [editIsRental, setEditIsRental] = useState(false);
+  const [editRentalPlans, setEditRentalPlans] = useState<
+    {
+      duration: number;
+      unit: string;
+      price: number;
+      label: string;
+      isPopular: boolean;
+    }[]
+  >([]);
+  const [editRentalDescription, setEditRentalDescription] = useState("");
+  const [editMaxActiveRentals, setEditMaxActiveRentals] = useState("");
 
   // form state
   const [title, setTitle] = useState("");
@@ -111,6 +124,19 @@ export default function AdminServicesPage() {
   const [shortDescription, setShortDescription] = useState("");
   // PATCH_20: Country-based pricing (JSON string input)
   const [countryPricing, setCountryPricing] = useState("");
+  // PATCH_22: Rental service create state
+  const [isRental, setIsRental] = useState(false);
+  const [rentalPlans, setRentalPlans] = useState<
+    {
+      duration: number;
+      unit: string;
+      price: number;
+      label: string;
+      isPopular: boolean;
+    }[]
+  >([]);
+  const [rentalDescription, setRentalDescription] = useState("");
+  const [maxActiveRentals, setMaxActiveRentals] = useState("");
 
   // PATCH_19: Get available subcategories based on selected category
   const availableSubcategories = SUBCATEGORIES_BY_CATEGORY[category] || [];
@@ -275,6 +301,14 @@ export default function AdminServicesPage() {
                 }
               })()
             : undefined,
+          // PATCH_22: Rental fields
+          isRental: isRental || undefined,
+          rentalPlans:
+            isRental && rentalPlans.length > 0 ? rentalPlans : undefined,
+          rentalDescription:
+            isRental && rentalDescription ? rentalDescription : undefined,
+          maxActiveRentals:
+            isRental && maxActiveRentals ? Number(maxActiveRentals) : undefined,
         },
         true,
       );
@@ -302,6 +336,11 @@ export default function AdminServicesPage() {
       setCountries("");
       // PATCH_20: Reset country pricing
       setCountryPricing("");
+      // PATCH_22: Reset rental fields
+      setIsRental(false);
+      setRentalPlans([]);
+      setRentalDescription("");
+      setMaxActiveRentals("");
 
       await loadServices();
       emitServicesRefresh(); // PATCH_18: Notify buy-service page
@@ -370,6 +409,13 @@ export default function AdminServicesPage() {
       .map(([k, v]) => `${k}:${v}`)
       .join(", ");
     setEditCountryPricing(cpStr);
+    // PATCH_22: Load rental fields
+    setEditIsRental(Boolean(service?.isRental));
+    setEditRentalPlans(
+      Array.isArray(service?.rentalPlans) ? service.rentalPlans : [],
+    );
+    setEditRentalDescription(service?.rentalDescription || "");
+    setEditMaxActiveRentals(String(service?.maxActiveRentals ?? ""));
   };
 
   const closeEdit = () => {
@@ -445,6 +491,20 @@ export default function AdminServicesPage() {
                 }
               })()
             : undefined,
+          // PATCH_22: Rental fields
+          isRental: editIsRental || undefined,
+          rentalPlans:
+            editIsRental && editRentalPlans.length > 0
+              ? editRentalPlans
+              : undefined,
+          rentalDescription:
+            editIsRental && editRentalDescription
+              ? editRentalDescription
+              : undefined,
+          maxActiveRentals:
+            editIsRental && editMaxActiveRentals
+              ? Number(editMaxActiveRentals)
+              : undefined,
         },
         true,
       );
@@ -609,6 +669,130 @@ export default function AdminServicesPage() {
           Base price is default. Add country-specific prices to override when
           user filters by country.
         </p>
+
+        {/* PATCH_22: Rental Configuration */}
+        <div className="border border-white/20 rounded-lg p-4 space-y-4">
+          <label className="flex items-center gap-3 text-sm text-white font-semibold">
+            <input
+              type="checkbox"
+              checked={isRental}
+              onChange={(e) => setIsRental(e.target.checked)}
+              className="w-4 h-4 accent-purple-500"
+            />
+            🔄 This is a Rental/Subscription Service
+          </label>
+
+          {isRental && (
+            <div className="space-y-4 pl-4 border-l-2 border-purple-500/50">
+              <textarea
+                placeholder="Rental Description (what the user gets during rental period)"
+                value={rentalDescription}
+                onChange={(e) => setRentalDescription(e.target.value)}
+                className="u-input min-h-[80px]"
+              />
+
+              <input
+                placeholder="Max Active Rentals (0 = unlimited)"
+                type="number"
+                value={maxActiveRentals}
+                onChange={(e) => setMaxActiveRentals(e.target.value)}
+                className="u-input"
+              />
+
+              <div className="space-y-2">
+                <p className="text-sm text-slate-400">Rental Plans:</p>
+                {rentalPlans.map((plan, idx) => (
+                  <div key={idx} className="flex gap-2 items-center">
+                    <input
+                      type="number"
+                      placeholder="Duration"
+                      value={plan.duration}
+                      onChange={(e) => {
+                        const updated = [...rentalPlans];
+                        updated[idx].duration = Number(e.target.value);
+                        setRentalPlans(updated);
+                      }}
+                      className="u-input w-20"
+                    />
+                    <select
+                      value={plan.unit}
+                      onChange={(e) => {
+                        const updated = [...rentalPlans];
+                        updated[idx].unit = e.target.value;
+                        setRentalPlans(updated);
+                      }}
+                      className="u-select w-24"
+                    >
+                      <option value="days">Days</option>
+                      <option value="months">Months</option>
+                    </select>
+                    <input
+                      type="number"
+                      placeholder="Price ($)"
+                      value={plan.price}
+                      onChange={(e) => {
+                        const updated = [...rentalPlans];
+                        updated[idx].price = Number(e.target.value);
+                        setRentalPlans(updated);
+                      }}
+                      className="u-input w-24"
+                    />
+                    <input
+                      placeholder="Label"
+                      value={plan.label}
+                      onChange={(e) => {
+                        const updated = [...rentalPlans];
+                        updated[idx].label = e.target.value;
+                        setRentalPlans(updated);
+                      }}
+                      className="u-input flex-1"
+                    />
+                    <label className="flex items-center gap-1 text-xs text-yellow-400">
+                      <input
+                        type="checkbox"
+                        checked={plan.isPopular}
+                        onChange={(e) => {
+                          const updated = [...rentalPlans];
+                          updated[idx].isPopular = e.target.checked;
+                          setRentalPlans(updated);
+                        }}
+                        className="w-3 h-3"
+                      />
+                      ⭐
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setRentalPlans(rentalPlans.filter((_, i) => i !== idx))
+                      }
+                      className="text-red-400 hover:text-red-300 text-lg"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setRentalPlans([
+                      ...rentalPlans,
+                      {
+                        duration: 7,
+                        unit: "days",
+                        price: 10,
+                        label: "Weekly",
+                        isPopular: false,
+                      },
+                    ])
+                  }
+                  className="text-sm text-purple-400 hover:text-purple-300"
+                >
+                  + Add Rental Plan
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="grid grid-cols-2 gap-4">
           <input
@@ -916,6 +1100,139 @@ export default function AdminServicesPage() {
                 <p className="text-xs text-slate-500 -mt-2">
                   Country-specific prices override base price.
                 </p>
+
+                {/* PATCH_22: Rental Configuration */}
+                <div className="border border-white/20 rounded-lg p-3 space-y-3">
+                  <label className="flex items-center gap-3 text-sm text-white font-semibold">
+                    <input
+                      type="checkbox"
+                      checked={editIsRental}
+                      onChange={(e) => setEditIsRental(e.target.checked)}
+                      className="w-4 h-4 accent-purple-500"
+                    />
+                    🔄 Rental/Subscription Service
+                  </label>
+
+                  {editIsRental && (
+                    <div className="space-y-3 pl-3 border-l-2 border-purple-500/50">
+                      <textarea
+                        placeholder="Rental Description"
+                        value={editRentalDescription}
+                        onChange={(e) =>
+                          setEditRentalDescription(e.target.value)
+                        }
+                        className="u-input min-h-[60px]"
+                      />
+
+                      <input
+                        placeholder="Max Active Rentals (0 = unlimited)"
+                        type="number"
+                        value={editMaxActiveRentals}
+                        onChange={(e) =>
+                          setEditMaxActiveRentals(e.target.value)
+                        }
+                        className="u-input"
+                      />
+
+                      <div className="space-y-2">
+                        <p className="text-xs text-slate-400">Rental Plans:</p>
+                        {editRentalPlans.map((plan, idx) => (
+                          <div
+                            key={idx}
+                            className="flex gap-1 items-center flex-wrap"
+                          >
+                            <input
+                              type="number"
+                              placeholder="Dur"
+                              value={plan.duration}
+                              onChange={(e) => {
+                                const updated = [...editRentalPlans];
+                                updated[idx].duration = Number(e.target.value);
+                                setEditRentalPlans(updated);
+                              }}
+                              className="u-input w-16"
+                            />
+                            <select
+                              value={plan.unit}
+                              onChange={(e) => {
+                                const updated = [...editRentalPlans];
+                                updated[idx].unit = e.target.value;
+                                setEditRentalPlans(updated);
+                              }}
+                              className="u-select w-20"
+                            >
+                              <option value="days">Days</option>
+                              <option value="months">Months</option>
+                            </select>
+                            <input
+                              type="number"
+                              placeholder="$"
+                              value={plan.price}
+                              onChange={(e) => {
+                                const updated = [...editRentalPlans];
+                                updated[idx].price = Number(e.target.value);
+                                setEditRentalPlans(updated);
+                              }}
+                              className="u-input w-16"
+                            />
+                            <input
+                              placeholder="Label"
+                              value={plan.label}
+                              onChange={(e) => {
+                                const updated = [...editRentalPlans];
+                                updated[idx].label = e.target.value;
+                                setEditRentalPlans(updated);
+                              }}
+                              className="u-input flex-1 min-w-[80px]"
+                            />
+                            <label className="flex items-center gap-1 text-xs text-yellow-400">
+                              <input
+                                type="checkbox"
+                                checked={plan.isPopular}
+                                onChange={(e) => {
+                                  const updated = [...editRentalPlans];
+                                  updated[idx].isPopular = e.target.checked;
+                                  setEditRentalPlans(updated);
+                                }}
+                                className="w-3 h-3"
+                              />
+                              ⭐
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setEditRentalPlans(
+                                  editRentalPlans.filter((_, i) => i !== idx),
+                                )
+                              }
+                              className="text-red-400 hover:text-red-300"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setEditRentalPlans([
+                              ...editRentalPlans,
+                              {
+                                duration: 7,
+                                unit: "days",
+                                price: 10,
+                                label: "Weekly",
+                                isPopular: false,
+                              },
+                            ])
+                          }
+                          className="text-xs text-purple-400 hover:text-purple-300"
+                        >
+                          + Add Plan
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <input

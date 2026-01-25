@@ -20,6 +20,13 @@ export default function Dashboard() {
       href: "/orders",
       icon: "📦",
     },
+    // PATCH_22: My Rentals card for rental/subscription services
+    {
+      title: "My Rentals",
+      desc: "View active rentals and subscription services.",
+      href: "/rentals",
+      icon: "🔄",
+    },
     {
       title: "Apply to Work",
       desc: "Join UREMO as a manual operations specialist.",

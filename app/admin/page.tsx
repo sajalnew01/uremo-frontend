@@ -21,6 +21,16 @@ const adminModules = [
     borderColor: "border-purple-500/30",
     hoverBorder: "hover:border-purple-500/50",
   },
+  // PATCH_22: Rentals management
+  {
+    title: "Rentals",
+    description: "Manage rental subscriptions & access",
+    href: "/admin/rentals",
+    icon: "🔄",
+    gradient: "from-violet-500/20 to-purple-500/20",
+    borderColor: "border-violet-500/30",
+    hoverBorder: "hover:border-violet-500/50",
+  },
   {
     title: "Service Requests",
     description: "Leads captured from JarvisX Support",
