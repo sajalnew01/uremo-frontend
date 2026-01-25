@@ -88,9 +88,7 @@ export default function AdminBlogsPage() {
       }
 
       const [blogsRes, servicesRes] = await Promise.all([
-        apiRequest("/api/admin/blogs", {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+        apiRequest("/api/admin/blogs", "GET", null, true),
         apiRequest("/api/services"),
       ]);
 
@@ -256,14 +254,12 @@ export default function AdminBlogsPage() {
         : "/api/admin/blogs";
       const method = editingId ? "PUT" : "POST";
 
-      const res = await apiRequest(url, {
-        method,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+      const res = await apiRequest(
+        url,
+        method as "POST" | "PUT",
+        payload,
+        true,
+      );
 
       if (res?.ok) {
         setSuccess(
@@ -291,10 +287,12 @@ export default function AdminBlogsPage() {
       const token = localStorage.getItem("token");
       if (!token) return;
 
-      const res = await apiRequest(`/api/admin/blogs/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiRequest(
+        `/api/admin/blogs/${id}`,
+        "DELETE",
+        null,
+        true,
+      );
 
       if (res?.ok) {
         setSuccess("Blog deleted successfully");

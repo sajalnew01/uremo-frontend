@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 import { withCacheBust } from "@/lib/cacheBust";
 
@@ -47,7 +46,6 @@ interface BlogContentProps {
 }
 
 export default function BlogContent({ slug }: BlogContentProps) {
-  const router = useRouter();
   const [blog, setBlog] = useState<Blog | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

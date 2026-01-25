@@ -47,6 +47,7 @@ export default function Navbar() {
     { href: "/dashboard", label: nav.authedDashboardText, icon: "🏠" },
     { href: "/buy-service", label: nav.authedServicesText, icon: "🛒" },
     { href: "/orders", label: nav.authedOrdersText, icon: "📦" },
+    { href: "/blogs", label: "Blogs", icon: "📝" },
     { href: "/apply-to-work", label: nav.authedApplyToWorkText, icon: "💼" },
   ];
 
@@ -58,6 +59,7 @@ export default function Navbar() {
     { href: "/admin/payments", label: "Payments", icon: "💳" },
     { href: "/admin/applications", label: "Applications", icon: "📝" },
     { href: "/admin/work-positions", label: "Work Positions", icon: "👥" },
+    { href: "/admin/blogs", label: "Blogs", icon: "✍️" },
     { href: "/admin/settings", label: "CMS Settings", icon: "⚙️" },
   ];
 
@@ -165,6 +167,12 @@ export default function Navbar() {
             <div className="ml-auto flex gap-2 md:gap-3 items-center">
               {!isAuthenticated && pathname === "/" && (
                 <>
+                  <Link
+                    href="/blogs"
+                    className="text-sm text-slate-300 hover:text-white transition hidden sm:inline"
+                  >
+                    Blogs
+                  </Link>
                   <Link href="/signup" className="btn-primary">
                     {nav.guestPrimaryCtaText}
                   </Link>
@@ -179,6 +187,12 @@ export default function Navbar() {
 
               {!isAuthenticated && pathname !== "/" && (
                 <div className="flex items-center gap-3 text-sm text-slate-300">
+                  <Link
+                    href="/blogs"
+                    className="hover:text-white transition hidden sm:inline"
+                  >
+                    Blogs
+                  </Link>
                   <Link href="/signup" className="hover:text-white transition">
                     {nav.guestSignupText}
                   </Link>
