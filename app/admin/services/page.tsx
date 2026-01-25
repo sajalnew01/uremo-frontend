@@ -480,7 +480,9 @@ export default function AdminServicesPage() {
         return;
       }
 
+      // PATCH_22: Force cache bust update immediately for real-time image refresh
       setEditImageUrl(url);
+      setEditImagePreviewBust(Date.now());
       toast("Hero image uploaded", "success");
     } catch (err: any) {
       toast(err?.message || "Failed to upload image", "error");
@@ -664,6 +666,7 @@ export default function AdminServicesPage() {
         {imageUrl && (
           <div className="rounded-lg overflow-hidden border border-white/10">
             <img
+              key={`${imageUrl}-${imagePreviewBust}`}
               src={withCacheBust(imageUrl, imagePreviewBust)}
               alt="preview"
               className="w-full h-40 object-cover"
@@ -982,6 +985,7 @@ export default function AdminServicesPage() {
                 {editImageUrl && (
                   <div className="rounded-lg overflow-hidden border border-white/10">
                     <img
+                      key={`${editImageUrl}-${editImagePreviewBust}`}
                       src={withCacheBust(editImageUrl, editImagePreviewBust)}
                       alt="preview"
                       className="w-full h-40 object-cover"
