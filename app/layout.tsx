@@ -33,7 +33,7 @@ export default function RootLayout({
       <body>
         <ToastProvider>
           <Navbar />
-          {children}
+          <main className="pt-14">{children}</main>
           <JarvisWidget />
           <ToastViewport />
         </ToastProvider>

@@ -58,6 +58,15 @@ const adminModules = [
     hoverBorder: "hover:border-indigo-500/50",
   },
   {
+    title: "Blogs",
+    description: "Create & manage blog posts",
+    href: "/admin/blogs",
+    icon: "📝",
+    gradient: "from-fuchsia-500/20 to-pink-500/20",
+    borderColor: "border-fuchsia-500/30",
+    hoverBorder: "hover:border-fuchsia-500/50",
+  },
+  {
     title: "CMS Settings",
     description: "Site branding, SEO & configuration",
     href: "/admin/settings",
