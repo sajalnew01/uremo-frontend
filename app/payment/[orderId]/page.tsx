@@ -35,6 +35,10 @@ export default function PaymentPage() {
   const [faqOpen, setFaqOpen] = useState<number | null>(0);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  // PATCH_23: Wallet balance state
+  const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [walletLoading, setWalletLoading] = useState(false);
+
   const paymentFaq =
     settings?.payment?.faq && settings.payment.faq.length
       ? settings.payment.faq
@@ -64,7 +68,7 @@ export default function PaymentPage() {
       `/api/orders/${resolvedOrderId}`,
       "GET",
       null,
-      true
+      true,
     );
     setOrder(data);
   };
@@ -92,6 +96,17 @@ export default function PaymentPage() {
         setMethods([]);
       });
 
+    // PATCH_23: Load wallet balance
+    apiRequest("/api/wallet/balance", "GET")
+      .then((res) => {
+        if (!mounted) return;
+        setWalletBalance(res.balance || 0);
+      })
+      .catch(() => {
+        // Ignore if wallet balance fails
+        setWalletBalance(0);
+      });
+
     return () => {
       mounted = false;
     };
@@ -103,6 +118,28 @@ export default function PaymentPage() {
       toast(ui.paymentDetailsCopiedText, "success");
     } catch {
       toast(ui.copyFailedText, "error");
+    }
+  };
+
+  // PATCH_23: Pay with wallet handler
+  const payWithWallet = async () => {
+    if (!canSubmit) return;
+
+    const orderPrice = order?.serviceId?.price || order?.totalPrice || 0;
+    if (walletBalance < orderPrice) {
+      toast("Insufficient wallet balance", "error");
+      return;
+    }
+
+    setWalletLoading(true);
+    try {
+      await apiRequest("/api/wallet/pay", "POST", { orderId: resolvedOrderId });
+      toast("Payment successful! Redirecting...", "success");
+      router.push(`/orders/${resolvedOrderId}?chat=1`);
+    } catch (e: any) {
+      toast(e.message || "Wallet payment failed", "error");
+    } finally {
+      setWalletLoading(false);
     }
   };
 
@@ -141,7 +178,7 @@ export default function PaymentPage() {
         "POST",
         form,
         true,
-        true
+        true,
       );
 
       await apiRequest(
@@ -155,7 +192,7 @@ export default function PaymentPage() {
           proofResourceType: uploadRes.resourceType,
           proofFormat: uploadRes.format,
         },
-        true
+        true,
       );
 
       toast(successRedirectText, "success");
@@ -239,8 +276,8 @@ export default function PaymentPage() {
                     done
                       ? "bg-emerald-500/15 border-emerald-500/25 text-emerald-200"
                       : active
-                      ? "bg-blue-500/15 border-blue-500/25 text-blue-200"
-                      : "bg-white/5 border-white/10 text-[#9CA3AF]"
+                        ? "bg-blue-500/15 border-blue-500/25 text-blue-200"
+                        : "bg-white/5 border-white/10 text-[#9CA3AF]"
                   }`}
                 >
                   {n}
@@ -250,15 +287,15 @@ export default function PaymentPage() {
                     {n === 1
                       ? ui.wizardStep1Title
                       : n === 2
-                      ? ui.wizardStep2Title
-                      : ui.wizardStep3Title}
+                        ? ui.wizardStep2Title
+                        : ui.wizardStep3Title}
                   </p>
                   <p className="text-xs text-[#9CA3AF]">
                     {n === 1
                       ? ui.wizardStep1Subtitle
                       : n === 2
-                      ? ui.wizardStep2Subtitle
-                      : ui.wizardStep3Subtitle}
+                        ? ui.wizardStep2Subtitle
+                        : ui.wizardStep3Subtitle}
                   </p>
                 </div>
               </div>
@@ -333,6 +370,56 @@ export default function PaymentPage() {
           <p className="text-sm text-orange-200/90 mt-1">
             {ui.paymentRejectedBody}
           </p>
+        </div>
+      )}
+
+      {/* PATCH_23: Pay with Wallet Option */}
+      {canSubmit && walletBalance > 0 && (
+        <div className="card border border-emerald-500/30 bg-emerald-500/10">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h3 className="font-semibold text-emerald-100">
+                💳 Pay with Wallet
+              </h3>
+              <p className="text-sm text-emerald-200/80 mt-1">
+                Your wallet balance:{" "}
+                <span className="font-semibold">
+                  ${walletBalance.toFixed(2)}
+                </span>
+              </p>
+            </div>
+            {walletBalance >= (order?.serviceId?.price || 0) ? (
+              <button
+                onClick={payWithWallet}
+                disabled={walletLoading}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-lg font-medium disabled:opacity-50 transition"
+              >
+                {walletLoading ? "Processing..." : "Pay Now"}
+              </button>
+            ) : (
+              <button
+                onClick={() => router.push("/wallet")}
+                className="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-200 px-4 py-2 rounded-lg text-sm transition"
+              >
+                Add Balance
+              </button>
+            )}
+          </div>
+          {walletBalance < (order?.serviceId?.price || 0) && (
+            <p className="text-xs text-emerald-200/60 mt-2">
+              Need $
+              {((order?.serviceId?.price || 0) - walletBalance).toFixed(2)} more
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Divider for OR */}
+      {canSubmit && walletBalance > 0 && (
+        <div className="flex items-center gap-4">
+          <div className="flex-1 h-px bg-white/10" />
+          <span className="text-sm text-[#9CA3AF]">or pay manually</span>
+          <div className="flex-1 h-px bg-white/10" />
         </div>
       )}
 
@@ -511,8 +598,8 @@ export default function PaymentPage() {
         {isSubmitted
           ? ui.submitButtonSubmitted
           : status === "rejected"
-          ? ui.submitButtonResubmit
-          : ui.submitButtonSubmit}
+            ? ui.submitButtonResubmit
+            : ui.submitButtonSubmit}
       </button>
 
       {!isSubmitted && canSubmit && (

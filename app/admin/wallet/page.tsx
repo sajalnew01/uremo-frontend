@@ -1,0 +1,417 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { apiRequest } from "@/lib/api";
+import { useToast } from "@/hooks/useToast";
+import { useAuth } from "@/hooks/useAuth";
+
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+  walletBalance: number;
+}
+
+interface Transaction {
+  _id: string;
+  type: "credit" | "debit";
+  amount: number;
+  source: string;
+  description: string;
+  balanceAfter: number;
+  createdAt: string;
+}
+
+interface Stats {
+  totalBalance: number;
+  credits: { total: number; count: number };
+  debits: { total: number; count: number };
+}
+
+export default function AdminWalletPage() {
+  const router = useRouter();
+  const { toast } = useToast();
+  const { ready, isAdmin } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<Stats | null>(null);
+
+  // Search
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<User[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  // Selected user
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userTransactions, setUserTransactions] = useState<Transaction[]>([]);
+  const [userLoading, setUserLoading] = useState(false);
+
+  // Adjust modal
+  const [showAdjust, setShowAdjust] = useState(false);
+  const [adjustType, setAdjustType] = useState<"credit" | "debit">("credit");
+  const [adjustAmount, setAdjustAmount] = useState("");
+  const [adjustDescription, setAdjustDescription] = useState("");
+  const [adjustLoading, setAdjustLoading] = useState(false);
+
+  useEffect(() => {
+    if (!ready) return;
+    if (!isAdmin) {
+      router.push("/admin/login");
+      return;
+    }
+    fetchStats();
+  }, [ready, isAdmin, router]);
+
+  const fetchStats = async () => {
+    try {
+      const res = await apiRequest("/api/admin/wallet/stats", "GET");
+      setStats(res.stats);
+    } catch (err: any) {
+      toast(err.message || "Failed to load stats", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = async () => {
+    if (searchQuery.length < 2) {
+      toast("Enter at least 2 characters", "error");
+      return;
+    }
+
+    setSearching(true);
+    try {
+      const res = await apiRequest(
+        `/api/admin/wallet/search?q=${encodeURIComponent(searchQuery)}`,
+        "GET",
+      );
+      setSearchResults(res.users || []);
+      if (res.users?.length === 0) {
+        toast("No users found", "info");
+      }
+    } catch (err: any) {
+      toast(err.message || "Search failed", "error");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const selectUser = async (user: User) => {
+    setSelectedUser(user);
+    setUserLoading(true);
+    try {
+      const res = await apiRequest(`/api/admin/wallet/user/${user._id}`, "GET");
+      setSelectedUser(res.user);
+      setUserTransactions(res.transactions || []);
+    } catch (err: any) {
+      toast(err.message || "Failed to load user wallet", "error");
+    } finally {
+      setUserLoading(false);
+    }
+  };
+
+  const handleAdjust = async () => {
+    const amount = parseFloat(adjustAmount);
+    if (!amount || amount <= 0) {
+      toast("Amount must be greater than 0", "error");
+      return;
+    }
+
+    if (!selectedUser) return;
+
+    setAdjustLoading(true);
+    try {
+      const res = await apiRequest("/api/admin/wallet/adjust", "POST", {
+        userId: selectedUser._id,
+        amount,
+        type: adjustType,
+        description: adjustDescription,
+      });
+      toast(res.message || "Balance adjusted", "success");
+      setShowAdjust(false);
+      setAdjustAmount("");
+      setAdjustDescription("");
+      selectUser(selectedUser); // Refresh user data
+      fetchStats(); // Refresh stats
+    } catch (err: any) {
+      toast(err.message || "Adjustment failed", "error");
+    } finally {
+      setAdjustLoading(false);
+    }
+  };
+
+  const getSourceLabel = (source: string) => {
+    const labels: Record<string, string> = {
+      topup: "Top-up",
+      service_purchase: "Service Purchase",
+      rental_purchase: "Rental Purchase",
+      admin_adjustment: "Admin Adjustment",
+      refund: "Refund",
+    };
+    return labels[source] || source;
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <p className="text-slate-400">Loading wallet admin...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-white p-6">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-2xl font-bold">💳 Wallet Management</h1>
+          <button
+            onClick={() => router.push("/admin")}
+            className="text-sm text-slate-400 hover:text-white"
+          >
+            ← Back to Admin
+          </button>
+        </div>
+
+        {/* Stats Cards */}
+        {stats && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div className="bg-slate-900 rounded-xl p-5 border border-slate-800">
+              <p className="text-slate-400 text-sm">Total User Balances</p>
+              <p className="text-2xl font-bold text-emerald-400">
+                ${stats.totalBalance.toFixed(2)}
+              </p>
+            </div>
+            <div className="bg-slate-900 rounded-xl p-5 border border-slate-800">
+              <p className="text-slate-400 text-sm">Total Credits</p>
+              <p className="text-2xl font-bold text-green-400">
+                ${stats.credits.total.toFixed(2)}
+              </p>
+              <p className="text-xs text-slate-500">
+                {stats.credits.count} transactions
+              </p>
+            </div>
+            <div className="bg-slate-900 rounded-xl p-5 border border-slate-800">
+              <p className="text-slate-400 text-sm">Total Debits</p>
+              <p className="text-2xl font-bold text-red-400">
+                ${stats.debits.total.toFixed(2)}
+              </p>
+              <p className="text-xs text-slate-500">
+                {stats.debits.count} transactions
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Search Panel */}
+          <div className="bg-slate-900 rounded-xl border border-slate-800">
+            <div className="p-4 border-b border-slate-800">
+              <h2 className="text-lg font-semibold">Search User</h2>
+            </div>
+            <div className="p-4">
+              <div className="flex gap-2 mb-4">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                  placeholder="Search by name or email..."
+                  className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white"
+                />
+                <button
+                  onClick={handleSearch}
+                  disabled={searching}
+                  className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg disabled:opacity-50"
+                >
+                  {searching ? "..." : "Search"}
+                </button>
+              </div>
+
+              {/* Search Results */}
+              {searchResults.length > 0 && (
+                <div className="space-y-2">
+                  {searchResults.map((user) => (
+                    <button
+                      key={user._id}
+                      onClick={() => selectUser(user)}
+                      className={`w-full text-left p-3 rounded-lg border transition ${
+                        selectedUser?._id === user._id
+                          ? "bg-blue-600/20 border-blue-500"
+                          : "bg-slate-800 border-slate-700 hover:border-slate-600"
+                      }`}
+                    >
+                      <p className="font-medium">{user.name}</p>
+                      <p className="text-sm text-slate-400">{user.email}</p>
+                      <p className="text-sm text-emerald-400">
+                        Balance: ${(user.walletBalance || 0).toFixed(2)}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Selected User Panel */}
+          <div className="bg-slate-900 rounded-xl border border-slate-800">
+            <div className="p-4 border-b border-slate-800">
+              <h2 className="text-lg font-semibold">User Wallet</h2>
+            </div>
+
+            {!selectedUser ? (
+              <div className="p-8 text-center text-slate-500">
+                Search and select a user to view their wallet
+              </div>
+            ) : userLoading ? (
+              <div className="p-8 text-center text-slate-400">Loading...</div>
+            ) : (
+              <div className="p-4">
+                {/* User Info */}
+                <div className="bg-slate-800 rounded-lg p-4 mb-4">
+                  <p className="font-medium text-lg">{selectedUser.name}</p>
+                  <p className="text-slate-400">{selectedUser.email}</p>
+                  <p className="text-2xl font-bold text-emerald-400 mt-2">
+                    ${(selectedUser.walletBalance || 0).toFixed(2)}
+                  </p>
+                  <button
+                    onClick={() => setShowAdjust(true)}
+                    className="mt-3 bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm"
+                  >
+                    Adjust Balance
+                  </button>
+                </div>
+
+                {/* Transaction History */}
+                <h3 className="font-medium mb-2">Recent Transactions</h3>
+                {userTransactions.length === 0 ? (
+                  <p className="text-sm text-slate-500">No transactions</p>
+                ) : (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {userTransactions.slice(0, 10).map((tx) => (
+                      <div
+                        key={tx._id}
+                        className="bg-slate-800 rounded-lg p-3 flex justify-between items-center"
+                      >
+                        <div>
+                          <p className="text-sm font-medium">
+                            {getSourceLabel(tx.source)}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {new Date(tx.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                        <p
+                          className={`font-semibold ${
+                            tx.type === "credit"
+                              ? "text-emerald-400"
+                              : "text-red-400"
+                          }`}
+                        >
+                          {tx.type === "credit" ? "+" : "-"}$
+                          {tx.amount.toFixed(2)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Adjust Modal */}
+        {showAdjust && selectedUser && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+            <div className="bg-slate-900 rounded-xl p-6 w-full max-w-md border border-slate-700">
+              <h2 className="text-xl font-semibold mb-4">Adjust Balance</h2>
+              <p className="text-slate-400 text-sm mb-4">
+                Adjusting wallet for: <strong>{selectedUser.email}</strong>
+              </p>
+
+              {/* Type Selection */}
+              <div className="flex gap-2 mb-4">
+                <button
+                  onClick={() => setAdjustType("credit")}
+                  className={`flex-1 py-2 rounded-lg border ${
+                    adjustType === "credit"
+                      ? "bg-emerald-600 border-emerald-500"
+                      : "bg-slate-800 border-slate-700"
+                  }`}
+                >
+                  + Credit
+                </button>
+                <button
+                  onClick={() => setAdjustType("debit")}
+                  className={`flex-1 py-2 rounded-lg border ${
+                    adjustType === "debit"
+                      ? "bg-red-600 border-red-500"
+                      : "bg-slate-800 border-slate-700"
+                  }`}
+                >
+                  - Debit
+                </button>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm text-slate-300 mb-2">
+                  Amount ($)
+                </label>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={adjustAmount}
+                  onChange={(e) => setAdjustAmount(e.target.value)}
+                  placeholder="Enter amount"
+                  className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-3 text-white"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm text-slate-300 mb-2">
+                  Description (optional)
+                </label>
+                <input
+                  type="text"
+                  value={adjustDescription}
+                  onChange={(e) => setAdjustDescription(e.target.value)}
+                  placeholder="Reason for adjustment"
+                  className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-3 text-white"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowAdjust(false);
+                    setAdjustAmount("");
+                    setAdjustDescription("");
+                  }}
+                  className="flex-1 bg-slate-700 hover:bg-slate-600 rounded-lg py-3"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAdjust}
+                  disabled={adjustLoading}
+                  className={`flex-1 rounded-lg py-3 font-medium disabled:opacity-50 ${
+                    adjustType === "credit"
+                      ? "bg-emerald-600 hover:bg-emerald-500"
+                      : "bg-red-600 hover:bg-red-500"
+                  }`}
+                >
+                  {adjustLoading
+                    ? "Processing..."
+                    : adjustType === "credit"
+                      ? "Credit Balance"
+                      : "Debit Balance"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

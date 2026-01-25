@@ -59,6 +59,16 @@ const adminModules = [
     borderColor: "border-yellow-500/30",
     hoverBorder: "hover:border-yellow-500/50",
   },
+  // PATCH_23: Wallet Management
+  {
+    title: "Wallet Management",
+    description: "View & adjust user wallet balances",
+    href: "/admin/wallet",
+    icon: "💳",
+    gradient: "from-teal-500/20 to-cyan-500/20",
+    borderColor: "border-teal-500/30",
+    hoverBorder: "hover:border-teal-500/50",
+  },
   {
     title: "Applications",
     description: "Review work applications from users",

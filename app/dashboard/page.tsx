@@ -34,6 +34,13 @@ export default function Dashboard() {
       href: "/affiliate",
       icon: "💰",
     },
+    // PATCH_23: Wallet card
+    {
+      title: "My Wallet",
+      desc: "Add balance and pay for services instantly.",
+      href: "/wallet",
+      icon: "💳",
+    },
     {
       title: "Apply to Work",
       desc: "Join UREMO as a manual operations specialist.",
