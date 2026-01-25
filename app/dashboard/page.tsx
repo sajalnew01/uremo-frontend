@@ -27,6 +27,13 @@ export default function Dashboard() {
       href: "/rentals",
       icon: "🔄",
     },
+    // PATCH_23: Affiliate Earnings card
+    {
+      title: "Affiliate Earnings",
+      desc: "Earn 10% commission by referring new users.",
+      href: "/affiliate",
+      icon: "💰",
+    },
     {
       title: "Apply to Work",
       desc: "Join UREMO as a manual operations specialist.",

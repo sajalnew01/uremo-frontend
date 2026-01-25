@@ -49,6 +49,16 @@ const adminModules = [
     borderColor: "border-green-500/30",
     hoverBorder: "hover:border-green-500/50",
   },
+  // PATCH_23: Affiliate Withdrawals
+  {
+    title: "Affiliate Withdrawals",
+    description: "Review & process affiliate payouts",
+    href: "/admin/affiliate",
+    icon: "💰",
+    gradient: "from-yellow-500/20 to-amber-500/20",
+    borderColor: "border-yellow-500/30",
+    hoverBorder: "hover:border-yellow-500/50",
+  },
   {
     title: "Applications",
     description: "Review work applications from users",
