@@ -22,8 +22,8 @@ export default function SupportPage() {
   const whatsappDisplay = whatsappConfigured.startsWith("+")
     ? whatsappConfigured
     : whatsappDigits
-    ? `+${whatsappDigits}`
-    : "";
+      ? `+${whatsappDigits}`
+      : "";
   const whatsappHref = whatsappDigits ? `https://wa.me/${whatsappDigits}` : "";
 
   return (
@@ -45,6 +45,33 @@ export default function SupportPage() {
           For issues, contact support or reply inside any order chat.
         </p>
       </div>
+
+      {/* Support Tickets Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.05 }}
+        className="card mb-6"
+      >
+        <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 hover:bg-emerald-500/15 transition">
+          <div className="flex items-start gap-4">
+            <div className="text-2xl">🎫</div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-white mb-1">Support Tickets</h3>
+              <p className="text-sm text-slate-300 mb-3">
+                Create and track support tickets. Get detailed help from our
+                team.
+              </p>
+              <Link
+                href="/support/tickets"
+                className="inline-flex items-center gap-2 text-sm text-emerald-300 hover:text-emerald-200 transition font-medium"
+              >
+                View My Tickets <span className="text-[#9CA3AF]">→</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </motion.div>
 
       {/* Support Options Card */}
       <motion.div
