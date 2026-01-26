@@ -59,6 +59,16 @@ const adminModules = [
     borderColor: "border-yellow-500/30",
     hoverBorder: "hover:border-yellow-500/50",
   },
+  // PATCH_26: Affiliate Directory
+  {
+    title: "Affiliate Directory",
+    description: "View all affiliates & their earnings",
+    href: "/admin/affiliates",
+    icon: "👥",
+    gradient: "from-purple-500/20 to-violet-500/20",
+    borderColor: "border-purple-500/30",
+    hoverBorder: "hover:border-purple-500/50",
+  },
   // PATCH_23: Wallet Management
   {
     title: "Wallet Management",

@@ -6,6 +6,25 @@ import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 
+interface CommissionSummary {
+  totalEarnings: number;
+  availableBalance: number;
+  withdrawnAmount: number;
+  pendingWithdrawal: number;
+}
+
+interface Commission {
+  _id: string;
+  referredUserEmail: string;
+  referredUserName: string;
+  orderId: string | null;
+  orderAmount: number;
+  commissionAmount: number;
+  commissionRate: number;
+  status: string;
+  date: string;
+}
+
 interface AffiliateStats {
   referralCode: string;
   affiliateBalance: number;
@@ -15,16 +34,6 @@ interface AffiliateStats {
   minimumWithdrawal: number;
   pendingWithdrawals: number;
   transactionsByStatus: Record<string, { count: number; total: number }>;
-}
-
-interface Transaction {
-  _id: string;
-  referredUser: { name: string; email: string };
-  order: { status: string; amount: number };
-  orderAmount: number;
-  commission: number;
-  status: string;
-  createdAt: string;
 }
 
 interface Withdrawal {
@@ -40,12 +49,13 @@ interface Withdrawal {
 export default function AffiliatePage() {
   const { toast } = useToast();
   const [stats, setStats] = useState<AffiliateStats | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [commissions, setCommissions] = useState<Commission[]>([]);
+  const [summary, setSummary] = useState<CommissionSummary | null>(null);
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<
-    "stats" | "transactions" | "withdrawals"
-  >("stats");
+    "overview" | "commissions" | "withdrawals"
+  >("overview");
 
   // Withdrawal form
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
@@ -61,16 +71,19 @@ export default function AffiliatePage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [statsData, txData, wdData] = await Promise.all([
+      const [statsData, commissionsData, wdData] = await Promise.all([
         apiRequest("/api/affiliate/stats", "GET", null, true),
-        apiRequest("/api/affiliate/transactions", "GET", null, true),
+        apiRequest("/api/affiliate/commissions", "GET", null, true),
         apiRequest("/api/affiliate/withdrawals", "GET", null, true),
       ]);
       setStats(statsData?.stats || null);
-      setTransactions(txData?.transactions || []);
+      setCommissions(commissionsData?.commissions || []);
+      setSummary(commissionsData?.summary || null);
       setWithdrawals(wdData?.withdrawals || []);
-    } catch (err: any) {
-      toast(err?.message || "Failed to load affiliate data", "error");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to load affiliate data";
+      toast(message, "error");
     } finally {
       setLoading(false);
     }
@@ -106,8 +119,10 @@ export default function AffiliatePage() {
       setWithdrawAmount("");
       setPaymentDetails("");
       loadData();
-    } catch (err: any) {
-      toast(err?.message || "Failed to submit withdrawal", "error");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to submit withdrawal";
+      toast(message, "error");
     } finally {
       setSubmitting(false);
     }
@@ -136,10 +151,14 @@ export default function AffiliatePage() {
     });
   };
 
+  const successfulReferrals = commissions.filter(
+    (c) => c.status === "approved",
+  ).length;
+
   if (loading) {
     return (
-      <div className="u-container max-w-5xl">
-        <h1 className="text-3xl font-bold mb-6">Affiliate Earnings</h1>
+      <div className="u-container max-w-6xl">
+        <h1 className="text-3xl font-bold mb-6">Affiliate Dashboard</h1>
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className="card animate-pulse">
@@ -157,11 +176,11 @@ export default function AffiliatePage() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="u-container max-w-5xl"
+      className="u-container max-w-6xl"
     >
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Affiliate Earnings</h1>
+          <h1 className="text-3xl font-bold">Affiliate Dashboard</h1>
           <p className="text-slate-400 text-sm mt-1">
             Earn {stats?.commissionRate || 10}% commission on every referral
             purchase
@@ -175,158 +194,229 @@ export default function AffiliatePage() {
         </Link>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="card text-center">
-          <p className="text-xs text-slate-400">Available Balance</p>
-          <p className="text-2xl font-bold text-emerald-300">
-            ${stats?.affiliateBalance?.toFixed(2) || "0.00"}
+      {/* Stats Cards - 4 Cards as required */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="card text-center border border-emerald-500/30">
+          <p className="text-xs text-slate-400 mb-1">💰 Total Earnings</p>
+          <p className="text-3xl font-bold text-emerald-300">
+            $
+            {(
+              summary?.totalEarnings ||
+              stats?.totalAffiliateEarned ||
+              0
+            ).toFixed(2)}
           </p>
         </div>
-        <div className="card text-center">
-          <p className="text-xs text-slate-400">Total Earned</p>
-          <p className="text-2xl font-bold text-white">
-            ${stats?.totalAffiliateEarned?.toFixed(2) || "0.00"}
+        <div className="card text-center border border-blue-500/30">
+          <p className="text-xs text-slate-400 mb-1">💵 Available Balance</p>
+          <p className="text-3xl font-bold text-blue-300">
+            $
+            {(
+              summary?.availableBalance ||
+              stats?.affiliateBalance ||
+              0
+            ).toFixed(2)}
           </p>
         </div>
-        <div className="card text-center">
-          <p className="text-xs text-slate-400">Referred Users</p>
-          <p className="text-2xl font-bold text-white">
-            {stats?.referredUsersCount || 0}
+        <div className="card text-center border border-purple-500/30">
+          <p className="text-xs text-slate-400 mb-1">📤 Withdrawn Amount</p>
+          <p className="text-3xl font-bold text-purple-300">
+            ${(summary?.withdrawnAmount || 0).toFixed(2)}
           </p>
         </div>
-        <div className="card text-center">
-          <p className="text-xs text-slate-400">Commission Rate</p>
-          <p className="text-2xl font-bold text-purple-300">
-            {stats?.commissionRate || 10}%
+        <div className="card text-center border border-orange-500/30">
+          <p className="text-xs text-slate-400 mb-1">🎯 Successful Referrals</p>
+          <p className="text-3xl font-bold text-orange-300">
+            {successfulReferrals}
           </p>
         </div>
       </div>
 
-      {/* Referral Link */}
-      <div className="card mb-6">
+      {/* Referral Link Section */}
+      <div className="card mb-6 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <p className="text-sm text-slate-400">Your Referral Code</p>
             <p className="text-2xl font-mono font-bold text-white">
               {stats?.referralCode || "—"}
             </p>
+            <p className="text-xs text-slate-500 mt-1">
+              Share this code or link to earn commissions
+            </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <button
               onClick={copyReferralLink}
               className="btn-secondary text-sm"
             >
-              📋 Copy Link
+              📋 Copy Referral Link
             </button>
-            {(stats?.affiliateBalance || 0) >=
+            {(summary?.availableBalance || stats?.affiliateBalance || 0) >=
               (stats?.minimumWithdrawal || 10) && (
               <button
                 onClick={() => setShowWithdrawModal(true)}
                 className="btn-primary text-sm"
               >
-                💸 Withdraw
+                💸 Request Withdrawal
               </button>
             )}
           </div>
         </div>
-        {stats?.pendingWithdrawals ? (
-          <p className="text-xs text-yellow-400 mt-2">
-            Pending withdrawal: ${stats.pendingWithdrawals.toFixed(2)}
+        {(summary?.pendingWithdrawal || stats?.pendingWithdrawals || 0) > 0 && (
+          <p className="text-xs text-yellow-400 mt-3">
+            ⏳ Pending withdrawal: $
+            {(
+              summary?.pendingWithdrawal ||
+              stats?.pendingWithdrawals ||
+              0
+            ).toFixed(2)}
           </p>
-        ) : null}
+        )}
       </div>
 
       {/* Tabs */}
       <div className="flex gap-4 mb-4 border-b border-white/10 pb-2">
-        {(["stats", "transactions", "withdrawals"] as const).map((tab) => (
+        {(["overview", "commissions", "withdrawals"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`text-sm px-3 py-1 rounded transition ${
+            className={`text-sm px-4 py-2 rounded-t transition ${
               activeTab === tab
-                ? "bg-white/10 text-white"
+                ? "bg-white/10 text-white border-b-2 border-purple-500"
                 : "text-slate-400 hover:text-white"
             }`}
           >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            {tab === "overview"
+              ? "📊 Overview"
+              : tab === "commissions"
+                ? "💵 Referral History"
+                : "📤 Withdrawals"}
           </button>
         ))}
       </div>
 
-      {/* Stats Tab */}
-      {activeTab === "stats" && (
+      {/* Overview Tab */}
+      {activeTab === "overview" && (
         <div className="card">
-          <h3 className="font-semibold mb-4">How It Works</h3>
-          <div className="space-y-3 text-sm text-slate-300">
-            <div className="flex gap-3">
-              <span className="text-lg">1️⃣</span>
-              <p>Share your unique referral link with friends</p>
+          <h3 className="font-semibold mb-4 text-lg">How It Works</h3>
+          <div className="space-y-4 text-sm text-slate-300">
+            <div className="flex gap-4 items-start p-3 rounded-lg bg-white/5">
+              <span className="text-2xl">1️⃣</span>
+              <div>
+                <p className="font-medium text-white">Share Your Link</p>
+                <p className="text-slate-400">
+                  Share your unique referral link with friends, on social media,
+                  or forums
+                </p>
+              </div>
             </div>
-            <div className="flex gap-3">
-              <span className="text-lg">2️⃣</span>
-              <p>
-                When they sign up and make a purchase, you earn{" "}
-                {stats?.commissionRate || 10}% commission
-              </p>
+            <div className="flex gap-4 items-start p-3 rounded-lg bg-white/5">
+              <span className="text-2xl">2️⃣</span>
+              <div>
+                <p className="font-medium text-white">
+                  They Sign Up & Purchase
+                </p>
+                <p className="text-slate-400">
+                  When someone signs up using your link and makes a purchase,
+                  you earn {stats?.commissionRate || 10}% commission
+                </p>
+              </div>
             </div>
-            <div className="flex gap-3">
-              <span className="text-lg">3️⃣</span>
-              <p>
-                Withdraw your earnings once you reach $
-                {stats?.minimumWithdrawal || 10}
-              </p>
+            <div className="flex gap-4 items-start p-3 rounded-lg bg-white/5">
+              <span className="text-2xl">3️⃣</span>
+              <div>
+                <p className="font-medium text-white">Withdraw Your Earnings</p>
+                <p className="text-slate-400">
+                  Once you reach ${stats?.minimumWithdrawal || 10}, withdraw via
+                  PayPal, Crypto, or Bank Transfer
+                </p>
+              </div>
             </div>
           </div>
 
           <div className="mt-6 p-4 rounded-lg bg-purple-500/10 border border-purple-500/30">
             <p className="text-sm text-purple-200">
-              <strong>💡 Pro tip:</strong> Share your link on social media,
-              forums, or with your network to maximize earnings!
+              <strong>💡 Pro Tip:</strong> The more you share, the more you
+              earn! Your commission is credited automatically when your
+              referrals make purchases.
             </p>
           </div>
         </div>
       )}
 
-      {/* Transactions Tab */}
-      {activeTab === "transactions" && (
-        <div className="space-y-3">
-          {transactions.length === 0 ? (
-            <div className="card text-center py-8">
-              <p className="text-slate-400">No commission transactions yet</p>
-              <p className="text-xs text-slate-500 mt-1">
-                Start sharing your referral link to earn!
+      {/* Commissions/Referral History Tab */}
+      {activeTab === "commissions" && (
+        <div>
+          {commissions.length === 0 ? (
+            <div className="card text-center py-12">
+              <p className="text-white text-lg">No commissions yet</p>
+              <p className="text-slate-400 text-sm mt-2">
+                Start sharing your referral link to earn commissions!
               </p>
             </div>
           ) : (
-            transactions.map((tx) => (
-              <div key={tx._id} className="card">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="font-medium text-white">
-                      Commission from{" "}
-                      {tx.referredUser?.name ||
-                        tx.referredUser?.email ||
-                        "User"}
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      Order: ${tx.orderAmount?.toFixed(2)} •{" "}
-                      {formatDate(tx.createdAt)}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-emerald-300">
-                      +${tx.commission?.toFixed(2)}
-                    </p>
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(tx.status)}`}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-white/10 text-left">
+                    <th className="py-3 px-4 text-slate-400 font-medium">
+                      Referred User
+                    </th>
+                    <th className="py-3 px-4 text-slate-400 font-medium">
+                      Order ID
+                    </th>
+                    <th className="py-3 px-4 text-slate-400 font-medium text-right">
+                      Order Amount
+                    </th>
+                    <th className="py-3 px-4 text-slate-400 font-medium text-right">
+                      Commission
+                    </th>
+                    <th className="py-3 px-4 text-slate-400 font-medium text-center">
+                      Status
+                    </th>
+                    <th className="py-3 px-4 text-slate-400 font-medium">
+                      Date
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {commissions.map((c) => (
+                    <tr
+                      key={c._id}
+                      className="border-b border-white/5 hover:bg-white/5"
                     >
-                      {tx.status}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))
+                      <td className="py-3 px-4">
+                        <p className="text-white">{c.referredUserName}</p>
+                        <p className="text-xs text-slate-500">
+                          {c.referredUserEmail}
+                        </p>
+                      </td>
+                      <td className="py-3 px-4 font-mono text-xs text-slate-400">
+                        {c.orderId
+                          ? `${String(c.orderId).slice(0, 8)}...`
+                          : "—"}
+                      </td>
+                      <td className="py-3 px-4 text-right text-white">
+                        ${c.orderAmount.toFixed(2)}
+                      </td>
+                      <td className="py-3 px-4 text-right font-semibold text-emerald-300">
+                        +${c.commissionAmount.toFixed(2)}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full ${getStatusColor(c.status)}`}
+                        >
+                          {c.status}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-slate-400">
+                        {formatDate(c.date)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}
@@ -335,28 +425,37 @@ export default function AffiliatePage() {
       {activeTab === "withdrawals" && (
         <div className="space-y-3">
           {withdrawals.length === 0 ? (
-            <div className="card text-center py-8">
-              <p className="text-slate-400">No withdrawal history</p>
+            <div className="card text-center py-12">
+              <p className="text-white text-lg">No withdrawal history</p>
+              <p className="text-slate-400 text-sm mt-2">
+                Request a withdrawal once you reach the minimum balance
+              </p>
             </div>
           ) : (
             withdrawals.map((wd) => (
               <div key={wd._id} className="card">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="font-medium text-white">
-                      ${wd.amount?.toFixed(2)} via {wd.paymentMethod}
+                    <p className="font-medium text-white text-lg">
+                      ${wd.amount?.toFixed(2)}{" "}
+                      <span className="text-sm text-slate-400">
+                        via {wd.paymentMethod}
+                      </span>
                     </p>
-                    <p className="text-xs text-slate-400">
-                      {wd.paymentDetails} • {formatDate(wd.createdAt)}
+                    <p className="text-xs text-slate-400 mt-1">
+                      {wd.paymentDetails}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Requested: {formatDate(wd.createdAt)}
                     </p>
                     {wd.adminNotes && (
-                      <p className="text-xs text-slate-500 mt-1">
-                        {wd.adminNotes}
+                      <p className="text-xs text-slate-500 mt-1 italic">
+                        Note: {wd.adminNotes}
                       </p>
                     )}
                   </div>
                   <span
-                    className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(wd.status)}`}
+                    className={`text-xs px-3 py-1 rounded-full ${getStatusColor(wd.status)}`}
                   >
                     {wd.status}
                   </span>
@@ -386,10 +485,12 @@ export default function AffiliatePage() {
                   type="number"
                   value={withdrawAmount}
                   onChange={(e) => setWithdrawAmount(e.target.value)}
-                  placeholder={`Max: $${stats?.affiliateBalance?.toFixed(2) || 0}`}
+                  placeholder={`Max: $${(summary?.availableBalance || stats?.affiliateBalance || 0).toFixed(2)}`}
                   className="u-input"
                   min={stats?.minimumWithdrawal || 10}
-                  max={stats?.affiliateBalance || 0}
+                  max={
+                    summary?.availableBalance || stats?.affiliateBalance || 0
+                  }
                 />
               </div>
               <div>
