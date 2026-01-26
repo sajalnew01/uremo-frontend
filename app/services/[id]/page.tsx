@@ -44,7 +44,8 @@ export default function ServiceDetailsPage() {
     apiRequest(`/api/services/${id}`)
       .then((data) => {
         if (!mounted) return;
-        setService(data);
+        // Backend returns { ok: true, service: {...} }
+        setService(data.service || data);
       })
       .catch((e: any) => {
         if (!mounted) return;

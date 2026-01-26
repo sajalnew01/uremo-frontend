@@ -1,23 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import FilePreview from "@/components/FilePreview";
 
 interface Application {
   _id: string;
-  user: {
-    email: string;
-    name?: string;
-  };
+  user: { email: string; name?: string };
+  position?: string;
+  category?: string;
   message?: string;
   resumeUrl: string;
   resumeOriginalName?: string;
   resumeMimeType?: string;
   status: "pending" | "approved" | "rejected";
   createdAt: string;
+}
+
+interface FilterOptions {
+  statuses: string[];
+  categories: string[];
 }
 
 const statusColor = (status: string) => {
@@ -38,16 +41,44 @@ export default function AdminApplicationsPage() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [search, setSearch] = useState("");
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
+    statuses: ["pending", "approved", "rejected"],
+    categories: [],
+  });
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const loadApplications = async () => {
+    setLoading(true);
     try {
-      const data = await apiRequest<Application[]>(
-        "/api/apply-work/admin",
+      const params = new URLSearchParams();
+      if (statusFilter) params.set("status", statusFilter);
+      if (categoryFilter) params.set("category", categoryFilter);
+      if (search) params.set("search", search);
+      params.set("page", String(page));
+      params.set("limit", "20");
+
+      const data = await apiRequest<any>(
+        `/api/apply-work/admin?${params.toString()}`,
         "GET",
         null,
-        true
+        true,
       );
-      setApplications(data);
+
+      if (Array.isArray(data)) {
+        setApplications(data);
+        setTotal(data.length);
+        setTotalPages(1);
+      } else {
+        setApplications(data.applications || []);
+        setTotal(data.total || 0);
+        setTotalPages(data.pages || 1);
+        if (data.filterOptions) setFilterOptions(data.filterOptions);
+      }
     } catch (err) {
       console.error(err);
       toast("Failed to load applications", "error");
@@ -63,9 +94,10 @@ export default function AdminApplicationsPage() {
         `/api/apply-work/admin/${id}`,
         "PUT",
         { status: newStatus },
-        true
+        true,
       );
       loadApplications();
+      toast(`Application ${newStatus}`, "success");
     } catch (err) {
       console.error(err);
       toast("Failed to update application", "error");
@@ -76,98 +108,192 @@ export default function AdminApplicationsPage() {
 
   useEffect(() => {
     loadApplications();
-  }, []);
+  }, [page, statusFilter, categoryFilter]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1);
+      loadApplications();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Admin — Applications</h1>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <h1 className="text-2xl font-bold">Admin — Applications</h1>
+        <span className="text-sm text-[#9CA3AF]">{total} total</span>
+      </div>
 
-      {loading && <p>Loading applications...</p>}
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 items-center">
+        <input
+          type="text"
+          placeholder="Search by email..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="u-input w-64"
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            setPage(1);
+          }}
+          className="u-select"
+        >
+          <option value="">All Statuses</option>
+          {filterOptions.statuses.map((s) => (
+            <option key={s} value={s}>
+              {s.charAt(0).toUpperCase() + s.slice(1)}
+            </option>
+          ))}
+        </select>
+        <select
+          value={categoryFilter}
+          onChange={(e) => {
+            setCategoryFilter(e.target.value);
+            setPage(1);
+          }}
+          className="u-select"
+        >
+          <option value="">All Categories</option>
+          {filterOptions.categories.map((c) => (
+            <option key={c} value={c}>
+              {c.replace(/_/g, " ")}
+            </option>
+          ))}
+        </select>
+        {(statusFilter || categoryFilter || search) && (
+          <button
+            onClick={() => {
+              setStatusFilter("");
+              setCategoryFilter("");
+              setSearch("");
+              setPage(1);
+            }}
+            className="text-sm text-blue-400 hover:text-blue-300"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
+      {loading && <p className="text-[#9CA3AF]">Loading applications...</p>}
 
       {!loading && applications.length === 0 && (
-        <Card>
-          <p className="text-sm text-[#9CA3AF]">No applications yet.</p>
-        </Card>
+        <div className="card">
+          <p className="text-sm text-[#9CA3AF]">No applications found.</p>
+        </div>
       )}
 
-      <div className="space-y-4">
-        {applications.map((app) => (
-          <Card key={app._id} title={app.user.email}>
-            <div className="space-y-3">
-              {/* User Info */}
-              <div className="border-b border-[#1F2937] pb-3">
-                <p className="text-sm text-[#9CA3AF]">
-                  <strong>Name:</strong> {app.user.name || "N/A"}
-                </p>
-                <p className="text-sm text-[#9CA3AF] mt-1">
-                  <strong>Email:</strong> {app.user.email}
-                </p>
-                <p className="text-sm text-[#9CA3AF] mt-1">
-                  <strong>Applied:</strong>{" "}
-                  {new Date(app.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-
-              {/* Message */}
-              {app.message && (
-                <div className="border-b border-[#1F2937] pb-3">
-                  <p className="text-sm text-[#9CA3AF]">
-                    <strong>Message:</strong>
-                  </p>
-                  <p className="text-sm mt-1">{app.message}</p>
-                </div>
-              )}
-
-              {/* Resume Link */}
-              <div className="border-b border-[#1F2937] pb-3">
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <p className="text-sm text-[#9CA3AF]">Resume</p>
-                  <FilePreview
-                    url={app.resumeUrl}
-                    label="Open resume"
-                    type={app.resumeMimeType?.includes("pdf") ? "raw" : "image"}
-                  />
-                </div>
-              </div>
-
-              {/* Status & Actions */}
-              <div className="flex items-center justify-between pt-2">
-                <div>
-                  <span
-                    className={`${statusColor(
-                      app.status
-                    )} text-white text-xs px-2 py-1 rounded`}
+      {!loading && applications.length > 0 && (
+        <div className="border border-[#1F2937] rounded-lg overflow-hidden bg-[#0F172A]">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left bg-[#0B1220] border-b border-white/10">
+                  <th className="p-4 text-xs text-[#9CA3AF]">User</th>
+                  <th className="p-4 text-xs text-[#9CA3AF]">Position</th>
+                  <th className="p-4 text-xs text-[#9CA3AF]">Category</th>
+                  <th className="p-4 text-xs text-[#9CA3AF]">Date</th>
+                  <th className="p-4 text-xs text-[#9CA3AF]">Resume</th>
+                  <th className="p-4 text-xs text-[#9CA3AF]">Status</th>
+                  <th className="p-4 text-xs text-[#9CA3AF]">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {applications.map((app, idx) => (
+                  <tr
+                    key={app._id}
+                    className={`border-b border-white/10 hover:bg-white/5 ${
+                      idx % 2 === 0 ? "bg-white/[0.02]" : ""
+                    }`}
                   >
-                    {app.status.toUpperCase()}
-                  </span>
-                </div>
+                    <td className="p-4">
+                      <div>
+                        <p className="font-medium">{app.user.name || "N/A"}</p>
+                        <p className="text-xs text-[#9CA3AF]">
+                          {app.user.email}
+                        </p>
+                      </div>
+                    </td>
+                    <td className="p-4 text-[#9CA3AF]">
+                      {app.position || "—"}
+                    </td>
+                    <td className="p-4 text-[#9CA3AF]">
+                      {app.category?.replace(/_/g, " ") || "—"}
+                    </td>
+                    <td className="p-4 text-[#9CA3AF]">
+                      {new Date(app.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="p-4">
+                      <FilePreview
+                        url={app.resumeUrl}
+                        label="View"
+                        type={
+                          app.resumeMimeType?.includes("pdf") ? "raw" : "image"
+                        }
+                      />
+                    </td>
+                    <td className="p-4">
+                      <span
+                        className={`${statusColor(app.status)} text-white text-xs px-2 py-1 rounded`}
+                      >
+                        {app.status.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex gap-2">
+                        {app.status !== "approved" && (
+                          <button
+                            onClick={() => updateStatus(app._id, "approved")}
+                            disabled={updating === app._id}
+                            className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50"
+                          >
+                            {updating === app._id ? "..." : "✓"}
+                          </button>
+                        )}
+                        {app.status !== "rejected" && (
+                          <button
+                            onClick={() => updateStatus(app._id, "rejected")}
+                            disabled={updating === app._id}
+                            className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 disabled:opacity-50"
+                          >
+                            {updating === app._id ? "..." : "✕"}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
-                <div className="flex gap-2">
-                  {app.status !== "approved" && (
-                    <button
-                      onClick={() => updateStatus(app._id, "approved")}
-                      disabled={updating === app._id}
-                      className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50"
-                    >
-                      {updating === app._id ? "..." : "Approve"}
-                    </button>
-                  )}
-
-                  {app.status !== "rejected" && (
-                    <button
-                      onClick={() => updateStatus(app._id, "rejected")}
-                      disabled={updating === app._id}
-                      className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 disabled:opacity-50"
-                    >
-                      {updating === app._id ? "..." : "Reject"}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="px-3 py-1 text-sm bg-[#1F2937] rounded disabled:opacity-50"
+          >
+            Prev
+          </button>
+          <span className="text-sm text-[#9CA3AF]">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="px-3 py-1 text-sm bg-[#1F2937] rounded disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 }
