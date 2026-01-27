@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import ProfileMenu from "@/components/ProfileMenu";
+import NotificationBell from "@/components/NotificationBell";
 import { useAdminSupportUnread } from "@/lib/supportUnread";
 import {
   DEFAULT_PUBLIC_SITE_SETTINGS,
@@ -236,6 +237,9 @@ export default function Navbar() {
                   )}
                 </Link>
               )}
+
+              {/* Global Notification Bell - for all authenticated users */}
+              {isAuthenticated && <NotificationBell />}
 
               {isAuthenticated && <ProfileMenu />}
             </div>
