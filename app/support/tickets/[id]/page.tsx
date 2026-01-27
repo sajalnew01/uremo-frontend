@@ -15,6 +15,11 @@ interface Message {
   message: string;
   attachment?: string;
   attachmentType?: string;
+  attachments?: Array<{
+    url: string;
+    filename: string;
+    fileType: string;
+  }>;
   createdAt: string;
 }
 
@@ -68,7 +73,92 @@ export default function TicketViewPage() {
   const [loading, setLoading] = useState(true);
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
+  const [attachments, setAttachments] = useState<
+    Array<{
+      url: string;
+      filename: string;
+      fileType: string;
+      publicId: string;
+      size: number;
+    }>
+  >([]);
+  const [uploading, setUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+      "application/pdf",
+      "application/zip",
+      "application/x-zip-compressed",
+      "text/plain",
+    ];
+
+    const validFiles = Array.from(files).filter((file) => {
+      if (!allowedTypes.includes(file.type)) {
+        toast(
+          `${file.name} is not allowed. Only images, PDF, ZIP, and TXT files are allowed.`,
+          "error",
+        );
+        return false;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast(`${file.name} is too large. Max 10MB allowed.`, "error");
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
+
+    setUploading(true);
+    try {
+      for (const file of validFiles) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const uploadRes = await apiRequest<any>(
+          "/api/uploads/chat",
+          "POST",
+          formData,
+          true,
+          true, // isFormData
+        );
+
+        if (uploadRes.url) {
+          setAttachments((prev) => [
+            ...prev,
+            {
+              url: uploadRes.url,
+              filename: uploadRes.filename,
+              fileType: uploadRes.fileType,
+              publicId: uploadRes.publicId,
+              size: uploadRes.size,
+            },
+          ]);
+        }
+      }
+    } catch (err: any) {
+      toast(err?.message || "Failed to upload files", "error");
+    } finally {
+      setUploading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const loadTicket = async () => {
     try {
@@ -108,13 +198,17 @@ export default function TicketViewPage() {
       const res = await apiRequest<any>(
         `/api/tickets/${ticketId}/reply`,
         "POST",
-        { message: reply },
+        {
+          message: reply,
+          attachments: attachments.length > 0 ? attachments : undefined,
+        },
         true,
       );
 
       if (res.ok && res.message) {
         setMessages((prev) => [...prev, res.message]);
         setReply("");
+        setAttachments([]);
         setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
         }, 100);
@@ -237,7 +331,24 @@ export default function TicketViewPage() {
                       <span>{new Date(msg.createdAt).toLocaleString()}</span>
                     </div>
                     <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
-                    {msg.attachment && (
+                    {/* Display new attachments array */}
+                    {msg.attachments && msg.attachments.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {msg.attachments.map((att, idx) => (
+                          <a
+                            key={idx}
+                            href={att.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block text-xs text-blue-400 hover:underline"
+                          >
+                            📎 {att.filename}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                    {/* Legacy single attachment support */}
+                    {msg.attachment && !msg.attachments && (
                       <a
                         href={msg.attachment}
                         target="_blank"
@@ -266,7 +377,47 @@ export default function TicketViewPage() {
             rows={3}
             className="u-textarea w-full mb-3"
           />
-          <div className="flex justify-end">
+
+          {/* Attachments Preview */}
+          {attachments.length > 0 && (
+            <div className="mb-3 flex flex-wrap gap-2">
+              {attachments.map((att, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center gap-2 bg-[#1F2937] border border-[#374151] rounded px-3 py-1 text-xs"
+                >
+                  <span className="text-[#9CA3AF]">📎 {att.filename}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeAttachment(idx)}
+                    className="text-red-400 hover:text-red-300 font-bold"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex justify-between items-center">
+            <div>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                accept="image/*,application/pdf,application/zip,text/plain"
+                multiple
+                style={{ display: "none" }}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="btn-secondary text-sm disabled:opacity-50"
+              >
+                {uploading ? "Uploading..." : "📎 Attach Files"}
+              </button>
+            </div>
             <button
               onClick={sendReply}
               disabled={sending || !reply.trim()}

@@ -161,7 +161,7 @@ function OrderDetailsContent() {
             input.focus();
           }
         },
-        behavior === "smooth" ? 350 : 0
+        behavior === "smooth" ? 350 : 0,
       );
     }
   };
@@ -187,14 +187,14 @@ function OrderDetailsContent() {
         `/api/orders/${orderId}`,
         "GET",
         null,
-        true
+        true,
       );
       setOrder(data);
     } catch (err) {
       const apiErr = err as ApiError;
       if (apiErr?.status === 401 || apiErr?.status === 403) {
         router.replace(
-          `/login?next=${encodeURIComponent(`/orders/${orderId}`)}`
+          `/login?next=${encodeURIComponent(`/orders/${orderId}`)}`,
         );
         return;
       }
@@ -254,7 +254,10 @@ function OrderDetailsContent() {
   }, [messages]);
 
   const handleSendMessage = useCallback(
-    (text: string) => {
+    (
+      text: string,
+      attachments?: Array<{ url: string; filename: string; fileType: string }>,
+    ) => {
       const clean = String(text || "").trim();
       if (!clean) return;
 
@@ -264,10 +267,10 @@ function OrderDetailsContent() {
       }
 
       if (process.env.NODE_ENV !== "production") {
-        console.log("sending", orderId, clean);
+        console.log("sending", orderId, clean, attachments);
       }
 
-      socketSendMessage(clean);
+      socketSendMessage(clean, attachments);
       toast(ui.messageSentToast, "success");
     },
     [
@@ -277,7 +280,7 @@ function OrderDetailsContent() {
       socketSendMessage,
       toast,
       ui.messageSentToast,
-    ]
+    ],
   );
 
   // Get status indicator for a message

@@ -10,6 +10,7 @@ import React, {
 } from "react";
 
 import type { ChatMessage, MessageStatus } from "@/hooks/useChatSocket";
+import { apiRequest } from "@/lib/api";
 
 type ChatConnection = "open" | "connecting" | "offline";
 
@@ -39,7 +40,10 @@ type Props = {
   sending: boolean;
 
   getSenderRole: (m: ChatMessage) => "user" | "admin";
-  onSend: (text: string) => void;
+  onSend: (
+    text: string,
+    attachments?: Array<{ url: string; filename: string; fileType: string }>,
+  ) => void;
   onRetry: (tempId: string) => void;
   onReconnect: () => void;
   onStartTyping: () => void;
@@ -192,6 +196,23 @@ const MessageList = memo(function MessageList(props: {
                   <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]">
                     {m.message}
                   </p>
+
+                  {/* Display attachments if present */}
+                  {m.attachments && m.attachments.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                      {m.attachments.map((att, idx) => (
+                        <a
+                          key={idx}
+                          href={att.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block text-xs opacity-90 hover:opacity-100 underline"
+                        >
+                          📎 {att.filename}
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -263,9 +284,87 @@ export default function OrderSupportChat(props: Props) {
 
   const [text, setText] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [userNearBottom, setUserNearBottom] = useState(true);
+  const [attachments, setAttachments] = useState<
+    Array<{
+      url: string;
+      filename: string;
+      fileType: string;
+      publicId: string;
+      size: number;
+    }>
+  >([]);
+  const [uploading, setUploading] = useState(false);
 
   const showQuickReplies = safeQuickReplies.length > 0;
+
+  const handleFileSelect = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (!files || files.length === 0) return;
+
+      const allowedTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/gif",
+        "application/pdf",
+        "application/zip",
+        "application/x-zip-compressed",
+        "text/plain",
+      ];
+
+      const validFiles = Array.from(files).filter((file) => {
+        if (!allowedTypes.includes(file.type)) return false;
+        if (file.size > 10 * 1024 * 1024) return false;
+        return true;
+      });
+
+      if (validFiles.length === 0) return;
+
+      setUploading(true);
+      try {
+        for (const file of validFiles) {
+          const formData = new FormData();
+          formData.append("file", file);
+
+          const uploadRes = await apiRequest<any>(
+            "/api/uploads/chat",
+            "POST",
+            formData,
+            true,
+            true,
+          );
+
+          if (uploadRes.url) {
+            setAttachments((prev) => [
+              ...prev,
+              {
+                url: uploadRes.url,
+                filename: uploadRes.filename,
+                fileType: uploadRes.fileType,
+                publicId: uploadRes.publicId,
+                size: uploadRes.size,
+              },
+            ]);
+          }
+        }
+      } catch (err) {
+        console.error("File upload error:", err);
+      } finally {
+        setUploading(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      }
+    },
+    [],
+  );
+
+  const removeAttachment = useCallback((index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  }, []);
 
   const handleSend = useCallback(
     (raw?: string) => {
@@ -273,8 +372,9 @@ export default function OrderSupportChat(props: Props) {
       if (!next) return;
       if (!authReady || !isAuthenticated) return;
 
-      onSend(next);
+      onSend(next, attachments.length > 0 ? attachments : undefined);
       setText("");
+      setAttachments([]);
 
       // Keep typing UX consistent on mobile.
       window.setTimeout(() => {
@@ -287,7 +387,7 @@ export default function OrderSupportChat(props: Props) {
         }
       }, 0);
     },
-    [authReady, isAuthenticated, onSend, text]
+    [authReady, isAuthenticated, onSend, text, attachments],
   );
 
   const handleQuickReply = useCallback(
@@ -308,7 +408,7 @@ export default function OrderSupportChat(props: Props) {
         }
       }, 0);
     },
-    [authReady, handleSend, isAuthenticated, sending]
+    [authReady, handleSend, isAuthenticated, sending],
   );
 
   // If the user is at the bottom, keep focus/scroll experience smooth when they type.
@@ -336,15 +436,15 @@ export default function OrderSupportChat(props: Props) {
               connection === "open"
                 ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-200"
                 : connection === "connecting"
-                ? "border-blue-500/25 bg-blue-500/10 text-blue-200"
-                : "border-white/10 bg-white/5 text-[#9CA3AF]"
+                  ? "border-blue-500/25 bg-blue-500/10 text-blue-200"
+                  : "border-white/10 bg-white/5 text-[#9CA3AF]"
             }`}
           >
             {connection === "open"
               ? "● Connected"
               : connection === "connecting"
-              ? "○ Connecting…"
-              : "○ Offline"}
+                ? "○ Connecting…"
+                : "○ Offline"}
           </div>
         </div>
 
@@ -401,16 +501,46 @@ export default function OrderSupportChat(props: Props) {
 
         {/* Input pinned */}
         <div className="flex-shrink-0 border-t border-slate-700/50 p-2">
+          {/* Attachments preview */}
+          {attachments.length > 0 && (
+            <div className="mb-2 flex flex-wrap gap-2">
+              {attachments.map((att, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded px-3 py-1 text-xs"
+                >
+                  <span className="text-slate-300">📎 {att.filename}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeAttachment(idx)}
+                    className="text-red-400 hover:text-red-300 font-bold"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="flex-1 flex gap-2">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                accept="image/*,application/pdf,application/zip,text/plain"
+                multiple
+                style={{ display: "none" }}
+              />
               <button
                 type="button"
-                disabled
-                aria-label="Attach file (coming soon)"
-                className="shrink-0 w-10 h-10 rounded-lg border border-white/10 bg-white/5 text-slate-200 opacity-60"
-                title="File uploads coming soon"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                aria-label="Attach files"
+                className="shrink-0 w-10 h-10 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 disabled:opacity-60"
+                title="Attach files (images, PDF, ZIP, TXT)"
               >
-                📎
+                {uploading ? "⏳" : "📎"}
               </button>
               <input
                 ref={(node) => {

@@ -14,6 +14,11 @@ export type ChatMessage = {
   senderId?: string;
   senderRole: "user" | "admin";
   message: string;
+  attachments?: Array<{
+    url: string;
+    filename: string;
+    fileType: string;
+  }>;
   status: MessageStatus;
   createdAt: string;
   deliveredAt?: string | null;
@@ -225,7 +230,7 @@ export function useChatSocket(options: UseChatSocketOptions) {
   }, []);
 
   // Send message
-  const sendMessage = useCallback((text: string) => {
+  const sendMessage = useCallback((text: string, attachments?: Array<{ url: string; filename: string; fileType: string }>) => {
     const message = text.trim();
     if (!message || !currentOrderIdRef.current) return null;
 
@@ -239,6 +244,7 @@ export function useChatSocket(options: UseChatSocketOptions) {
       orderId,
       senderRole: "user", // Will be overwritten by server
       message,
+      attachments: attachments || [],
       status: "sending",
       createdAt: new Date().toISOString(),
       optimistic: true,
@@ -274,7 +280,7 @@ export function useChatSocket(options: UseChatSocketOptions) {
 
       socket.emit(
         "message:send",
-        { orderId, tempId, text: message },
+        { orderId, tempId, text: message, attachments: attachments || [] },
         (ack: any) => {
           if (done) return;
           done = true;
