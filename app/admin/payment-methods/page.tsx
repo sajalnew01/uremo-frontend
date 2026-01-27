@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/useToast";
 
 interface PaymentMethod {
   _id: string;
-  type: "paypal" | "binance" | "usdt";
+  type: "paypal" | "binance" | "usdt" | "bank" | "other";
   label: string;
   value: string;
   instructions?: string;
@@ -19,6 +19,9 @@ export default function AdminPaymentMethodsPage() {
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Form state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [type, setType] = useState("");
   const [label, setLabel] = useState("");
   const [value, setValue] = useState("");
@@ -30,7 +33,7 @@ export default function AdminPaymentMethodsPage() {
         "/api/payment-methods/admin",
         "GET",
         null,
-        true
+        true,
       );
       setMethods(data);
     } catch (err) {
@@ -39,7 +42,27 @@ export default function AdminPaymentMethodsPage() {
     }
   };
 
-  const createMethod = async () => {
+  const resetForm = () => {
+    setType("");
+    setLabel("");
+    setValue("");
+    setInstructions("");
+    setIsEditing(false);
+    setEditingId(null);
+  };
+
+  const startEdit = (m: PaymentMethod) => {
+    setType(m.type);
+    setLabel(m.label);
+    setValue(m.value);
+    setInstructions(m.instructions || "");
+    setEditingId(m._id);
+    setIsEditing(true);
+    // Scroll to form
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const saveMethod = async () => {
     if (!type || !label || !value) {
       toast("Type, label, and value are required", "error");
       return;
@@ -47,26 +70,28 @@ export default function AdminPaymentMethodsPage() {
 
     setLoading(true);
     try {
-      await apiRequest(
-        "/api/payment-methods/admin",
-        "POST",
-        {
-          type,
-          label,
-          value,
-          instructions,
-        },
-        true
-      );
-
-      setType("");
-      setLabel("");
-      setValue("");
-      setInstructions("");
+      if (isEditing && editingId) {
+        await apiRequest(
+          `/api/payment-methods/admin/${editingId}`,
+          "PUT",
+          { type, label, value, instructions },
+          true,
+        );
+        toast("Payment method updated", "success");
+      } else {
+        await apiRequest(
+          "/api/payment-methods/admin",
+          "POST",
+          { type, label, value, instructions },
+          true,
+        );
+        toast("Payment method created", "success");
+      }
+      resetForm();
       loadMethods();
     } catch (err) {
       console.error(err);
-      toast("Failed to create payment method", "error");
+      toast("Failed to save payment method", "error");
     } finally {
       setLoading(false);
     }
@@ -78,9 +103,10 @@ export default function AdminPaymentMethodsPage() {
         `/api/payment-methods/admin/${id}`,
         "PUT",
         { active: !active },
-        true
+        true,
       );
       loadMethods();
+      toast(active ? "Method disabled" : "Method enabled", "success");
     } catch (err) {
       console.error(err);
       toast("Failed to update payment method", "error");
@@ -93,10 +119,22 @@ export default function AdminPaymentMethodsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Admin — Payment Methods</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Admin — Payment Methods</h1>
+        {isEditing && (
+          <button
+            onClick={resetForm}
+            className="text-sm text-slate-400 hover:text-white"
+          >
+            ← Cancel Editing
+          </button>
+        )}
+      </div>
 
-      {/* Create Payment Method */}
-      <Card title="Add Payment Method">
+      {/* Create/Edit Payment Method */}
+      <Card
+        title={isEditing ? "✏️ Edit Payment Method" : "➕ Add Payment Method"}
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <select
             className="u-select"
@@ -107,6 +145,8 @@ export default function AdminPaymentMethodsPage() {
             <option value="paypal">PayPal</option>
             <option value="binance">Binance</option>
             <option value="usdt">USDT (Crypto)</option>
+            <option value="bank">Bank Transfer</option>
+            <option value="other">Other</option>
           </select>
 
           <input
@@ -124,69 +164,112 @@ export default function AdminPaymentMethodsPage() {
           />
 
           <textarea
-            placeholder="Instructions (optional)"
+            placeholder="Instructions for users (optional)"
             className="u-textarea placeholder:text-slate-400 md:col-span-2"
-            rows={2}
+            rows={3}
             value={instructions}
             onChange={(e) => setInstructions(e.target.value)}
           />
         </div>
 
-        <button
-          onClick={createMethod}
-          disabled={loading}
-          className="mt-4 btn-primary disabled:opacity-50"
-        >
-          {loading ? "Adding..." : "Add Payment Method"}
-        </button>
+        <div className="mt-4 flex gap-3">
+          <button
+            onClick={saveMethod}
+            disabled={loading}
+            className="btn-primary disabled:opacity-50"
+          >
+            {loading
+              ? "Saving..."
+              : isEditing
+                ? "💾 Update Method"
+                : "➕ Add Payment Method"}
+          </button>
+          {isEditing && (
+            <button onClick={resetForm} className="btn-secondary">
+              Cancel
+            </button>
+          )}
+        </div>
       </Card>
 
       {/* Payment Methods List */}
-      <Card title="Existing Payment Methods">
+      <Card title="📋 Existing Payment Methods">
         {methods.length === 0 ? (
           <p className="text-sm text-[#9CA3AF]">
             No payment methods configured yet.
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-[640px] w-full text-sm">
+            <table className="min-w-[700px] w-full text-sm">
               <thead>
                 <tr className="border-b border-[#1F2937] text-left">
-                  <th className="p-2">Type</th>
-                  <th className="p-2">Label</th>
-                  <th className="p-2">Value</th>
-                  <th className="p-2">Status</th>
-                  <th className="p-2">Action</th>
+                  <th className="p-3 text-xs text-slate-400 uppercase">Type</th>
+                  <th className="p-3 text-xs text-slate-400 uppercase">
+                    Label
+                  </th>
+                  <th className="p-3 text-xs text-slate-400 uppercase">
+                    Value
+                  </th>
+                  <th className="p-3 text-xs text-slate-400 uppercase">
+                    Status
+                  </th>
+                  <th className="p-3 text-xs text-slate-400 uppercase">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {methods.map((m) => (
-                  <tr key={m._id} className="border-b border-[#1F2937]">
-                    <td className="p-2 capitalize">{m.type}</td>
-                    <td className="p-2">{m.label}</td>
-                    <td className="p-2 text-xs text-[#9CA3AF] truncate">
-                      {m.value}
+                  <tr
+                    key={m._id}
+                    className="border-b border-[#1F2937] hover:bg-white/5"
+                  >
+                    <td className="p-3">
+                      <span className="px-2 py-1 rounded bg-slate-700 text-xs uppercase">
+                        {m.type}
+                      </span>
                     </td>
-                    <td className="p-2">
+                    <td className="p-3 font-medium">{m.label}</td>
+                    <td className="p-3">
+                      <div className="text-sm truncate max-w-[180px]">
+                        {m.value}
+                      </div>
+                      {m.instructions && (
+                        <div className="text-xs text-slate-500 truncate max-w-[180px]">
+                          {m.instructions}
+                        </div>
+                      )}
+                    </td>
+                    <td className="p-3">
                       <span
-                        className={`text-xs px-2 py-1 rounded ${
-                          m.active ? "bg-green-600" : "bg-gray-600"
+                        className={`text-xs px-2 py-1 rounded font-medium ${
+                          m.active
+                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                            : "bg-slate-600/50 text-slate-400"
                         }`}
                       >
                         {m.active ? "Active" : "Inactive"}
                       </span>
                     </td>
-                    <td className="p-2">
-                      <button
-                        onClick={() => toggleActive(m._id, m.active)}
-                        className={`text-xs px-2 py-1 rounded ${
-                          m.active
-                            ? "bg-yellow-600 hover:bg-yellow-700"
-                            : "bg-green-600 hover:bg-green-700"
-                        }`}
-                      >
-                        {m.active ? "Disable" : "Enable"}
-                      </button>
+                    <td className="p-3">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => startEdit(m)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-600/20 text-blue-300 border border-blue-500/30 hover:bg-blue-600/30"
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          onClick={() => toggleActive(m._id, m.active)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium ${
+                            m.active
+                              ? "bg-yellow-600/20 text-yellow-300 border border-yellow-500/30"
+                              : "bg-emerald-600/20 text-emerald-300 border border-emerald-500/30"
+                          }`}
+                        >
+                          {m.active ? "Disable" : "Enable"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -198,11 +281,14 @@ export default function AdminPaymentMethodsPage() {
 
       {/* Info */}
       <Card>
-        <p className="text-sm text-[#9CA3AF]">
-          Payment methods you mark as active will be shown to users during
-          checkout. You can instantly enable/disable any method for risk
-          management.
-        </p>
+        <div className="flex items-start gap-3">
+          <span className="text-xl">💡</span>
+          <p className="text-sm text-[#9CA3AF]">
+            Payment methods marked as active will be shown to users during
+            checkout. Click "Edit" to modify any method&apos;s details. Use
+            "Disable" to temporarily hide a method.
+          </p>
+        </div>
       </Card>
     </div>
   );

@@ -162,6 +162,8 @@ function AdminOrdersContent() {
           { key: "pending", label: "Pending" },
           { key: "submitted", label: "Submitted" },
           { key: "processing", label: "Processing" },
+          { key: "completed", label: "Completed" },
+          { key: "rejected", label: "Rejected" },
         ].map((t) => {
           const active = status === t.key;
           return (

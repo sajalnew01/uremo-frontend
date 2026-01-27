@@ -20,7 +20,7 @@ interface Application {
 
 interface FilterOptions {
   statuses: string[];
-  categories: string[];
+  categories: { value: string; label: string }[] | string[];
 }
 
 const statusColor = (status: string) => {
@@ -158,11 +158,16 @@ export default function AdminApplicationsPage() {
           className="u-select"
         >
           <option value="">All Categories</option>
-          {filterOptions.categories.map((c) => (
-            <option key={c} value={c}>
-              {c.replace(/_/g, " ")}
-            </option>
-          ))}
+          {filterOptions.categories.map((c) => {
+            const val = typeof c === "string" ? c : c.value;
+            const label =
+              typeof c === "string" ? c.replace(/_/g, " ") : c.label;
+            return (
+              <option key={val} value={val}>
+                {label}
+              </option>
+            );
+          })}
         </select>
         {(statusFilter || categoryFilter || search) && (
           <button
@@ -212,9 +217,9 @@ export default function AdminApplicationsPage() {
                   >
                     <td className="p-4">
                       <div>
-                        <p className="font-medium">{app.user.name || "N/A"}</p>
+                        <p className="font-medium">{app.user?.name || "N/A"}</p>
                         <p className="text-xs text-[#9CA3AF]">
-                          {app.user.email}
+                          {app.user?.email || "Unknown"}
                         </p>
                       </div>
                     </td>

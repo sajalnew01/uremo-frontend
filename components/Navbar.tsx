@@ -156,12 +156,12 @@ export default function Navbar() {
                     {link.label}
                   </Link>
                 ))}
-                <a
-                  href={`mailto:${supportEmail}`}
+                <Link
+                  href="/support"
                   className="px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-all"
                 >
                   {nav.supportLinkText}
-                </a>
+                </Link>
               </div>
             )}
 

@@ -40,6 +40,9 @@ export default function AdminWalletPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [searching, setSearching] = useState(false);
+  const [balanceFilter, setBalanceFilter] = useState<
+    "all" | "high" | "medium" | "low"
+  >("all");
 
   // Selected user
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -74,15 +77,19 @@ export default function AdminWalletPage() {
   };
 
   const handleSearch = async () => {
-    if (searchQuery.length < 2) {
-      toast("Enter at least 2 characters", "error");
+    if (searchQuery.length < 2 && balanceFilter === "all") {
+      toast("Enter at least 2 characters or select a balance filter", "error");
       return;
     }
 
     setSearching(true);
     try {
+      const params = new URLSearchParams();
+      if (searchQuery.length >= 2) params.append("q", searchQuery);
+      if (balanceFilter !== "all") params.append("tier", balanceFilter);
+
       const res = await apiRequest(
-        `/api/admin/wallet/search?q=${encodeURIComponent(searchQuery)}`,
+        `/api/admin/wallet/search?${params.toString()}`,
         "GET",
       );
       setSearchResults(res.users || []);
@@ -91,6 +98,30 @@ export default function AdminWalletPage() {
       }
     } catch (err: any) {
       toast(err.message || "Search failed", "error");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const filterByTier = async (tier: "all" | "high" | "medium" | "low") => {
+    setBalanceFilter(tier);
+    if (tier === "all") {
+      setSearchResults([]);
+      return;
+    }
+
+    setSearching(true);
+    try {
+      const res = await apiRequest(
+        `/api/admin/wallet/search?tier=${tier}`,
+        "GET",
+      );
+      setSearchResults(res.users || []);
+      if (res.users?.length === 0) {
+        toast(`No ${tier} balance users found`, "info");
+      }
+    } catch (err: any) {
+      toast(err.message || "Filter failed", "error");
     } finally {
       setSearching(false);
     }
@@ -207,9 +238,40 @@ export default function AdminWalletPage() {
           {/* Search Panel */}
           <div className="bg-slate-900 rounded-xl border border-slate-800">
             <div className="p-4 border-b border-slate-800">
-              <h2 className="text-lg font-semibold">Search User</h2>
+              <h2 className="text-lg font-semibold">🔍 Search User</h2>
             </div>
             <div className="p-4">
+              {/* Balance Tier Filters */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                <span className="text-sm text-slate-400 mr-2">
+                  Quick Filter:
+                </span>
+                {[
+                  { key: "all", label: "All", color: "slate" },
+                  { key: "high", label: "🔥 High ($100+)", color: "emerald" },
+                  { key: "medium", label: "📊 Medium ($20-99)", color: "blue" },
+                  { key: "low", label: "💧 Low (<$20)", color: "yellow" },
+                ].map((tier) => (
+                  <button
+                    key={tier.key}
+                    onClick={() => filterByTier(tier.key as any)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                      balanceFilter === tier.key
+                        ? tier.key === "high"
+                          ? "bg-emerald-600 text-white"
+                          : tier.key === "medium"
+                            ? "bg-blue-600 text-white"
+                            : tier.key === "low"
+                              ? "bg-yellow-600 text-white"
+                              : "bg-slate-600 text-white"
+                        : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                    }`}
+                  >
+                    {tier.label}
+                  </button>
+                ))}
+              </div>
+
               <div className="flex gap-2 mb-4">
                 <input
                   type="text"

@@ -315,10 +315,10 @@ export default function AdminAnalyticsPage() {
               Manage Wallets
             </a>
             <a
-              href="/admin/affiliate"
+              href="/admin/affiliates"
               className="px-4 py-2 bg-orange-600 hover:bg-orange-500 rounded-lg text-sm transition"
             >
-              Affiliate Panel
+              Affiliate Directory
             </a>
             <a
               href="/admin/rentals"

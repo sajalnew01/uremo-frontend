@@ -78,85 +78,136 @@ export default function OrdersPage() {
     const lastMessage = o.lastMessage;
     const hasUnread = lastMessage?.senderRole === "admin";
 
+    // Status icon map
+    const statusIcon: Record<string, string> = {
+      pending: "⏳",
+      payment_pending: "💳",
+      payment_submitted: "📤",
+      review: "🔍",
+      pending_review: "🔍",
+      processing: "⚡",
+      assistance_required: "❗",
+      approved: "✅",
+      completed: "🎉",
+      rejected: "❌",
+    };
+
     return (
-      <div className="card">
-        <div className="flex justify-between items-start gap-4">
-          <div className="min-w-0">
-            <h3 className="font-semibold text-lg text-white truncate">
-              {o.serviceId?.title || "Service"}
-            </h3>
-            <p className="text-xs text-[#9CA3AF] mt-1 font-mono truncate">
-              {o._id}
+      <div className="relative group overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-800/50 backdrop-blur-sm hover:border-white/20 transition-all duration-300">
+        {/* Status indicator stripe */}
+        <div
+          className={`absolute top-0 left-0 w-full h-1 ${
+            o.status === "completed"
+              ? "bg-emerald-500"
+              : o.status === "processing"
+                ? "bg-purple-500"
+                : o.status === "payment_pending"
+                  ? "bg-blue-500"
+                  : o.status === "rejected"
+                    ? "bg-red-500"
+                    : o.status === "assistance_required"
+                      ? "bg-orange-500"
+                      : "bg-slate-600"
+          }`}
+        />
+
+        <div className="p-5">
+          {/* Header */}
+          <div className="flex justify-between items-start gap-4">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">{statusIcon[o.status] || "📦"}</span>
+                <h3 className="font-semibold text-lg text-white truncate">
+                  {o.serviceId?.title || "Service"}
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500 mt-1 font-mono">
+                Order #{o._id?.slice(-8).toUpperCase()}
+              </p>
+            </div>
+
+            <div className="flex flex-col items-end gap-2">
+              {hasUnread && (
+                <span className="px-2 py-1 rounded-full text-[10px] font-semibold border border-blue-500/30 bg-blue-500/20 text-blue-200 animate-pulse">
+                  New reply
+                </span>
+              )}
+              <span className={statusBadge(o.status)}>
+                {String(o.status).replace(/_/g, " ")}
+              </span>
+            </div>
+          </div>
+
+          {/* Price & Date */}
+          <div className="mt-4 flex items-center gap-4">
+            <div className="px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+              <span className="text-emerald-400 font-bold text-lg">
+                ${o.serviceId?.price ?? "—"}
+              </span>
+            </div>
+            <div className="text-xs text-slate-500">
+              <span>Created: </span>
+              <span className="text-slate-400">
+                {new Date(o.createdAt).toLocaleDateString()}
+              </span>
+            </div>
+          </div>
+
+          {/* Latest Update */}
+          <div className="mt-4 rounded-xl border border-white/5 bg-black/20 p-3">
+            <p className="text-xs text-slate-500 uppercase tracking-wide">
+              {copy.latestUpdateLabel}
+            </p>
+            <p className="text-sm text-slate-300 mt-1 line-clamp-2">
+              {previewText}
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            {hasUnread && (
-              <span className="px-2 py-1 rounded-full text-[10px] font-semibold border border-blue-500/30 bg-blue-500/20 text-blue-200 animate-pulse">
-                New reply
-              </span>
-            )}
-            <span className={statusBadge(o.status)}>
-              {String(o.status).replace(/_/g, " ")}
-            </span>
-          </div>
-        </div>
-
-        <div className="mt-4 rounded-xl border border-white/10 bg-black/10 p-3">
-          <p className="text-xs text-[#9CA3AF]">{copy.latestUpdateLabel}</p>
-          <p className="text-sm text-slate-200 mt-1 line-clamp-2">
-            {previewText}
-          </p>
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-2 items-center justify-between">
-          <div className="text-sm text-slate-300">
-            <span className="text-emerald-300 font-semibold">
-              ${o.serviceId?.price ?? "—"}
-            </span>
-          </div>
-
-          <div className="flex flex-col sm:flex-row flex-wrap gap-2 w-full sm:w-auto">
+          {/* Actions */}
+          <div className="mt-4 flex flex-wrap gap-2">
             {o.status === "payment_pending" && (
               <button
                 onClick={() => router.push(`/payment/${o._id}`)}
-                className="btn-primary w-full sm:w-auto"
+                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium text-sm hover:from-blue-500 hover:to-blue-400 transition-all shadow-lg shadow-blue-500/20"
               >
-                {copy.completePaymentText}
+                💳 {copy.completePaymentText}
               </button>
             )}
 
             {o.status === "rejected" && (
               <button
                 onClick={() => router.push(`/payment/${o._id}`)}
-                className="btn-primary w-full sm:w-auto"
+                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 to-orange-500 text-white font-medium text-sm hover:from-orange-500 hover:to-orange-400 transition-all"
               >
-                {copy.resubmitProofText}
+                🔄 {copy.resubmitProofText}
               </button>
             )}
 
             <button
               onClick={() => router.push(`/orders/${o._id}`)}
-              className="btn-secondary w-full sm:w-auto"
+              className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 text-slate-200 font-medium text-sm hover:bg-white/10 transition-all"
             >
-              {copy.viewDetailsText}
+              📋 {copy.viewDetailsText}
             </button>
 
             <button
               type="button"
               onClick={() => router.push(`/orders/${o._id}?chat=1`)}
-              className="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-sm text-slate-200 hover:bg-white/10 w-full sm:w-auto"
+              className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 text-slate-200 text-sm hover:bg-white/10 transition-all flex items-center justify-center gap-1"
             >
-              {copy.openChatText} →
+              💬 {copy.openChatText}
             </button>
           </div>
-        </div>
 
-        {o.status === "payment_pending" && o.expiresAt && (
-          <p className="mt-3 text-xs text-[#9CA3AF]">
-            {copy.expiresPrefix} {new Date(o.expiresAt).toLocaleString()}
-          </p>
-        )}
+          {o.status === "payment_pending" && o.expiresAt && (
+            <div className="mt-3 flex items-center gap-1 text-xs text-orange-400/80">
+              <span>⏰</span>
+              <span>
+                {copy.expiresPrefix} {new Date(o.expiresAt).toLocaleString()}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
     );
   };
