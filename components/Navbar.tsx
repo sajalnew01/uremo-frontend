@@ -201,12 +201,12 @@ export default function Navbar() {
                   <Link href="/login" className="hover:text-white transition">
                     {nav.guestLoginText}
                   </Link>
-                  <a
-                    href={`mailto:${supportEmail}`}
+                  <Link
+                    href="/support"
                     className="hidden sm:inline hover:text-white transition"
                   >
                     {nav.supportLinkText}
-                  </a>
+                  </Link>
                 </div>
               )}
 
@@ -333,13 +333,14 @@ export default function Navbar() {
                       {link.label}
                     </Link>
                   ))}
-                  <a
-                    href={`mailto:${supportEmail}`}
+                  <Link
+                    href="/support"
+                    onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-all"
                   >
                     <span className="text-lg">💬</span>
                     {nav.supportLinkText}
-                  </a>
+                  </Link>
                 </div>
               </div>
 

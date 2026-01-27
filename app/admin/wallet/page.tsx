@@ -241,16 +241,20 @@ export default function AdminWalletPage() {
               <h2 className="text-lg font-semibold">🔍 Search User</h2>
             </div>
             <div className="p-4">
-              {/* Balance Tier Filters */}
+              {/* PATCH_32: Balance Tier Filters with updated thresholds */}
               <div className="flex flex-wrap gap-2 mb-4">
                 <span className="text-sm text-slate-400 mr-2">
                   Quick Filter:
                 </span>
                 {[
                   { key: "all", label: "All", color: "slate" },
-                  { key: "high", label: "🔥 High ($100+)", color: "emerald" },
-                  { key: "medium", label: "📊 Medium ($20-99)", color: "blue" },
-                  { key: "low", label: "💧 Low (<$20)", color: "yellow" },
+                  { key: "high", label: "🔥 High ($500+)", color: "emerald" },
+                  {
+                    key: "medium",
+                    label: "📊 Medium ($100-499)",
+                    color: "blue",
+                  },
+                  { key: "low", label: "💧 Low (<$100)", color: "yellow" },
                 ].map((tier) => (
                   <button
                     key={tier.key}
