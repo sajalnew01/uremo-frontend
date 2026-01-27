@@ -41,6 +41,8 @@ const statusColor = (status: string) => {
       return "bg-blue-600";
     case "in_progress":
       return "bg-yellow-600";
+    case "waiting_user":
+      return "bg-orange-600";
     case "closed":
       return "bg-gray-600";
     default:

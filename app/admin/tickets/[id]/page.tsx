@@ -10,10 +10,20 @@ import { useToast } from "@/hooks/useToast";
 interface Message {
   _id: string;
   senderType: "user" | "admin";
-  sender: { firstName?: string; lastName?: string; email?: string };
+  sender: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    name?: string;
+  };
   message: string;
   attachment?: string;
   attachmentType?: string;
+  attachments?: Array<{
+    url: string;
+    filename: string;
+    fileType: string;
+  }>;
   createdAt: string;
 }
 
@@ -25,8 +35,31 @@ interface Ticket {
   priority: string;
   createdAt: string;
   updatedAt: string;
+  firstResponseAt?: string;
+  resolvedAt?: string;
   order?: { _id: string; orderNumber: string };
-  user: { _id: string; firstName?: string; lastName?: string; email?: string };
+  user: {
+    _id: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    name?: string;
+  };
+  assignedAdmin?: {
+    _id: string;
+    firstName?: string;
+    lastName?: string;
+    name?: string;
+    email?: string;
+  };
+}
+
+interface AdminUser {
+  _id: string;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+  email?: string;
 }
 
 const statusColor = (status: string) => {
@@ -35,6 +68,8 @@ const statusColor = (status: string) => {
       return "bg-blue-600";
     case "in_progress":
       return "bg-yellow-600";
+    case "waiting_user":
+      return "bg-orange-600";
     case "closed":
       return "bg-gray-600";
     default:
@@ -67,7 +102,127 @@ export default function AdminTicketViewPage() {
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [assigningAdmin, setAssigningAdmin] = useState(false);
+  const [attachments, setAttachments] = useState<
+    Array<{
+      url: string;
+      filename: string;
+      fileType: string;
+      publicId: string;
+      size: number;
+    }>
+  >([]);
+  const [uploading, setUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const loadAdmins = async () => {
+    try {
+      const res = await apiRequest<any>(
+        "/api/admin/tickets/admins",
+        "GET",
+        null,
+        true,
+      );
+      if (res.ok) {
+        setAdminUsers(res.admins || []);
+      }
+    } catch (err) {
+      console.error("Failed to load admins:", err);
+    }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+      "application/pdf",
+      "application/zip",
+      "application/x-zip-compressed",
+      "text/plain",
+    ];
+
+    const validFiles = Array.from(files).filter((file) => {
+      if (!allowedTypes.includes(file.type)) {
+        toast(
+          `${file.name} is not allowed. Only images, PDF, ZIP, and TXT.`,
+          "error",
+        );
+        return false;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast(`${file.name} is too large. Max 10MB.`, "error");
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
+
+    setUploading(true);
+    try {
+      for (const file of validFiles) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const uploadRes = await apiRequest<any>(
+          "/api/uploads/chat",
+          "POST",
+          formData,
+          true,
+          true,
+        );
+
+        if (uploadRes.url) {
+          setAttachments((prev) => [
+            ...prev,
+            {
+              url: uploadRes.url,
+              filename: uploadRes.filename,
+              fileType: uploadRes.fileType,
+              publicId: uploadRes.publicId,
+              size: uploadRes.size,
+            },
+          ]);
+        }
+      }
+    } catch (err: any) {
+      toast(err?.message || "Failed to upload files", "error");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const assignTicket = async (adminId: string) => {
+    setAssigningAdmin(true);
+    try {
+      const res = await apiRequest<any>(
+        `/api/admin/tickets/${ticketId}/assign`,
+        "PUT",
+        { adminId: adminId || null },
+        true,
+      );
+      if (res.ok && res.ticket) {
+        setTicket(res.ticket);
+        toast("Ticket assigned", "success");
+      }
+    } catch (err: any) {
+      toast(err?.message || "Failed to assign ticket", "error");
+    } finally {
+      setAssigningAdmin(false);
+    }
+  };
 
   const loadTicket = async () => {
     try {
@@ -101,20 +256,21 @@ export default function AdminTicketViewPage() {
   };
 
   const sendReply = async () => {
-    if (!reply.trim()) return;
+    if (!reply.trim() && attachments.length === 0) return;
 
     setSending(true);
     try {
       const res = await apiRequest<any>(
         `/api/admin/tickets/${ticketId}/reply`,
         "POST",
-        { message: reply },
+        { message: reply, attachments },
         true,
       );
 
       if (res.ok && res.message) {
         setMessages((prev) => [...prev, res.message]);
         setReply("");
+        setAttachments([]);
         // If ticket was closed, reopen it
         if (ticket?.status === "closed") {
           setTicket((t) => (t ? { ...t, status: "in_progress" } : null));
@@ -154,7 +310,10 @@ export default function AdminTicketViewPage() {
   };
 
   useEffect(() => {
-    if (ticketId) loadTicket();
+    if (ticketId) {
+      loadTicket();
+      loadAdmins();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticketId]);
 
@@ -246,10 +405,41 @@ export default function AdminTicketViewPage() {
             >
               <option value="open">Open</option>
               <option value="in_progress">In Progress</option>
+              <option value="waiting_user">Waiting on User</option>
               <option value="closed">Closed</option>
+            </select>
+            <select
+              value={ticket.assignedAdmin?._id || ""}
+              onChange={(e) => assignTicket(e.target.value)}
+              disabled={assigningAdmin}
+              className="u-select text-xs"
+            >
+              <option value="">Unassigned</option>
+              {adminUsers.map((admin) => (
+                <option key={admin._id} value={admin._id}>
+                  {admin.firstName} {admin.lastName}
+                </option>
+              ))}
             </select>
           </div>
         </div>
+
+        {/* SLA Info */}
+        {(ticket.firstResponseAt || ticket.resolvedAt) && (
+          <div className="text-xs text-[#9CA3AF] flex flex-wrap gap-4">
+            {ticket.firstResponseAt && (
+              <span>
+                First Response:{" "}
+                {new Date(ticket.firstResponseAt).toLocaleString()}
+              </span>
+            )}
+            {ticket.resolvedAt && (
+              <span>
+                Resolved: {new Date(ticket.resolvedAt).toLocaleString()}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Messages */}
@@ -285,15 +475,20 @@ export default function AdminTicketViewPage() {
                       <span>{new Date(msg.createdAt).toLocaleString()}</span>
                     </div>
                     <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
-                    {msg.attachment && (
-                      <a
-                        href={msg.attachment}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-2 inline-block text-xs text-blue-400 hover:underline"
-                      >
-                        📎 View Attachment
-                      </a>
+                    {msg.attachments && msg.attachments.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {msg.attachments.map((att, idx) => (
+                          <a
+                            key={idx}
+                            href={att.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs text-blue-400 hover:underline flex items-center gap-1"
+                          >
+                            📎 {att.filename || "Attachment"}
+                          </a>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -313,23 +508,65 @@ export default function AdminTicketViewPage() {
           rows={3}
           className="u-textarea w-full mb-3"
         />
-        <div className="flex gap-3 justify-end">
-          {ticket.status !== "closed" && (
+
+        {/* Attachments Preview */}
+        {attachments.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {attachments.map((att, idx) => (
+              <div
+                key={idx}
+                className="flex items-center gap-2 bg-[#1F2937] rounded px-2 py-1 text-xs"
+              >
+                <span className="truncate max-w-[120px]">{att.filename}</span>
+                <button
+                  onClick={() => removeAttachment(idx)}
+                  className="text-red-400 hover:text-red-300"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex gap-3 justify-between items-center">
+          <div className="flex items-center gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,.pdf,.zip,.txt"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
             <button
-              onClick={() => updateStatus("closed")}
-              disabled={updatingStatus}
-              className="btn-secondary disabled:opacity-50"
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="btn-secondary text-sm"
             >
-              Close Ticket
+              {uploading ? "Uploading..." : "📎 Attach"}
             </button>
-          )}
-          <button
-            onClick={sendReply}
-            disabled={sending || !reply.trim()}
-            className="btn-primary disabled:opacity-50"
-          >
-            {sending ? "Sending..." : "Send Reply"}
-          </button>
+          </div>
+
+          <div className="flex gap-3">
+            {ticket.status !== "closed" && (
+              <button
+                onClick={() => updateStatus("closed")}
+                disabled={updatingStatus}
+                className="btn-secondary disabled:opacity-50"
+              >
+                Close Ticket
+              </button>
+            )}
+            <button
+              onClick={sendReply}
+              disabled={sending || (!reply.trim() && attachments.length === 0)}
+              className="btn-primary disabled:opacity-50"
+            >
+              {sending ? "Sending..." : "Send Reply"}
+            </button>
+          </div>
         </div>
       </div>
     </motion.div>

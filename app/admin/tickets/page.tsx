@@ -15,19 +15,27 @@ interface Ticket {
   hasUnreadAdmin: boolean;
   lastMessageAt: string;
   createdAt: string;
-  user: { firstName?: string; lastName?: string; email?: string };
+  user: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    name?: string;
+  };
   order?: { orderNumber: string };
+  assignedAdmin?: { _id: string; name?: string; email?: string };
 }
 
 interface Stats {
   open: number;
-  in_progress: number;
+  inProgress: number;
+  waitingUser: number;
   closed: number;
-  total: number;
+  unread: number;
 }
 
 const CATEGORIES = [
   { id: "", label: "All Categories" },
+  { id: "general", label: "General" },
   { id: "payment", label: "Payment" },
   { id: "order", label: "Order" },
   { id: "kyc", label: "KYC" },
@@ -41,6 +49,7 @@ const STATUSES = [
   { id: "", label: "All Status" },
   { id: "open", label: "Open" },
   { id: "in_progress", label: "In Progress" },
+  { id: "waiting_user", label: "Waiting User" },
   { id: "closed", label: "Closed" },
 ];
 
@@ -57,6 +66,8 @@ const statusColor = (status: string) => {
       return "bg-blue-600";
     case "in_progress":
       return "bg-yellow-600";
+    case "waiting_user":
+      return "bg-orange-600";
     case "closed":
       return "bg-gray-600";
     default:
@@ -143,24 +154,30 @@ export default function AdminTicketsPage() {
 
       {/* Stats */}
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <div className="card text-center">
             <p className="text-2xl font-bold text-blue-400">{stats.open}</p>
             <p className="text-xs text-[#9CA3AF]">Open</p>
           </div>
           <div className="card text-center">
             <p className="text-2xl font-bold text-yellow-400">
-              {stats.in_progress}
+              {stats.inProgress}
             </p>
             <p className="text-xs text-[#9CA3AF]">In Progress</p>
+          </div>
+          <div className="card text-center">
+            <p className="text-2xl font-bold text-orange-400">
+              {stats.waitingUser}
+            </p>
+            <p className="text-xs text-[#9CA3AF]">Waiting User</p>
           </div>
           <div className="card text-center">
             <p className="text-2xl font-bold text-gray-400">{stats.closed}</p>
             <p className="text-xs text-[#9CA3AF]">Closed</p>
           </div>
           <div className="card text-center">
-            <p className="text-2xl font-bold">{stats.total}</p>
-            <p className="text-xs text-[#9CA3AF]">Total</p>
+            <p className="text-2xl font-bold text-red-400">{stats.unread}</p>
+            <p className="text-xs text-[#9CA3AF]">Unread</p>
           </div>
         </div>
       )}

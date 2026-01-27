@@ -1,0 +1,11 @@
+PATCH_28: Support Ticket System V2 - Enterprise Upgrade
+
+- Admin ticket view: added assign admin dropdown
+- Admin ticket view: added file attachments upload/display
+- Admin ticket view: added SLA info display (firstResponseAt, resolvedAt)
+- Admin ticket list: added waitingUser and unread stats cards
+- Admin ticket list: added waiting_user and general to dropdowns
+- User ticket create: added order linking dropdown
+- User ticket create: added general category
+- User/Admin: added waiting_user status color (orange)
+- Updated interfaces for firstName/lastName fields

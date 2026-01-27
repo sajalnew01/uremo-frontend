@@ -20,6 +20,7 @@ interface Ticket {
 }
 
 const CATEGORIES = [
+  { id: "general", label: "General Inquiry" },
   { id: "payment", label: "Payment Issue" },
   { id: "order", label: "Order Problem" },
   { id: "kyc", label: "KYC / Verification" },
@@ -41,6 +42,8 @@ const statusColor = (status: string) => {
       return "bg-blue-600";
     case "in_progress":
       return "bg-yellow-600";
+    case "waiting_user":
+      return "bg-orange-600";
     case "closed":
       return "bg-gray-600";
     default:
@@ -78,7 +81,12 @@ export default function SupportTicketsPage() {
     category: "other",
     priority: "medium",
     message: "",
+    orderId: "",
   });
+  const [userOrders, setUserOrders] = useState<
+    Array<{ _id: string; orderNumber: string; status: string }>
+  >([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
 
   const loadTickets = async () => {
     setLoading(true);
@@ -105,6 +113,25 @@ export default function SupportTicketsPage() {
     }
   };
 
+  const loadOrders = async () => {
+    setLoadingOrders(true);
+    try {
+      const res = await apiRequest<any>(
+        "/api/tickets/orders",
+        "GET",
+        null,
+        true,
+      );
+      if (res.ok) {
+        setUserOrders(res.orders || []);
+      }
+    } catch (err) {
+      console.error("Failed to load orders:", err);
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
+
   const createTicket = async () => {
     if (!newTicket.subject.trim() || !newTicket.message.trim()) {
       toast("Subject and message are required", "error");
@@ -113,12 +140,17 @@ export default function SupportTicketsPage() {
 
     setCreating(true);
     try {
-      const res = await apiRequest<any>(
-        "/api/tickets",
-        "POST",
-        newTicket,
-        true,
-      );
+      const payload: any = {
+        subject: newTicket.subject,
+        category: newTicket.category,
+        priority: newTicket.priority,
+        message: newTicket.message,
+      };
+      if (newTicket.orderId) {
+        payload.orderId = newTicket.orderId;
+      }
+
+      const res = await apiRequest<any>("/api/tickets", "POST", payload, true);
 
       if (res.ok && res.ticket) {
         toast("Ticket created successfully", "success");
@@ -128,6 +160,7 @@ export default function SupportTicketsPage() {
           category: "other",
           priority: "medium",
           message: "",
+          orderId: "",
         });
         router.push(`/support/tickets/${res.ticket._id}`);
       }
@@ -142,6 +175,14 @@ export default function SupportTicketsPage() {
     loadTickets();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, statusFilter]);
+
+  // Load orders when create modal opens
+  useEffect(() => {
+    if (showCreate) {
+      loadOrders();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showCreate]);
 
   return (
     <motion.div
@@ -336,6 +377,34 @@ export default function SupportTicketsPage() {
               </div>
 
               <div>
+                {/* Related Order Dropdown */}
+                <div>
+                  <label className="block text-sm text-[#9CA3AF] mb-1">
+                    Related Order (optional)
+                  </label>
+                  <select
+                    value={newTicket.orderId}
+                    onChange={(e) =>
+                      setNewTicket({ ...newTicket, orderId: e.target.value })
+                    }
+                    className="u-select w-full"
+                    disabled={loadingOrders}
+                  >
+                    <option value="">
+                      {loadingOrders ? "Loading orders..." : "-- No Order --"}
+                    </option>
+                    {userOrders.map((order) => (
+                      <option key={order._id} value={order._id}>
+                        Order #{order.orderNumber} (
+                        {order.status.replace(/_/g, " ")})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-[#6B7280] mt-1">
+                    Link this ticket to an existing order if relevant
+                  </p>
+                </div>
+
                 <label className="block text-sm text-[#9CA3AF] mb-1">
                   Message *
                 </label>
