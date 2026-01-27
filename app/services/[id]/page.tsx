@@ -1,5 +1,7 @@
 "use client";
 
+// PATCH_33: Service Detail Page with TrustBadges
+
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -10,6 +12,7 @@ import {
   DEFAULT_PUBLIC_SITE_SETTINGS,
   useSiteSettings,
 } from "@/hooks/useSiteSettings";
+import TrustBadges from "@/components/TrustBadges";
 
 export default function ServiceDetailsPage() {
   const { id } = useParams();
@@ -241,7 +244,7 @@ export default function ServiceDetailsPage() {
       <div className="mb-6 flex items-center justify-between gap-4 flex-wrap">
         <div>
           <Link
-            href="/buy-service"
+            href="/avail-service"
             className="text-sm text-[#9CA3AF] hover:text-white transition"
           >
             ← {copy.backToServicesText}
@@ -318,6 +321,12 @@ export default function ServiceDetailsPage() {
             <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
               <p className="text-sm text-[#9CA3AF]">{copy.safetyNote}</p>
             </div>
+          </div>
+
+          {/* PATCH_33: Trust Badges Section */}
+          <div className="card">
+            <h2 className="text-lg font-semibold mb-4">Why Choose UREMO?</h2>
+            <TrustBadges variant="vertical" />
           </div>
         </div>
 

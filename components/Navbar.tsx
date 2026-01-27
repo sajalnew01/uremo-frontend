@@ -46,7 +46,7 @@ export default function Navbar() {
 
   const userLinks = [
     { href: "/dashboard", label: nav.authedDashboardText, icon: "🏠" },
-    { href: "/buy-service", label: nav.authedServicesText, icon: "🛒" },
+    { href: "/avail-service", label: nav.authedServicesText, icon: "🛒" },
     { href: "/orders", label: nav.authedOrdersText, icon: "📦" },
     { href: "/blogs", label: "Blogs", icon: "📝" },
     { href: "/apply-to-work", label: nav.authedApplyToWorkText, icon: "💼" },
