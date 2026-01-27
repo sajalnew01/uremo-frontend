@@ -54,6 +54,7 @@ export default function Navbar() {
 
   const adminLinks = [
     { href: "/admin", label: "Admin Dashboard", icon: "⚡" },
+    { href: "/admin/analytics", label: "Analytics", icon: "📊" },
     { href: "/admin/services", label: "Services", icon: "📋" },
     { href: "/admin/orders", label: "Orders", icon: "📦" },
     { href: "/admin/service-requests", label: "Service Requests", icon: "🧾" },
