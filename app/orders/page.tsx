@@ -40,11 +40,17 @@ export default function OrdersPage() {
   const statusBadge = (status: string) => {
     const base = "u-pill font-medium";
     const map: Record<string, string> = {
-      completed: "border-emerald-500/25 bg-emerald-500/10 text-emerald-200",
-      processing: "border-purple-500/25 bg-purple-500/10 text-purple-200",
+      pending: "border-slate-500/25 bg-slate-500/10 text-slate-200",
+      payment_pending: "border-blue-500/25 bg-blue-500/10 text-blue-200",
       payment_submitted:
         "border-yellow-500/25 bg-yellow-500/10 text-yellow-200",
-      payment_pending: "border-blue-500/25 bg-blue-500/10 text-blue-200",
+      review: "border-amber-500/25 bg-amber-500/10 text-amber-200",
+      pending_review: "border-amber-500/25 bg-amber-500/10 text-amber-200",
+      processing: "border-purple-500/25 bg-purple-500/10 text-purple-200",
+      assistance_required:
+        "border-orange-500/25 bg-orange-500/10 text-orange-200",
+      approved: "border-teal-500/25 bg-teal-500/10 text-teal-200",
+      completed: "border-emerald-500/25 bg-emerald-500/10 text-emerald-200",
       rejected: "border-red-500/25 bg-red-500/10 text-red-200",
     };
     return `${base} ${

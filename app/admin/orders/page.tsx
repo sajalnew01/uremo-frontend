@@ -93,7 +93,7 @@ function AdminOrdersContent() {
         `/api/admin/orders/${id}/note`,
         "POST",
         { message: noteText },
-        true
+        true,
       );
       setNoteText("");
       setSelectedOrderId(null);
@@ -109,7 +109,7 @@ function AdminOrdersContent() {
         `/api/admin/orders/${id}`,
         "PUT",
         { status: nextStatus },
-        true
+        true,
       );
       toast("Order updated", "success");
       load(status);
@@ -124,7 +124,7 @@ function AdminOrdersContent() {
         `/api/admin/orders/${id}/verify-payment`,
         "PUT",
         {},
-        true
+        true,
       );
 
       toast("Payment verified. Order moved to processing.", "success");
@@ -140,7 +140,7 @@ function AdminOrdersContent() {
         `/api/admin/orders/${id}/archive-rejected`,
         "PUT",
         {},
-        true
+        true,
       );
       load(status);
     } catch (err) {
@@ -281,7 +281,7 @@ function AdminOrdersContent() {
                       <td className="p-3">
                         <span
                           className={`px-2 py-1 rounded text-xs ${statusBadge(
-                            o.status
+                            o.status,
                           )}`}
                         >
                           {o.status.replace(/_/g, " ")}
@@ -293,7 +293,7 @@ function AdminOrdersContent() {
                           <button
                             onClick={() =>
                               setSelectedOrderId(
-                                selectedOrderId === o._id ? null : o._id
+                                selectedOrderId === o._id ? null : o._id,
                               )
                             }
                             className="btn-secondary px-3 py-1 text-xs"
@@ -328,13 +328,22 @@ function AdminOrdersContent() {
                               updateStatus(o._id, e.target.value)
                             }
                           >
+                            <option value="pending">pending</option>
                             <option value="payment_pending">
                               payment pending
                             </option>
                             <option value="payment_submitted">
                               payment submitted
                             </option>
+                            <option value="review">review</option>
+                            <option value="pending_review">
+                              pending review
+                            </option>
                             <option value="processing">processing</option>
+                            <option value="assistance_required">
+                              assistance required
+                            </option>
+                            <option value="approved">approved</option>
                             <option value="completed">completed</option>
                             <option value="rejected">rejected</option>
                           </select>
