@@ -114,6 +114,23 @@ export default function AdminTicketViewPage() {
     }>
   >([]);
   const [uploading, setUploading] = useState(false);
+  // PATCH_35: Internal notes state
+  const [internalNotes, setInternalNotes] = useState<
+    Array<{
+      _id?: string;
+      note: string;
+      createdBy?: {
+        firstName?: string;
+        lastName?: string;
+        name?: string;
+        email?: string;
+      };
+      createdAt: string;
+    }>
+  >([]);
+  const [newNote, setNewNote] = useState("");
+  const [addingNote, setAddingNote] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -130,6 +147,47 @@ export default function AdminTicketViewPage() {
       }
     } catch (err) {
       console.error("Failed to load admins:", err);
+    }
+  };
+
+  // PATCH_35: Load internal notes
+  const loadInternalNotes = async () => {
+    try {
+      const res = await apiRequest<any>(
+        `/api/admin/tickets/${ticketId}/notes`,
+        "GET",
+        null,
+        true,
+      );
+      if (res.ok) {
+        setInternalNotes(res.internalNotes || []);
+      }
+    } catch (err) {
+      console.error("Failed to load internal notes:", err);
+    }
+  };
+
+  // PATCH_35: Add internal note
+  const addInternalNote = async () => {
+    if (!newNote.trim()) return;
+
+    setAddingNote(true);
+    try {
+      const res = await apiRequest<any>(
+        `/api/admin/tickets/${ticketId}/notes`,
+        "POST",
+        { note: newNote.trim() },
+        true,
+      );
+      if (res.ok) {
+        setInternalNotes(res.internalNotes || []);
+        setNewNote("");
+        toast("Note added", "success");
+      }
+    } catch (err: any) {
+      toast(err?.message || "Failed to add note", "error");
+    } finally {
+      setAddingNote(false);
     }
   };
 
@@ -313,6 +371,7 @@ export default function AdminTicketViewPage() {
     if (ticketId) {
       loadTicket();
       loadAdmins();
+      loadInternalNotes();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticketId]);
@@ -495,6 +554,62 @@ export default function AdminTicketViewPage() {
               );
             })}
             <div ref={messagesEndRef} />
+          </div>
+        )}
+      </div>
+
+      {/* PATCH_35: Internal Notes Section */}
+      <div className="card mb-4">
+        <button
+          onClick={() => setShowNotes(!showNotes)}
+          className="flex items-center justify-between w-full text-left"
+        >
+          <span className="font-medium text-sm flex items-center gap-2">
+            📝 Internal Notes ({internalNotes.length})
+            <span className="text-xs text-[#9CA3AF]">(Admin only)</span>
+          </span>
+          <span className="text-[#9CA3AF]">{showNotes ? "▲" : "▼"}</span>
+        </button>
+
+        {showNotes && (
+          <div className="mt-4 space-y-3">
+            {internalNotes.length === 0 && (
+              <p className="text-[#9CA3AF] text-sm">No internal notes yet.</p>
+            )}
+            {internalNotes.map((note, idx) => (
+              <div
+                key={note._id || idx}
+                className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-sm"
+              >
+                <p className="whitespace-pre-wrap">{note.note}</p>
+                <p className="text-xs text-[#9CA3AF] mt-2">
+                  {note.createdBy?.firstName || note.createdBy?.name || "Admin"}{" "}
+                  • {new Date(note.createdAt).toLocaleString()}
+                </p>
+              </div>
+            ))}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newNote}
+                onChange={(e) => setNewNote(e.target.value)}
+                placeholder="Add internal note..."
+                className="u-input flex-1 text-sm"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    addInternalNote();
+                  }
+                }}
+              />
+              <button
+                onClick={addInternalNote}
+                disabled={addingNote || !newNote.trim()}
+                className="btn-secondary text-sm disabled:opacity-50"
+              >
+                {addingNote ? "..." : "Add"}
+              </button>
+            </div>
           </div>
         )}
       </div>
