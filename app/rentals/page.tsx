@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
+import EmptyState from "@/components/ui/EmptyState";
 
 interface Rental {
   _id: string;
@@ -144,15 +145,16 @@ export default function MyRentalsPage() {
       </div>
 
       {rentals.length === 0 ? (
-        <div className="card text-center py-12">
-          <div className="text-5xl mb-4">🔄</div>
-          <p className="text-white font-semibold">No rentals yet</p>
-          <p className="text-slate-400 text-sm mt-1">
-            Browse rental services to get started
-          </p>
-          <Link href="/buy-service" className="btn-primary mt-4 inline-block">
-            Browse Services
-          </Link>
+        <div className="card">
+          <EmptyState
+            icon="🔄"
+            title="No active rentals yet"
+            description="Rent premium services on a subscription basis. Perfect for ongoing access to wallets, accounts, and other recurring services."
+            ctaText="Browse Rental Services"
+            ctaHref="/avail-service"
+            secondaryCtaText="View Dashboard"
+            secondaryCtaHref="/dashboard"
+          />
         </div>
       ) : (
         <div className="space-y-4">

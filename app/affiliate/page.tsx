@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
+import EmptyState from "@/components/ui/EmptyState";
 
 interface CommissionSummary {
   totalEarnings: number;
@@ -348,11 +349,14 @@ export default function AffiliatePage() {
       {activeTab === "commissions" && (
         <div>
           {commissions.length === 0 ? (
-            <div className="card text-center py-12">
-              <p className="text-white text-lg">No commissions yet</p>
-              <p className="text-slate-400 text-sm mt-2">
-                Start sharing your referral link to earn commissions!
-              </p>
+            <div className="card">
+              <EmptyState
+                icon="💰"
+                title="No commissions yet"
+                description="Share your unique referral link with friends and earn 10% commission on every purchase they make. It's that simple!"
+                ctaText="Copy Referral Link"
+                ctaHref="#"
+              />
             </div>
           ) : (
             <div className="overflow-x-auto">

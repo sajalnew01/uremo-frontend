@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import {
   DEFAULT_PUBLIC_SITE_SETTINGS,
   useSiteSettings,
 } from "@/hooks/useSiteSettings";
+import EmptyState from "@/components/ui/EmptyState";
 
 export default function OrdersPage() {
   const router = useRouter();
@@ -280,7 +282,15 @@ export default function OrdersPage() {
       </div>
 
       {!loading && orders.length === 0 && (
-        <p className="text-[#9CA3AF] mt-6">{copy.noOrdersYetText}</p>
+        <EmptyState
+          icon="📦"
+          title="You haven't availed any service yet"
+          description="Browse our marketplace and find the perfect service to get started. We offer manual onboarding, verification, and more!"
+          ctaText="Explore Services"
+          ctaHref="/avail-service"
+          secondaryCtaText="View Dashboard"
+          secondaryCtaHref="/dashboard"
+        />
       )}
     </div>
   );

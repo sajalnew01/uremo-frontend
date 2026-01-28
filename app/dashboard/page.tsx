@@ -3,16 +3,21 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
+import OnboardingModal from "@/components/onboarding/OnboardingModal";
+import RecommendedServices from "@/components/dashboard/RecommendedServices";
 
 export default function Dashboard() {
   const { user, isAdmin } = useAuth();
 
+  // PATCH_34: Check if onboarding modal should show
+  const showOnboarding = user && !(user as any).onboardingCompleted;
+
   const cards = [
     {
-      title: "Buy a Service",
+      title: "Avail Service",
       desc: "Access manual onboarding & verification services.",
-      href: "/buy-service",
-      icon: "🛒",
+      href: "/avail-service",
+      icon: "✨",
     },
     {
       title: "My Orders",
@@ -71,6 +76,9 @@ export default function Dashboard() {
       transition={{ duration: 0.4 }}
       className="u-container"
     >
+      {/* PATCH_34: Onboarding Modal for first-time users */}
+      {showOnboarding && <OnboardingModal />}
+
       <h1 className="text-4xl font-bold mb-2">Dashboard</h1>
       <p className="text-slate-300 mb-8">
         Human-assisted onboarding, verification & manual operations.
@@ -81,6 +89,9 @@ export default function Dashboard() {
           Signed in as <span className="text-white">{user.email}</span>
         </p>
       )}
+
+      {/* PATCH_34: Personalized service recommendations */}
+      {user && !showOnboarding && <RecommendedServices />}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         {cards.map((card, i) => (
