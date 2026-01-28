@@ -22,6 +22,7 @@ import {
   MessageStatus,
 } from "@/hooks/useChatSocket";
 import OrderSupportChat from "@/components/orders/OrderSupportChat";
+import OrderStepper from "@/components/orders/OrderStepper";
 
 interface Order {
   _id: string;
@@ -240,7 +241,7 @@ function OrderDetailsContent() {
     return () => window.clearTimeout(id);
   }, [searchParams, loading, order]);
 
-  const isPendingPayment = order?.status === "payment_pending";
+  const isPendingPayment = order?.status === "pending";
   const isPaymentVerified = Boolean(order?.payment?.verifiedAt);
   const expiresText = useMemo(() => {
     if (!isPendingPayment || !order?.expiresAt) return null;
@@ -415,6 +416,9 @@ function OrderDetailsContent() {
           </button>
         </div>
       </div>
+
+      {/* PATCH_37: Order Progress Stepper */}
+      <OrderStepper status={order.status} />
 
       {/* Order Info */}
       <div className="border border-[#1F2937] rounded-lg p-6 bg-[#0F172A]">

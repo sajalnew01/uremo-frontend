@@ -210,7 +210,7 @@ export default function AdminAnalyticsPage() {
               color="cyan"
             />
             <StatCard
-              title="Processing Orders"
+              title="In Progress Orders"
               value={stats.processingOrders}
               subtitle={`${stats.pendingOrders} pending payment`}
               icon="⚡"

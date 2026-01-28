@@ -145,13 +145,13 @@ export default function PaymentPage() {
 
   const status: string | undefined = order?.status;
   const isExpired =
-    status === "payment_pending" &&
+    status === "pending" &&
     order?.expiresAt &&
     new Date(order.expiresAt).getTime() < Date.now();
 
   const canSubmit =
-    (status === "payment_pending" || status === "rejected") && !isExpired;
-  const isSubmitted = status === "payment_submitted";
+    (status === "pending" || status === "cancelled") && !isExpired;
+  const isSubmitted = status === "waiting_user";
 
   const hasMethod = Boolean(selectedMethodId);
   const hasProof = Boolean(file);

@@ -50,11 +50,11 @@ export default function AdminInboxPage() {
 
   const badge = (status: string) => {
     const map: Record<string, string> = {
-      payment_pending: "bg-blue-600",
-      payment_submitted: "bg-yellow-600",
-      processing: "bg-purple-600",
+      pending: "bg-blue-600",
+      waiting_user: "bg-yellow-600",
+      in_progress: "bg-purple-600",
       completed: "bg-green-600",
-      rejected: "bg-red-600",
+      cancelled: "bg-red-600",
     };
     return map[status] || "bg-gray-600";
   };
@@ -96,7 +96,7 @@ export default function AdminInboxPage() {
                     )}
                     <span
                       className={`text-xs px-2 py-1 rounded ${badge(
-                        it.status
+                        it.status,
                       )}`}
                     >
                       {it.status.replace(/_/g, " ")}

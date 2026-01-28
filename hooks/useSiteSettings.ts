@@ -196,6 +196,8 @@ export type PublicSiteSettings = {
       expiresPrefix: string;
       pendingPaymentTitle: string;
       pendingPaymentEmptyText: string;
+      pendingOrWaitingTitle: string;
+      pendingOrWaitingEmptyText: string;
       inProgressTitle: string;
       inProgressEmptyText: string;
       noOrdersYetText: string;
@@ -580,6 +582,8 @@ export const DEFAULT_PUBLIC_SITE_SETTINGS: PublicSiteSettings = {
       expiresPrefix: "Expires:",
       pendingPaymentTitle: "Pending Payment",
       pendingPaymentEmptyText: "No pending payments.",
+      pendingOrWaitingTitle: "Pending / Awaiting Action",
+      pendingOrWaitingEmptyText: "No pending orders.",
       inProgressTitle: "Orders in progress / completed",
       inProgressEmptyText: "No orders yet.",
       noOrdersYetText: "You haven't placed any orders yet.",
@@ -1021,6 +1025,12 @@ const mergeWithDefaults = (input: any): PublicSiteSettings => {
     pendingPaymentTitle: String(ordersList.pendingPaymentTitle || "").trim(),
     pendingPaymentEmptyText: String(
       ordersList.pendingPaymentEmptyText || ""
+    ).trim(),
+    pendingOrWaitingTitle: String(
+      ordersList.pendingOrWaitingTitle || ""
+    ).trim(),
+    pendingOrWaitingEmptyText: String(
+      ordersList.pendingOrWaitingEmptyText || ""
     ).trim(),
     inProgressTitle: String(ordersList.inProgressTitle || "").trim(),
     inProgressEmptyText: String(ordersList.inProgressEmptyText || "").trim(),
@@ -1548,6 +1558,12 @@ const mergeWithDefaults = (input: any): PublicSiteSettings => {
         pendingPaymentEmptyText:
           ordersListMerged.pendingPaymentEmptyText ||
           DEFAULT_PUBLIC_SITE_SETTINGS.orders.list.pendingPaymentEmptyText,
+        pendingOrWaitingTitle:
+          ordersListMerged.pendingOrWaitingTitle ||
+          DEFAULT_PUBLIC_SITE_SETTINGS.orders.list.pendingOrWaitingTitle,
+        pendingOrWaitingEmptyText:
+          ordersListMerged.pendingOrWaitingEmptyText ||
+          DEFAULT_PUBLIC_SITE_SETTINGS.orders.list.pendingOrWaitingEmptyText,
         inProgressTitle:
           ordersListMerged.inProgressTitle ||
           DEFAULT_PUBLIC_SITE_SETTINGS.orders.list.inProgressTitle,

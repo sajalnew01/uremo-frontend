@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
+import EmptyState from "@/components/ui/EmptyState";
 
 interface Notification {
   _id: string;
@@ -175,14 +176,13 @@ export default function NotificationsPage() {
             <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : notifications.length === 0 ? (
-          <div className="text-center py-16 bg-slate-800/50 rounded-xl border border-white/10">
-            <div className="text-4xl mb-4">🔔</div>
-            <h3 className="text-lg font-medium">No notifications yet</h3>
-            <p className="text-sm text-gray-400 mt-2">
-              You&apos;ll see notifications for orders, tickets, wallet updates,
-              and more here.
-            </p>
-          </div>
+          <EmptyState
+            icon="🔔"
+            title="No notifications yet"
+            description="You'll see notifications for orders, tickets, wallet updates, and more here."
+            ctaText="Browse Services"
+            ctaHref="/avail-service"
+          />
         ) : (
           <div className="space-y-3">
             {notifications.map((n) => (

@@ -125,7 +125,7 @@ export default function AdminOrderDetailPage() {
         `/api/orders/${orderId}`,
         "GET",
         null,
-        true
+        true,
       );
       setOrder(data);
     } catch (err) {
@@ -153,7 +153,7 @@ export default function AdminOrderDetailPage() {
           `/api/admin/orders/${orderId}/support/mark-read`,
           "POST",
           {},
-          true
+          true,
         );
       } catch {
         // ignore
@@ -178,11 +178,11 @@ export default function AdminOrderDetailPage() {
 
   const badge = (status: string) => {
     const map: Record<string, string> = {
-      payment_pending: "bg-blue-600",
-      payment_submitted: "bg-yellow-600",
-      processing: "bg-purple-600",
+      pending: "bg-blue-600",
+      waiting_user: "bg-yellow-600",
+      in_progress: "bg-purple-600",
       completed: "bg-green-600",
-      rejected: "bg-red-600",
+      cancelled: "bg-red-600",
     };
     return map[status] || "bg-gray-600";
   };
@@ -194,7 +194,7 @@ export default function AdminOrderDetailPage() {
         `/api/admin/orders/${order._id}`,
         "PUT",
         { status },
-        true
+        true,
       );
       await loadOrder();
       toast("Status updated", "success");
@@ -268,7 +268,7 @@ export default function AdminOrderDetailPage() {
             <p className="text-xs text-[#9CA3AF] mt-3">
               Created: {new Date(order.createdAt).toLocaleString()}
             </p>
-            {order.expiresAt && order.status === "payment_pending" && (
+            {order.expiresAt && order.status === "pending" && (
               <p className="text-xs text-[#9CA3AF]">
                 Expires: {new Date(order.expiresAt).toLocaleString()}
               </p>
@@ -281,11 +281,11 @@ export default function AdminOrderDetailPage() {
               value={order.status}
               onChange={(e) => updateStatus(e.target.value)}
             >
-              <option value="payment_pending">payment pending</option>
-              <option value="payment_submitted">payment submitted</option>
-              <option value="processing">processing</option>
+              <option value="pending">pending</option>
+              <option value="waiting_user">waiting user</option>
+              <option value="in_progress">in progress</option>
               <option value="completed">completed</option>
-              <option value="rejected">rejected</option>
+              <option value="cancelled">cancelled</option>
             </select>
 
             {order.payment?.proofUrl && (
@@ -331,15 +331,15 @@ export default function AdminOrderDetailPage() {
                 chatConnection === "open"
                   ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-200"
                   : chatConnection === "connecting"
-                  ? "border-blue-500/25 bg-blue-500/10 text-blue-200"
-                  : "border-white/10 bg-white/5 text-[#9CA3AF]"
+                    ? "border-blue-500/25 bg-blue-500/10 text-blue-200"
+                    : "border-white/10 bg-white/5 text-[#9CA3AF]"
               }`}
             >
               {chatConnection === "open"
                 ? "🟢 Live"
                 : chatConnection === "connecting"
-                ? "Connecting…"
-                : "Offline"}
+                  ? "Connecting…"
+                  : "Offline"}
             </span>
 
             {chatConnection !== "open" && (
@@ -399,7 +399,7 @@ export default function AdminOrderDetailPage() {
                     {m.senderRole === "admin" && m.status && (
                       <span
                         className={`text-[11px] ${getMessageStatusClass(
-                          m.status
+                          m.status,
                         )}`}
                         title={m.status}
                       >

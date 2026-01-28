@@ -34,14 +34,11 @@ interface Order {
 
 const statusBadge = (status: string) => {
   const map: Record<string, string> = {
-    payment_pending: "bg-blue-600",
-    payment_submitted: "bg-yellow-600",
-    pending_review: "bg-yellow-600",
-    processing: "bg-purple-600",
-    assistance_required: "bg-orange-600",
-    approved: "bg-green-600",
-    completed: "bg-green-600",
-    rejected: "bg-red-600",
+    pending: "bg-slate-600",
+    in_progress: "bg-purple-600",
+    waiting_user: "bg-amber-600",
+    completed: "bg-emerald-600",
+    cancelled: "bg-red-600",
   };
   return map[status] || "bg-gray-600";
 };
@@ -127,24 +124,24 @@ function AdminOrdersContent() {
         true,
       );
 
-      toast("Payment verified. Order moved to processing.", "success");
+      toast("Payment verified. Order moved to in progress.", "success");
       load(status);
     } catch (err: any) {
       toast(err?.message || "Failed to verify payment", "error");
     }
   };
 
-  const archiveRejected = async (id: string) => {
+  const archiveCancelled = async (id: string) => {
     try {
       await apiRequest(
-        `/api/admin/orders/${id}/archive-rejected`,
+        `/api/admin/orders/${id}/archive-cancelled`,
         "PUT",
         {},
         true,
       );
       load(status);
     } catch (err) {
-      toast("Failed to move order to rejected list", "error");
+      toast("Failed to move order to cancelled list", "error");
     }
   };
 
@@ -160,10 +157,10 @@ function AdminOrdersContent() {
         {[
           { key: "all", label: "All" },
           { key: "pending", label: "Pending" },
-          { key: "submitted", label: "Submitted" },
-          { key: "processing", label: "Processing" },
+          { key: "in_progress", label: "In Progress" },
+          { key: "waiting_user", label: "Waiting on User" },
           { key: "completed", label: "Completed" },
-          { key: "rejected", label: "Rejected" },
+          { key: "cancelled", label: "Cancelled" },
         ].map((t) => {
           const active = status === t.key;
           return (
@@ -303,17 +300,17 @@ function AdminOrdersContent() {
                             {selectedOrderId === o._id ? "Hide" : "View"}
                           </button>
 
-                          {o.status === "rejected" && !o.isRejectedArchive && (
+                          {o.status === "cancelled" && !o.isRejectedArchive && (
                             <button
                               type="button"
-                              onClick={() => archiveRejected(o._id)}
+                              onClick={() => archiveCancelled(o._id)}
                               className="px-3 py-1 text-xs rounded bg-red-600/20 border border-red-500/30 text-red-200 hover:bg-red-600/30"
                             >
-                              Move to Rejected List
+                              Move to Cancelled Archive
                             </button>
                           )}
 
-                          {o.status === "payment_submitted" && (
+                          {o.status === "waiting_user" && (
                             <button
                               type="button"
                               onClick={() => verifyPayment(o._id)}
@@ -331,23 +328,12 @@ function AdminOrdersContent() {
                             }
                           >
                             <option value="pending">pending</option>
-                            <option value="payment_pending">
-                              payment pending
+                            <option value="in_progress">in progress</option>
+                            <option value="waiting_user">
+                              waiting on user
                             </option>
-                            <option value="payment_submitted">
-                              payment submitted
-                            </option>
-                            <option value="review">review</option>
-                            <option value="pending_review">
-                              pending review
-                            </option>
-                            <option value="processing">processing</option>
-                            <option value="assistance_required">
-                              assistance required
-                            </option>
-                            <option value="approved">approved</option>
                             <option value="completed">completed</option>
-                            <option value="rejected">rejected</option>
+                            <option value="cancelled">cancelled</option>
                           </select>
                         </div>
                       </td>

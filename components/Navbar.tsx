@@ -179,7 +179,7 @@ export default function Navbar() {
                     {nav.guestPrimaryCtaText}
                   </Link>
                   <Link
-                    href="/buy-service"
+                    href="/avail-service"
                     className="btn-secondary hidden sm:inline-flex"
                   >
                     {nav.guestSecondaryCtaText}

@@ -44,7 +44,10 @@ export default function Footer() {
                 DEFAULT_PUBLIC_SITE_SETTINGS.footer.linksTitle}
             </div>
             <div className="mt-3 flex flex-col gap-2 text-slate-300">
-              <Link href="/buy-service" className="hover:text-white transition">
+              <Link
+                href="/avail-service"
+                className="hover:text-white transition"
+              >
                 {footer.servicesLinkText ||
                   DEFAULT_PUBLIC_SITE_SETTINGS.footer.servicesLinkText}
               </Link>

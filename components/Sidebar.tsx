@@ -121,7 +121,7 @@ export default function Sidebar() {
 
   const links = [
     { name: "Dashboard", href: "/dashboard" },
-    { name: "Buy Service", href: "/buy-service" },
+    { name: "Avail Service", href: "/avail-service" },
     { name: "My Orders", href: "/orders" },
     { name: "Apply to Work", href: "/apply-to-work" },
   ];
@@ -136,7 +136,7 @@ export default function Sidebar() {
     { name: "Email Campaigns", href: "/admin/email" },
     { name: "Services", href: "/admin/services" },
     { name: "Orders", href: "/admin/orders" },
-    { name: "Rejected Orders", href: "/admin/rejected-orders" },
+    { name: "Cancelled Orders", href: "/admin/cancelled-orders" },
     { name: "Payments", href: "/admin/payments" },
   ];
 

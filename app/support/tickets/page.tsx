@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
+import EmptyState from "@/components/ui/EmptyState";
 
 interface Ticket {
   _id: string;
@@ -230,11 +231,15 @@ export default function SupportTicketsPage() {
           <p className="text-[#9CA3AF]">Loading tickets...</p>
         </div>
       ) : tickets.length === 0 ? (
-        <div className="card">
-          <p className="text-[#9CA3AF]">
-            No tickets found. Create one to get help!
-          </p>
-        </div>
+        <EmptyState
+          icon="🎫"
+          title="No support tickets yet"
+          description="Have a question or need help? Create a support ticket and our team will assist you."
+          ctaText="Create Ticket"
+          ctaHref="#"
+          secondaryCtaText="Browse FAQs"
+          secondaryCtaHref="/support"
+        />
       ) : (
         <div className="space-y-3">
           {tickets.map((ticket) => (

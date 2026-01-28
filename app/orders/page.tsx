@@ -43,25 +43,22 @@ export default function OrdersPage() {
     const base = "u-pill font-medium";
     const map: Record<string, string> = {
       pending: "border-slate-500/25 bg-slate-500/10 text-slate-200",
-      payment_pending: "border-blue-500/25 bg-blue-500/10 text-blue-200",
-      payment_submitted:
-        "border-yellow-500/25 bg-yellow-500/10 text-yellow-200",
-      review: "border-amber-500/25 bg-amber-500/10 text-amber-200",
-      pending_review: "border-amber-500/25 bg-amber-500/10 text-amber-200",
-      processing: "border-purple-500/25 bg-purple-500/10 text-purple-200",
-      assistance_required:
-        "border-orange-500/25 bg-orange-500/10 text-orange-200",
-      approved: "border-teal-500/25 bg-teal-500/10 text-teal-200",
+      in_progress: "border-purple-500/25 bg-purple-500/10 text-purple-200",
+      waiting_user: "border-amber-500/25 bg-amber-500/10 text-amber-200",
       completed: "border-emerald-500/25 bg-emerald-500/10 text-emerald-200",
-      rejected: "border-red-500/25 bg-red-500/10 text-red-200",
+      cancelled: "border-red-500/25 bg-red-500/10 text-red-200",
     };
     return `${base} ${
       map[status] || "border-white/10 bg-white/5 text-slate-200"
     }`;
   };
 
-  const pendingPayment = orders.filter((o) => o.status === "payment_pending");
-  const inProgressOrDone = orders.filter((o) => o.status !== "payment_pending");
+  const pendingOrWaiting = orders.filter(
+    (o) => o.status === "pending" || o.status === "waiting_user",
+  );
+  const inProgressOrDone = orders.filter(
+    (o) => o.status !== "pending" && o.status !== "waiting_user",
+  );
 
   const OrderCard = ({ o }: { o: any }) => {
     const lastStatus =
@@ -83,15 +80,10 @@ export default function OrdersPage() {
     // Status icon map
     const statusIcon: Record<string, string> = {
       pending: "⏳",
-      payment_pending: "💳",
-      payment_submitted: "📤",
-      review: "🔍",
-      pending_review: "🔍",
-      processing: "⚡",
-      assistance_required: "❗",
-      approved: "✅",
+      in_progress: "⚡",
+      waiting_user: "🔍",
       completed: "🎉",
-      rejected: "❌",
+      cancelled: "❌",
     };
 
     return (
@@ -101,14 +93,14 @@ export default function OrdersPage() {
           className={`absolute top-0 left-0 w-full h-1 ${
             o.status === "completed"
               ? "bg-emerald-500"
-              : o.status === "processing"
+              : o.status === "in_progress"
                 ? "bg-purple-500"
-                : o.status === "payment_pending"
-                  ? "bg-blue-500"
-                  : o.status === "rejected"
+                : o.status === "pending"
+                  ? "bg-slate-500"
+                  : o.status === "cancelled"
                     ? "bg-red-500"
-                    : o.status === "assistance_required"
-                      ? "bg-orange-500"
+                    : o.status === "waiting_user"
+                      ? "bg-amber-500"
                       : "bg-slate-600"
           }`}
         />
@@ -167,7 +159,7 @@ export default function OrdersPage() {
 
           {/* Actions */}
           <div className="mt-4 flex flex-wrap gap-2">
-            {o.status === "payment_pending" && (
+            {o.status === "pending" && (
               <button
                 onClick={() => router.push(`/payment/${o._id}`)}
                 className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium text-sm hover:from-blue-500 hover:to-blue-400 transition-all shadow-lg shadow-blue-500/20"
@@ -176,7 +168,7 @@ export default function OrdersPage() {
               </button>
             )}
 
-            {o.status === "rejected" && (
+            {o.status === "cancelled" && (
               <button
                 onClick={() => router.push(`/payment/${o._id}`)}
                 className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 to-orange-500 text-white font-medium text-sm hover:from-orange-500 hover:to-orange-400 transition-all"
@@ -201,7 +193,7 @@ export default function OrdersPage() {
             </button>
           </div>
 
-          {o.status === "payment_pending" && o.expiresAt && (
+          {o.status === "pending" && o.expiresAt && (
             <div className="mt-3 flex items-center gap-1 text-xs text-orange-400/80">
               <span>⏰</span>
               <span>
@@ -241,20 +233,20 @@ export default function OrdersPage() {
         <section className="space-y-3">
           <div className="flex items-baseline justify-between">
             <h2 className="text-lg font-semibold">
-              {copy.pendingPaymentTitle}
+              {copy.pendingOrWaitingTitle}
             </h2>
             <p className="text-sm text-slate-500">
-              {pendingPayment.length} order
-              {pendingPayment.length === 1 ? "" : "s"}
+              {pendingOrWaiting.length} order
+              {pendingOrWaiting.length === 1 ? "" : "s"}
             </p>
           </div>
-          {pendingPayment.length === 0 ? (
+          {pendingOrWaiting.length === 0 ? (
             <p className="text-[#9CA3AF] text-sm">
-              {copy.pendingPaymentEmptyText}
+              {copy.pendingOrWaitingEmptyText}
             </p>
           ) : (
             <div className="space-y-4">
-              {pendingPayment.map((o) => (
+              {pendingOrWaiting.map((o) => (
                 <OrderCard key={o._id} o={o} />
               ))}
             </div>

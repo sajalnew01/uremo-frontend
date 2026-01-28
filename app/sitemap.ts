@@ -9,7 +9,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1.0,
     },
     {
-      url: "https://uremo.online/buy-service",
+      url: "https://uremo.online/avail-service",
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 0.9,
