@@ -46,6 +46,13 @@ type Service = {
   // PATCH_21: Country availability
   availableForCountry?: boolean;
   selectedCountry?: string | null;
+  // PATCH_38: Action rules
+  allowedActions?: {
+    buy?: boolean;
+    apply?: boolean;
+    rent?: boolean;
+    deal?: boolean;
+  };
 };
 
 // PATCH_19: Updated filters to use subcategory
@@ -698,6 +705,30 @@ export default function AvailServicePage() {
                       <p className="text-sm text-slate-300 mt-4 line-clamp-2 flex-1">
                         {s.shortDescription || s.description}
                       </p>
+
+                      {/* PATCH_38: Action badges */}
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {s.allowedActions?.buy && (
+                          <span className="text-[11px] rounded-full border border-blue-500/25 bg-blue-500/10 px-2.5 py-1 text-blue-200">
+                            Buy
+                          </span>
+                        )}
+                        {s.allowedActions?.apply && (
+                          <span className="text-[11px] rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-emerald-200">
+                            Apply
+                          </span>
+                        )}
+                        {s.allowedActions?.rent && (
+                          <span className="text-[11px] rounded-full border border-purple-500/25 bg-purple-500/10 px-2.5 py-1 text-purple-200">
+                            Rent
+                          </span>
+                        )}
+                        {s.allowedActions?.deal && (
+                          <span className="text-[11px] rounded-full border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 text-amber-200">
+                            Deal
+                          </span>
+                        )}
+                      </div>
 
                       <div className="mt-auto pt-4 flex justify-end">
                         <span className="inline-flex items-center gap-2 text-sm text-slate-200 group-hover:text-white transition">

@@ -45,11 +45,12 @@ export default function Navbar() {
   }, [mobileMenuOpen]);
 
   const userLinks = [
-    { href: "/dashboard", label: nav.authedDashboardText, icon: "🏠" },
-    { href: "/avail-service", label: nav.authedServicesText, icon: "🛒" },
-    { href: "/orders", label: nav.authedOrdersText, icon: "📦" },
-    { href: "/blogs", label: "Blogs", icon: "📝" },
-    { href: "/apply-to-work", label: nav.authedApplyToWorkText, icon: "💼" },
+    { href: "/avail-service", label: "Explore Services", icon: "🧭" },
+    { href: "/workspace", label: "Workspace (Jobs)", icon: "💼" },
+    { href: "/deals", label: "Deals", icon: "🏷️" },
+    { href: "/orders", label: "Orders", icon: "📦" },
+    { href: "/wallet", label: "Wallet", icon: "💰" },
+    { href: "/support", label: "Support", icon: "🛟" },
   ];
 
   const adminLinks = [

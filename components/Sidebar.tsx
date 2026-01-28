@@ -120,10 +120,12 @@ export default function Sidebar() {
   if (!isAuthenticated) return null;
 
   const links = [
-    { name: "Dashboard", href: "/dashboard" },
-    { name: "Avail Service", href: "/avail-service" },
-    { name: "My Orders", href: "/orders" },
-    { name: "Apply to Work", href: "/apply-to-work" },
+    { name: "Explore Services", href: "/avail-service" },
+    { name: "Workspace (Jobs)", href: "/workspace" },
+    { name: "Deals", href: "/deals" },
+    { name: "Orders", href: "/orders" },
+    { name: "Wallet", href: "/wallet" },
+    { name: "Support", href: "/support" },
   ];
 
   const adminLinks = [

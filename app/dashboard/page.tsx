@@ -14,7 +14,7 @@ export default function Dashboard() {
 
   const cards = [
     {
-      title: "Avail Service",
+      title: "Explore Services",
       desc: "Access manual onboarding & verification services.",
       href: "/avail-service",
       icon: "✨",

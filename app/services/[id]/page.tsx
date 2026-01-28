@@ -26,10 +26,44 @@ export default function ServiceDetailsPage() {
   const [service, setService] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
+  // PATCH_38: Deal percent (1..100)
+  const [dealPercent, setDealPercent] = useState<number>(10);
   // PATCH_22: Selected rental plan for rental services
   const [selectedRentalPlan, setSelectedRentalPlan] = useState<number | null>(
     null,
   );
+
+  const normalizeAllowedActions = (value: any) => {
+    const a = value && typeof value === "object" ? value : {};
+    return {
+      buy: Boolean(a.buy),
+      apply: Boolean(a.apply),
+      rent: Boolean(a.rent),
+      deal: Boolean(a.deal),
+    };
+  };
+
+  const ensureLoggedIn = () => {
+    try {
+      const token =
+        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      if (!token) {
+        const next =
+          typeof window !== "undefined" && window.location?.pathname
+            ? window.location.pathname
+            : `/services/${String(id || "")}`;
+        if (typeof window !== "undefined") {
+          window.location.href = `/login?next=${encodeURIComponent(next)}`;
+        } else {
+          router.push("/login");
+        }
+        return false;
+      }
+    } catch {
+      return false;
+    }
+    return true;
+  };
 
   const template = (value: string, vars: Record<string, string>) => {
     let out = String(value || "");
@@ -65,27 +99,34 @@ export default function ServiceDetailsPage() {
     };
   }, [id]);
 
+  // PATCH_38: Fetch allowed actions explicitly (works even if older service payloads omit it)
+  useEffect(() => {
+    if (!id) return;
+    if (!service?._id) return;
+
+    let mounted = true;
+    apiRequest(`/api/services/${id}/actions`, "GET")
+      .then((data: any) => {
+        if (!mounted) return;
+        const allowed = normalizeAllowedActions(data?.allowedActions);
+        setService((prev: any) => {
+          if (!prev) return prev;
+          return { ...prev, allowedActions: allowed };
+        });
+      })
+      .catch(() => {
+        // ignore (service detail already loaded)
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [id, service?._id]);
+
   const buyService = async () => {
     // PATCH_12: Hard redirect if not logged in, with next param.
     // This avoids endless "Authentication required" toasts.
-    try {
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      if (!token) {
-        const next =
-          typeof window !== "undefined" && window.location?.pathname
-            ? window.location.pathname
-            : `/services/${String(id || "")}`;
-        if (typeof window !== "undefined") {
-          window.location.href = `/login?next=${encodeURIComponent(next)}`;
-        } else {
-          router.push("/login");
-        }
-        return;
-      }
-    } catch {
-      // ignore
-    }
+    if (!ensureLoggedIn()) return;
 
     // PATCH_22: Validate rental plan selection for rental services
     if (service?.isRental && selectedRentalPlan === null) {
@@ -159,6 +200,35 @@ export default function ServiceDetailsPage() {
     }
   };
 
+  const applyToWork = () => {
+    if (!ensureLoggedIn()) return;
+    router.push("/apply-to-work");
+  };
+
+  const createDealOrder = async () => {
+    if (!ensureLoggedIn()) return;
+    const pct = Number(dealPercent);
+    if (!Number.isFinite(pct) || pct <= 0 || pct > 100) {
+      toast("Deal percent must be between 1 and 100", "error");
+      return;
+    }
+
+    try {
+      const res = await apiRequest(
+        "/api/orders/deal",
+        "POST",
+        { serviceId: service._id, dealPercent: pct },
+        true,
+      );
+      const orderId = res?.orderId;
+      if (!orderId) throw new Error("Failed to create deal order");
+      toast("Deal created. Complete payment to confirm.", "success");
+      router.push(`/payment/${orderId}`);
+    } catch (e: any) {
+      toast(e?.message || "Failed to create deal order", "error");
+    }
+  };
+
   if (loading) {
     return (
       <div className="u-container max-w-5xl">
@@ -180,7 +250,7 @@ export default function ServiceDetailsPage() {
             {error || copy.notAvailableSubtitle}
           </p>
           <div className="mt-4 flex gap-3 flex-wrap">
-            <Link href="/buy-service" className="btn-secondary">
+            <Link href="/avail-service" className="btn-secondary">
               {copy.backToServicesText}
             </Link>
             <button
@@ -195,6 +265,10 @@ export default function ServiceDetailsPage() {
       </div>
     );
   }
+
+  const allowed = normalizeAllowedActions(service?.allowedActions);
+  const hasAnyAction =
+    allowed.buy || allowed.apply || allowed.rent || allowed.deal;
 
   const deliveryLabel = service?.deliveryType
     ? String(service.deliveryType).replace(/_/g, " ")
@@ -333,21 +407,71 @@ export default function ServiceDetailsPage() {
         {/* Sticky CTA */}
         <aside className="lg:sticky lg:top-24">
           <div className="card">
-            {/* PATCH_22: Rental Plans UI */}
-            {service?.isRental &&
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm text-[#9CA3AF]">{copy.priceLabel}</p>
+                <p className="mt-1 text-3xl font-bold text-emerald-300">
+                  ${service.price}
+                </p>
+                <p className="text-xs text-[#9CA3AF] mt-1">
+                  {copy.priceSubtext}
+                </p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                <p className="text-xs text-[#9CA3AF]">{copy.typeLabel}</p>
+                <p className="text-sm text-slate-200 font-medium">
+                  {deliveryLabel}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {allowed.buy && (
+                <span className="text-[11px] rounded-full border border-blue-500/25 bg-blue-500/10 px-2.5 py-1 text-blue-200">
+                  Buy
+                </span>
+              )}
+              {allowed.apply && (
+                <span className="text-[11px] rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-emerald-200">
+                  Apply
+                </span>
+              )}
+              {allowed.rent && (
+                <span className="text-[11px] rounded-full border border-purple-500/25 bg-purple-500/10 px-2.5 py-1 text-purple-200">
+                  Rent
+                </span>
+              )}
+              {allowed.deal && (
+                <span className="text-[11px] rounded-full border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 text-amber-200">
+                  Deal
+                </span>
+              )}
+            </div>
+
+            <div className="mt-4 h-px bg-white/10" />
+
+            {!hasAnyAction && (
+              <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
+                <p className="text-sm text-slate-200 font-medium">
+                  No actions available
+                </p>
+                <p className="mt-1 text-xs text-[#9CA3AF]">
+                  This service is not eligible for buy, apply, rent, or deal.
+                </p>
+              </div>
+            )}
+
+            {/* RENT */}
+            {allowed.rent &&
+            service?.isRental &&
             Array.isArray(service.rentalPlans) &&
             service.rentalPlans.length > 0 ? (
-              <>
-                <div className="mb-4">
-                  <p className="text-sm text-[#9CA3AF]">🔄 Rental Service</p>
-                  <p className="mt-1 text-lg font-semibold text-white">
-                    Choose a Plan
+              <div className="mt-4">
+                <div className="mb-3">
+                  <p className="text-sm text-[#9CA3AF]">🔄 Rental plans</p>
+                  <p className="mt-1 text-sm text-slate-200">
+                    Choose a plan before renting.
                   </p>
-                  {service.rentalDescription && (
-                    <p className="mt-2 text-xs text-slate-400">
-                      {service.rentalDescription}
-                    </p>
-                  )}
                 </div>
                 <div className="space-y-2">
                   {service.rentalPlans.map((plan: any, idx: number) => (
@@ -382,7 +506,6 @@ export default function ServiceDetailsPage() {
                     </button>
                   ))}
                 </div>
-                <div className="mt-4 h-px bg-white/10" />
                 <button
                   type="button"
                   onClick={buyService}
@@ -397,48 +520,73 @@ export default function ServiceDetailsPage() {
                       ? `Rent for $${service.rentalPlans[selectedRentalPlan]?.price}`
                       : "Select a Plan"}
                 </button>
-                <p className="mt-3 text-xs text-[#9CA3AF]">
-                  {copy.reserveHelpText}
-                </p>
-              </>
-            ) : (
-              <>
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm text-[#9CA3AF]">{copy.priceLabel}</p>
-                    <p className="mt-1 text-3xl font-bold text-emerald-300">
-                      ${service.price}
-                    </p>
-                    <p className="text-xs text-[#9CA3AF] mt-1">
-                      {copy.priceSubtext}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-                    <p className="text-xs text-[#9CA3AF]">{copy.typeLabel}</p>
-                    <p className="text-sm text-slate-200 font-medium">
-                      {deliveryLabel}
-                    </p>
+              </div>
+            ) : null}
+
+            {/* BUY */}
+            {allowed.buy && (
+              <button
+                type="button"
+                onClick={buyService}
+                disabled={service?.active === false}
+                className="btn-primary w-full disabled:opacity-50 mt-4"
+              >
+                {service?.active === false
+                  ? copy.unavailableButtonText
+                  : "Buy Now"}
+              </button>
+            )}
+
+            {/* APPLY */}
+            {allowed.apply && (
+              <button
+                type="button"
+                onClick={applyToWork}
+                disabled={service?.active === false}
+                className="btn-secondary w-full disabled:opacity-50 mt-3"
+              >
+                Apply To Work
+              </button>
+            )}
+
+            {/* DEAL */}
+            {allowed.deal && (
+              <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm text-slate-200 font-medium">
+                    Deal percent
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={dealPercent}
+                      onChange={(e) => setDealPercent(Number(e.target.value))}
+                      className="w-20 rounded-md bg-black/20 border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-amber-500/40"
+                    />
+                    <span className="text-sm text-[#9CA3AF]">%</span>
                   </div>
                 </div>
-
-                <div className="mt-4 h-px bg-white/10" />
-
                 <button
                   type="button"
-                  onClick={buyService}
+                  onClick={createDealOrder}
                   disabled={service?.active === false}
-                  className="btn-primary w-full disabled:opacity-50"
+                  className="btn-primary w-full disabled:opacity-50 mt-3"
                 >
                   {service?.active === false
                     ? copy.unavailableButtonText
-                    : copy.reserveButtonText}
+                    : `Complete Deal @ ${dealPercent}%`}
                 </button>
-
-                <p className="mt-3 text-xs text-[#9CA3AF]">
-                  {copy.reserveHelpText}
+                <p className="mt-2 text-xs text-[#9CA3AF]">
+                  Creates a deal order and redirects to payment.
                 </p>
-              </>
+              </div>
             )}
+
+            <p className="mt-3 text-xs text-[#9CA3AF]">
+              {copy.reserveHelpText}
+            </p>
           </div>
         </aside>
       </div>
