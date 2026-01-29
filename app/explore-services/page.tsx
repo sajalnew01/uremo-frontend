@@ -448,10 +448,76 @@ export default function AvailServicePage() {
 
       {/* PATCH_19: Step 1 - Category Selection */}
       {step === 1 && (
-        <CategoryPicker
-          selected={filters.category}
-          onSelect={handleCategorySelect}
-        />
+        <>
+          {/* PATCH_40: Category Landing Blocks - Quick access to popular categories */}
+          <div className="mb-8 grid md:grid-cols-3 gap-4">
+            <button
+              type="button"
+              onClick={() => handleCategorySelect("online_gigs")}
+              className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-blue-500/20 via-transparent to-transparent p-6 text-left transition-all hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/10"
+            >
+              <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-blue-500/10 blur-2xl transform translate-x-8 -translate-y-8 group-hover:scale-150 transition-transform" />
+              <span className="text-4xl mb-3 block">💼</span>
+              <h3 className="text-lg font-semibold text-white mb-1">
+                Online Gigs
+              </h3>
+              <p className="text-xs text-slate-400">
+                Micro-tasks, surveys, data entry & more. Apply now and earn
+                daily.
+              </p>
+              <span className="mt-3 inline-block text-xs text-blue-400 group-hover:text-blue-300 transition">
+                Explore →
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleCategorySelect("forex_crypto")}
+              className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-emerald-500/20 via-transparent to-transparent p-6 text-left transition-all hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/10"
+            >
+              <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-emerald-500/10 blur-2xl transform translate-x-8 -translate-y-8 group-hover:scale-150 transition-transform" />
+              <span className="text-4xl mb-3 block">📈</span>
+              <h3 className="text-lg font-semibold text-white mb-1">
+                Forex & Crypto
+              </h3>
+              <p className="text-xs text-slate-400">
+                Trading signals, prop firm accounts, crypto services.
+              </p>
+              <span className="mt-3 inline-block text-xs text-emerald-400 group-hover:text-emerald-300 transition">
+                Explore →
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleCategorySelect("banks_wallets")}
+              className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-purple-500/20 via-transparent to-transparent p-6 text-left transition-all hover:border-purple-500/30 hover:shadow-lg hover:shadow-purple-500/10"
+            >
+              <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-purple-500/10 blur-2xl transform translate-x-8 -translate-y-8 group-hover:scale-150 transition-transform" />
+              <span className="text-4xl mb-3 block">🏦</span>
+              <h3 className="text-lg font-semibold text-white mb-1">
+                Banks & Wallets
+              </h3>
+              <p className="text-xs text-slate-400">
+                Verified accounts, e-wallets & payment method access.
+              </p>
+              <span className="mt-3 inline-block text-xs text-purple-400 group-hover:text-purple-300 transition">
+                Explore →
+              </span>
+            </button>
+          </div>
+
+          <div className="mb-6">
+            <p className="text-sm text-slate-400 text-center">
+              Or browse all categories below
+            </p>
+          </div>
+
+          <CategoryPicker
+            selected={filters.category}
+            onSelect={handleCategorySelect}
+          />
+        </>
       )}
 
       {/* PATCH_19: Step 2 - Subcategory Selection */}

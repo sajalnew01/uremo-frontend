@@ -369,6 +369,116 @@ export default function ServiceDetailsPage() {
             </ul>
           </div>
 
+          {/* PATCH_40: Who This Is For - Category-based messaging */}
+          <div className="card">
+            <h2 className="text-lg font-semibold">Who This Is For</h2>
+            <div className="mt-3 space-y-3">
+              {allowed.buy && (
+                <div className="flex gap-3 text-sm text-slate-200">
+                  <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-300">
+                    💳
+                  </span>
+                  <div>
+                    <p className="font-medium text-white">Buyers</p>
+                    <p className="text-xs text-slate-400">
+                      Purchase this service and receive direct fulfillment
+                    </p>
+                  </div>
+                </div>
+              )}
+              {allowed.apply && (
+                <div className="flex gap-3 text-sm text-slate-200">
+                  <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-300">
+                    💼
+                  </span>
+                  <div>
+                    <p className="font-medium text-white">Workers</p>
+                    <p className="text-xs text-slate-400">
+                      Apply to complete tasks and earn money to your wallet
+                    </p>
+                  </div>
+                </div>
+              )}
+              {allowed.rent && (
+                <div className="flex gap-3 text-sm text-slate-200">
+                  <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300">
+                    🔑
+                  </span>
+                  <div>
+                    <p className="font-medium text-white">Renters</p>
+                    <p className="text-xs text-slate-400">
+                      Get temporary access to accounts or services
+                    </p>
+                  </div>
+                </div>
+              )}
+              {allowed.deal && (
+                <div className="flex gap-3 text-sm text-slate-200">
+                  <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-300">
+                    🤝
+                  </span>
+                  <div>
+                    <p className="font-medium text-white">Deal Seekers</p>
+                    <p className="text-xs text-slate-400">
+                      Pay a percentage upfront, get service at a discount
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* PATCH_40: How It Works - 3-Step Flow */}
+          <div className="card">
+            <h2 className="text-lg font-semibold">How It Works</h2>
+            <div className="mt-4 relative">
+              {/* Connection Line */}
+              <div className="absolute left-4 top-6 bottom-6 w-0.5 bg-gradient-to-b from-blue-500/50 via-emerald-500/50 to-purple-500/50" />
+
+              <div className="space-y-6">
+                <div className="flex gap-4 relative">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500/20 border-2 border-blue-500 flex items-center justify-center z-10">
+                    <span className="text-xs font-bold text-blue-300">1</span>
+                  </div>
+                  <div>
+                    <p className="font-medium text-white">Place Your Order</p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Select your option and complete secure payment
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4 relative">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center z-10">
+                    <span className="text-xs font-bold text-emerald-300">
+                      2
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-medium text-white">Admin Verifies</p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Our team reviews and processes your order
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4 relative">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500/20 border-2 border-purple-500 flex items-center justify-center z-10">
+                    <span className="text-xs font-bold text-purple-300">3</span>
+                  </div>
+                  <div>
+                    <p className="font-medium text-white">
+                      Receive Your Service
+                    </p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Get access or credentials delivered to your dashboard
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="card">
             <h2 className="text-lg font-semibold">{copy.requirementsTitle}</h2>
             {requirementsLines.length > 0 ? (
