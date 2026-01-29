@@ -4,80 +4,117 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiRequest } from "@/lib/api";
 import EmptyState from "@/components/ui/EmptyState";
-// PATCH_39: Status label normalization
-import { getStatusLabel } from "@/lib/statusLabels";
+import { useToast } from "@/hooks/useToast";
 
 /**
- * PATCH_38/39: Enhanced Workspace Page
- * Shows worker status flow: Fresh → Screening Available → Ready To Work → Assigned → Earning
+ * PATCH_43: Worker Journey Engine - Enhanced Workspace Page
+ * Multi-job support with independent status per job role
+ * States: Applied → Screening Unlocked → Test Submitted → Ready To Work → Assigned → Working
  */
 
-type WorkerProfile = {
+type TrainingMaterial = {
+  title: string;
+  type: "link" | "pdf" | "video";
+  url: string;
+  description?: string;
+};
+
+type Position = {
   _id: string;
+  title: string;
   category: string;
-  positionTitle: string;
-  workerStatus:
-    | "fresh"
-    | "screening_available"
-    | "ready_to_work"
-    | "assigned"
-    | "inactive";
-  status: "pending" | "approved" | "rejected";
-  totalEarnings: number;
-  pendingEarnings: number;
-  payRate: number;
-  screeningsCompleted: any[];
-  testsCompleted: any[];
-  createdAt: string;
+  description?: string;
+  trainingMaterials?: TrainingMaterial[];
+  hasScreening?: boolean;
 };
 
 type Screening = {
   _id: string;
   title: string;
-  description: string;
+  description?: string;
   timeLimit: number;
   passingScore: number;
-  completed?: boolean;
-  completedAt?: string;
+  trainingMaterials?: TrainingMaterial[];
 };
 
 type Project = {
   _id: string;
   title: string;
-  description: string;
+  description?: string;
   payRate: number;
   payType: string;
   deadline?: string;
   status: string;
 };
 
-type WorkspaceData = {
-  hasProfile: boolean;
-  profile?: WorkerProfile;
-  availableScreenings: Screening[];
+type JobApplication = {
+  _id: string;
+  position: Position;
+  positionTitle: string;
+  category: string;
+  workerStatus:
+    | "applied"
+    | "screening_unlocked"
+    | "test_submitted"
+    | "failed"
+    | "ready_to_work"
+    | "assigned"
+    | "working"
+    | "suspended";
+  applicationStatus: "pending" | "approved" | "rejected";
+  attemptCount: number;
+  maxAttempts: number;
+  totalEarnings: number;
+  pendingEarnings: number;
+  payRate: number;
+  screening?: Screening;
+  trainingMaterials: TrainingMaterial[];
   assignedProjects: Project[];
   completedProjects: Project[];
+  screeningsCompleted: any[];
+  createdAt: string;
+};
+
+type WorkspaceData = {
+  hasProfile: boolean;
+  applications: JobApplication[];
   stats: {
     totalEarnings: number;
     pendingEarnings: number;
     projectsCompleted: number;
-    screeningsCompleted: number;
+    jobsApplied: number;
   };
   message?: string;
 };
 
-const STATUS_CONFIG = {
-  fresh: {
-    label: "Fresh",
+// PATCH_43: Authoritative status configuration
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; color: string; icon: string; description: string }
+> = {
+  applied: {
+    label: "Applied",
     color: "bg-slate-500/20 text-slate-300 border-slate-500/30",
-    icon: "🌱",
-    description: "Complete screenings to unlock work opportunities",
+    icon: "📝",
+    description: "Waiting for admin review",
   },
-  screening_available: {
-    label: "Screening Available",
+  screening_unlocked: {
+    label: "Screening Unlocked",
     color: "bg-amber-500/20 text-amber-300 border-amber-500/30",
-    icon: "📋",
-    description: "You have screenings to complete",
+    icon: "🔓",
+    description: "Complete the screening test to proceed",
+  },
+  test_submitted: {
+    label: "Test Submitted",
+    color: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+    icon: "📤",
+    description: "Awaiting grading",
+  },
+  failed: {
+    label: "Failed",
+    color: "bg-red-500/20 text-red-300 border-red-500/30",
+    icon: "❌",
+    description: "Contact admin for re-evaluation",
   },
   ready_to_work: {
     label: "Ready To Work",
@@ -91,21 +128,273 @@ const STATUS_CONFIG = {
     icon: "💼",
     description: "You have an active project",
   },
-  inactive: {
-    label: "Inactive",
+  working: {
+    label: "Working",
+    color: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
+    icon: "⚡",
+    description: "Project in progress",
+  },
+  suspended: {
+    label: "Suspended",
     color: "bg-red-500/20 text-red-300 border-red-500/30",
     icon: "⏸️",
-    description: "Your account is currently inactive",
+    description: "Account suspended by admin",
+  },
+  // Legacy fallbacks
+  fresh: {
+    label: "Applied",
+    color: "bg-slate-500/20 text-slate-300 border-slate-500/30",
+    icon: "📝",
+    description: "Waiting for admin review",
+  },
+  screening_available: {
+    label: "Screening Unlocked",
+    color: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+    icon: "🔓",
+    description: "Complete the screening test to proceed",
+  },
+  inactive: {
+    label: "Suspended",
+    color: "bg-red-500/20 text-red-300 border-red-500/30",
+    icon: "⏸️",
+    description: "Account suspended",
   },
 };
+
+// PATCH_43: Journey steps for progress tracker
+const JOURNEY_STEPS = [
+  "applied",
+  "screening_unlocked",
+  "ready_to_work",
+  "assigned",
+  "working",
+];
+
+function JobCard({ app }: { app: JobApplication }) {
+  const status = STATUS_CONFIG[app.workerStatus] || STATUS_CONFIG.applied;
+  const currentStepIdx = JOURNEY_STEPS.indexOf(app.workerStatus);
+
+  return (
+    <div className="card">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+        <div className="flex items-center gap-4">
+          <div
+            className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl ${status.color}`}
+          >
+            {status.icon}
+          </div>
+          <div>
+            <h3 className="font-semibold text-lg">{app.positionTitle}</h3>
+            <div
+              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border ${status.color} mt-1`}
+            >
+              {status.label}
+            </div>
+            <p className="text-xs text-slate-400 mt-1">{status.description}</p>
+          </div>
+        </div>
+
+        <div className="flex gap-4 text-center">
+          <div>
+            <p className="text-lg font-bold text-emerald-400">
+              ${app.totalEarnings.toFixed(2)}
+            </p>
+            <p className="text-xs text-slate-400">Earned</p>
+          </div>
+          <div>
+            <p className="text-lg font-bold text-amber-400">
+              ${app.pendingEarnings.toFixed(2)}
+            </p>
+            <p className="text-xs text-slate-400">Pending</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Progress Tracker */}
+      <div className="mb-4">
+        <div className="flex items-center gap-1 overflow-x-auto pb-2">
+          {JOURNEY_STEPS.map((step, idx) => {
+            const stepConfig = STATUS_CONFIG[step];
+            const isCompleted = idx < currentStepIdx;
+            const isCurrent = step === app.workerStatus;
+            const isFailed = app.workerStatus === "failed" && idx === 1;
+
+            return (
+              <div key={step} className="flex items-center">
+                <div
+                  className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm ${
+                    isCompleted
+                      ? "bg-emerald-500/20 text-emerald-400"
+                      : isCurrent
+                        ? stepConfig.color
+                        : isFailed
+                          ? "bg-red-500/20 text-red-400"
+                          : "bg-slate-800 text-slate-500"
+                  }`}
+                >
+                  {isCompleted ? "✓" : stepConfig.icon}
+                </div>
+                {idx < JOURNEY_STEPS.length - 1 && (
+                  <div
+                    className={`w-6 h-0.5 mx-1 ${
+                      isCompleted ? "bg-emerald-500" : "bg-slate-700"
+                    }`}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Action Area */}
+      <div className="border-t border-white/10 pt-4">
+        {/* Applied - Waiting for approval */}
+        {app.workerStatus === "applied" && (
+          <div className="text-center text-slate-400">
+            <p className="text-sm">
+              Your application is under review. An admin will review it soon.
+            </p>
+            {app.applicationStatus === "rejected" && (
+              <p className="text-red-400 mt-2">
+                Application was rejected. Check with admin for details.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Screening Unlocked - Show training materials and take test */}
+        {app.workerStatus === "screening_unlocked" && (
+          <div className="space-y-4">
+            {/* Training Materials */}
+            {app.trainingMaterials && app.trainingMaterials.length > 0 && (
+              <div className="bg-amber-500/10 rounded-xl p-4 border border-amber-500/20">
+                <h4 className="font-medium text-amber-300 mb-2">
+                  📚 Training Materials
+                </h4>
+                <p className="text-xs text-slate-400 mb-3">
+                  Review these before taking the test
+                </p>
+                <div className="space-y-2">
+                  {app.trainingMaterials.map((m, i) => (
+                    <a
+                      key={i}
+                      href={m.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-sm text-amber-200 hover:text-amber-100"
+                    >
+                      {m.type === "video" && "🎥"}
+                      {m.type === "pdf" && "📄"}
+                      {m.type === "link" && "🔗"}
+                      {m.title}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Take Test Button */}
+            {app.screening && (
+              <div className="flex flex-col items-center gap-2">
+                <p className="text-sm text-slate-400">
+                  Attempts: {app.attemptCount} / {app.maxAttempts}
+                </p>
+                <Link
+                  href={`/workspace/screening/${app.screening._id}?position=${app._id}`}
+                  className="btn-primary"
+                >
+                  {app.attemptCount > 0 ? "Retry Test" : "Start Test"}
+                </Link>
+                <p className="text-xs text-slate-500">
+                  Time limit: {app.screening.timeLimit} min • Pass:{" "}
+                  {app.screening.passingScore}%
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Failed - Show retry option or contact admin */}
+        {app.workerStatus === "failed" && (
+          <div className="text-center space-y-2">
+            <p className="text-red-400">
+              You&apos;ve used all {app.maxAttempts} attempts.
+            </p>
+            <p className="text-sm text-slate-400">
+              Contact admin to reset your attempts and try again.
+            </p>
+            <Link href="/support" className="btn-secondary inline-block mt-2">
+              Contact Support
+            </Link>
+          </div>
+        )}
+
+        {/* Ready To Work - Waiting for assignment */}
+        {app.workerStatus === "ready_to_work" && (
+          <div className="text-center">
+            <div className="text-4xl mb-2">⏳</div>
+            <p className="font-medium">Waiting for Project Assignment</p>
+            <p className="text-sm text-slate-400 mt-1">
+              You&apos;re approved! An admin will assign you a project soon.
+            </p>
+          </div>
+        )}
+
+        {/* Assigned / Working - Show current project */}
+        {(app.workerStatus === "assigned" || app.workerStatus === "working") &&
+          app.assignedProjects.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="font-medium">Active Projects</h4>
+              {app.assignedProjects.map((p) => (
+                <Link
+                  key={p._id}
+                  href={`/workspace/project/${p._id}`}
+                  className="block p-4 rounded-xl border border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 transition"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">{p.title}</p>
+                      <p className="text-sm text-slate-400">
+                        ${p.payRate} / {p.payType}
+                      </p>
+                    </div>
+                    <span className="text-blue-400">View →</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+
+        {/* Suspended */}
+        {app.workerStatus === "suspended" && (
+          <div className="text-center text-red-400">
+            <p>Your account has been suspended.</p>
+            <p className="text-sm text-slate-400 mt-1">
+              Contact support for assistance.
+            </p>
+          </div>
+        )}
+
+        {/* Completed Projects */}
+        {app.completedProjects.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-white/10">
+            <p className="text-xs text-slate-400 mb-2">
+              Completed: {app.completedProjects.length} projects
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function WorkspacePage() {
   const [data, setData] = useState<WorkspaceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "screenings" | "projects" | "earnings"
-  >("overview");
+  const { toast } = useToast();
 
   useEffect(() => {
     let mounted = true;
@@ -119,7 +408,9 @@ export default function WorkspacePage() {
       })
       .catch((e: any) => {
         if (!mounted) return;
-        setError(e?.message || "Failed to load workspace");
+        const msg = e?.message || "Failed to load workspace";
+        setError(msg);
+        toast(msg, "error");
       })
       .finally(() => {
         if (!mounted) return;
@@ -174,9 +465,7 @@ export default function WorkspacePage() {
     );
   }
 
-  const profile = data.profile!;
-  const statusConfig =
-    STATUS_CONFIG[profile.workerStatus] || STATUS_CONFIG.fresh;
+  const { applications, stats } = data;
 
   return (
     <div className="u-container max-w-6xl">
@@ -186,403 +475,59 @@ export default function WorkspacePage() {
         <p className="mt-2 text-sm text-[#9CA3AF]">Work & Earn</p>
       </div>
 
-      {/* Status Card */}
-      <div className="card mb-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div
-              className={`w-16 h-16 rounded-2xl flex items-center justify-center text-3xl ${statusConfig.color}`}
-            >
-              {statusConfig.icon}
-            </div>
-            <div>
-              <div
-                className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium border ${statusConfig.color}`}
-              >
-                {statusConfig.label}
-              </div>
-              <p className="mt-2 text-sm text-[#9CA3AF]">
-                {statusConfig.description}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">
-                Category: {profile.category} • Since{" "}
-                {new Date(profile.createdAt).toLocaleDateString()}
-              </p>
-            </div>
-          </div>
-
-          {/* Quick Stats */}
-          <div className="flex gap-6">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-emerald-400">
-                ${data.stats.totalEarnings.toFixed(2)}
-              </p>
-              <p className="text-xs text-[#9CA3AF]">Total Earnings</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-amber-400">
-                ${data.stats.pendingEarnings.toFixed(2)}
-              </p>
-              <p className="text-xs text-[#9CA3AF]">Pending</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-blue-400">
-                {data.stats.projectsCompleted}
-              </p>
-              <p className="text-xs text-[#9CA3AF]">Completed</p>
-            </div>
-          </div>
+      {/* Stats Overview */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="card text-center">
+          <p className="text-2xl font-bold text-emerald-400">
+            ${stats.totalEarnings.toFixed(2)}
+          </p>
+          <p className="text-xs text-slate-400">Total Earnings</p>
+        </div>
+        <div className="card text-center">
+          <p className="text-2xl font-bold text-amber-400">
+            ${stats.pendingEarnings.toFixed(2)}
+          </p>
+          <p className="text-xs text-slate-400">Pending</p>
+        </div>
+        <div className="card text-center">
+          <p className="text-2xl font-bold text-blue-400">
+            {stats.projectsCompleted}
+          </p>
+          <p className="text-xs text-slate-400">Projects Done</p>
+        </div>
+        <div className="card text-center">
+          <p className="text-2xl font-bold text-purple-400">
+            {stats.jobsApplied}
+          </p>
+          <p className="text-xs text-slate-400">Jobs Applied</p>
         </div>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-        {[
-          { id: "overview", label: "Overview", icon: "📊" },
-          { id: "screenings", label: "Screenings", icon: "📋" },
-          { id: "projects", label: "My Projects", icon: "💼" },
-          { id: "earnings", label: "Earnings", icon: "💰" },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition whitespace-nowrap ${
-              activeTab === tab.id
-                ? "bg-white/10 text-white border border-white/20"
-                : "text-[#9CA3AF] hover:text-white hover:bg-white/5"
-            }`}
-          >
-            <span className="mr-2">{tab.icon}</span>
-            {tab.label}
-          </button>
-        ))}
+      {/* Quick Actions */}
+      <div className="mb-6 flex gap-3 flex-wrap">
+        <Link href="/apply-to-work" className="btn-primary">
+          + Apply to New Position
+        </Link>
+        <Link href="/wallet" className="btn-secondary">
+          💰 Wallet
+        </Link>
       </div>
 
-      {/* Tab Content */}
-      {activeTab === "overview" && (
-        <div className="space-y-6">
-          {/* Progress Steps */}
-          <div className="card">
-            <h3 className="text-lg font-semibold mb-4">Your Progress</h3>
-            <div className="flex items-center gap-2 overflow-x-auto pb-2">
-              {[
-                "fresh",
-                "screening_available",
-                "ready_to_work",
-                "assigned",
-              ].map((step, idx) => {
-                const stepConfig =
-                  STATUS_CONFIG[step as keyof typeof STATUS_CONFIG];
-                const currentIdx = [
-                  "fresh",
-                  "screening_available",
-                  "ready_to_work",
-                  "assigned",
-                ].indexOf(profile.workerStatus);
-                const isCompleted = idx < currentIdx;
-                const isCurrent = step === profile.workerStatus;
-
-                return (
-                  <div key={step} className="flex items-center gap-2">
-                    <div
-                      className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg ${
-                        isCompleted
-                          ? "bg-emerald-500/20 text-emerald-400"
-                          : isCurrent
-                            ? stepConfig.color
-                            : "bg-slate-800 text-slate-500"
-                      }`}
-                    >
-                      {isCompleted ? "✓" : stepConfig.icon}
-                    </div>
-                    <span
-                      className={`text-sm whitespace-nowrap ${isCurrent ? "text-white font-medium" : "text-[#9CA3AF]"}`}
-                    >
-                      {stepConfig.label}
-                    </span>
-                    {idx < 3 && (
-                      <div
-                        className={`w-8 h-0.5 ${isCompleted ? "bg-emerald-500" : "bg-slate-700"}`}
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+      {/* Job Applications */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Your Job Roles</h2>
+        {applications.length === 0 ? (
+          <div className="card text-center py-8">
+            <div className="text-4xl mb-4">📋</div>
+            <p className="text-lg font-medium">No Active Applications</p>
+            <p className="text-slate-400 mt-2">
+              Apply to a job role to start your journey.
+            </p>
           </div>
-
-          {/* Next Steps */}
-          <div className="card">
-            <h3 className="text-lg font-semibold mb-4">Next Steps</h3>
-            {profile.workerStatus === "fresh" && (
-              <div className="space-y-3">
-                <p className="text-[#9CA3AF]">
-                  Complete your first screening to advance:
-                </p>
-                {data.availableScreenings.slice(0, 3).map((s) => (
-                  <Link
-                    key={s._id}
-                    href={`/workspace/screening/${s._id}`}
-                    className="block p-4 rounded-xl border border-white/10 hover:border-amber-500/30 hover:bg-amber-500/5 transition"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{s.title}</p>
-                        <p className="text-sm text-[#9CA3AF]">
-                          {s.timeLimit} min • {s.passingScore}% to pass
-                        </p>
-                      </div>
-                      <span className="text-amber-400">Start →</span>
-                    </div>
-                  </Link>
-                ))}
-                {data.availableScreenings.length === 0 && (
-                  <p className="text-slate-500 text-center py-4">
-                    No screenings available yet. Check back soon!
-                  </p>
-                )}
-              </div>
-            )}
-            {profile.workerStatus === "screening_available" && (
-              <div className="space-y-3">
-                <p className="text-[#9CA3AF]">
-                  Complete more screenings to become Ready To Work:
-                </p>
-                {data.availableScreenings.slice(0, 3).map((s) => (
-                  <Link
-                    key={s._id}
-                    href={`/workspace/screening/${s._id}`}
-                    className="block p-4 rounded-xl border border-white/10 hover:border-amber-500/30 hover:bg-amber-500/5 transition"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{s.title}</p>
-                        <p className="text-sm text-[#9CA3AF]">
-                          {s.timeLimit} min • {s.passingScore}% to pass
-                        </p>
-                      </div>
-                      <span className="text-amber-400">Start →</span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-            {profile.workerStatus === "ready_to_work" && (
-              <div className="text-center py-8">
-                <div className="text-4xl mb-4">⏳</div>
-                <p className="text-lg font-medium">Waiting for Assignment</p>
-                <p className="text-[#9CA3AF] mt-2">
-                  You're approved and ready! An admin will assign you a project
-                  soon.
-                </p>
-              </div>
-            )}
-            {profile.workerStatus === "assigned" &&
-              data.assignedProjects.length > 0 && (
-                <div className="space-y-3">
-                  <p className="text-[#9CA3AF]">Your active projects:</p>
-                  {data.assignedProjects.map((p) => (
-                    <Link
-                      key={p._id}
-                      href={`/workspace/project/${p._id}`}
-                      className="block p-4 rounded-xl border border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 transition"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{p.title}</p>
-                          <p className="text-sm text-[#9CA3AF]">
-                            ${p.payRate} / {p.payType}
-                          </p>
-                        </div>
-                        <span className="text-blue-400">View →</span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-          </div>
-        </div>
-      )}
-
-      {activeTab === "screenings" && (
-        <div className="space-y-4">
-          {data.availableScreenings.length === 0 ? (
-            <div className="card text-center py-8">
-              <div className="text-4xl mb-4">📋</div>
-              <p className="text-lg font-medium">No Screenings Available</p>
-              <p className="text-[#9CA3AF] mt-2">
-                Check back later for new screening opportunities.
-              </p>
-            </div>
-          ) : (
-            data.availableScreenings.map((s) => (
-              <div key={s._id} className="card">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-semibold">{s.title}</h4>
-                    <p className="text-sm text-[#9CA3AF] mt-1">
-                      {s.description}
-                    </p>
-                    <div className="flex gap-4 mt-2 text-xs text-slate-400">
-                      <span>⏱️ {s.timeLimit} minutes</span>
-                      <span>🎯 {s.passingScore}% to pass</span>
-                    </div>
-                  </div>
-                  {s.completed ? (
-                    <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-sm">
-                      ✓ Completed
-                    </span>
-                  ) : (
-                    <Link
-                      href={`/workspace/screening/${s._id}`}
-                      className="btn-primary"
-                    >
-                      Start
-                    </Link>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {activeTab === "projects" && (
-        <div className="space-y-4">
-          {data.assignedProjects.length === 0 &&
-          data.completedProjects.length === 0 ? (
-            <div className="card text-center py-8">
-              <div className="text-4xl mb-4">💼</div>
-              <p className="text-lg font-medium">No Projects Yet</p>
-              <p className="text-[#9CA3AF] mt-2">
-                Complete screenings and get approved to receive project
-                assignments.
-              </p>
-            </div>
-          ) : (
-            <>
-              {data.assignedProjects.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-3">
-                    Active Projects
-                  </h3>
-                  {data.assignedProjects.map((p) => (
-                    <Link
-                      key={p._id}
-                      href={`/workspace/project/${p._id}`}
-                      className="block card mb-3 hover:border-blue-500/30 transition"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-semibold">{p.title}</h4>
-                          <p className="text-sm text-[#9CA3AF]">
-                            ${p.payRate} / {p.payType}
-                          </p>
-                        </div>
-                        <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-sm">
-                          {p.status}
-                        </span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-              {data.completedProjects.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-3">
-                    Completed Projects
-                  </h3>
-                  {data.completedProjects.map((p: any) => (
-                    <div key={p._id} className="card mb-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-semibold">{p.title}</h4>
-                          <p className="text-sm text-emerald-400">
-                            +${p.earningsCredited?.toFixed(2) || "0.00"}
-                          </p>
-                        </div>
-                        <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-sm">
-                          ✓ Completed
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {activeTab === "earnings" && (
-        <div className="space-y-6">
-          {/* Earnings Summary */}
-          <div className="grid md:grid-cols-3 gap-4">
-            <div className="card text-center">
-              <p className="text-3xl font-bold text-emerald-400">
-                ${data.stats.totalEarnings.toFixed(2)}
-              </p>
-              <p className="text-sm text-[#9CA3AF] mt-1">Total Earned</p>
-            </div>
-            <div className="card text-center">
-              <p className="text-3xl font-bold text-amber-400">
-                ${data.stats.pendingEarnings.toFixed(2)}
-              </p>
-              <p className="text-sm text-[#9CA3AF] mt-1">Pending Approval</p>
-            </div>
-            <div className="card text-center">
-              <p className="text-3xl font-bold text-blue-400">
-                ${profile.payRate.toFixed(2)}
-              </p>
-              <p className="text-sm text-[#9CA3AF] mt-1">Your Pay Rate</p>
-            </div>
-          </div>
-
-          {/* Withdraw Button */}
-          {data.stats.totalEarnings > 0 && (
-            <div className="card">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold">Ready to Withdraw</h3>
-                  <p className="text-sm text-[#9CA3AF]">
-                    Transfer earnings to your wallet
-                  </p>
-                </div>
-                <Link href="/workspace/withdraw" className="btn-primary">
-                  Withdraw ${data.stats.totalEarnings.toFixed(2)}
-                </Link>
-              </div>
-            </div>
-          )}
-
-          {/* Earnings History */}
-          <div className="card">
-            <h3 className="font-semibold mb-4">Earnings History</h3>
-            {data.completedProjects.length === 0 ? (
-              <p className="text-[#9CA3AF] text-center py-4">No earnings yet</p>
-            ) : (
-              <div className="space-y-3">
-                {data.completedProjects.map((p: any) => (
-                  <div
-                    key={p._id}
-                    className="flex items-center justify-between py-2 border-b border-white/5 last:border-0"
-                  >
-                    <div>
-                      <p className="font-medium">{p.title}</p>
-                      <p className="text-xs text-[#9CA3AF]">
-                        {new Date(p.completedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <span className="text-emerald-400 font-medium">
-                      +${p.earningsCredited?.toFixed(2) || "0.00"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+        ) : (
+          applications.map((app) => <JobCard key={app._id} app={app} />)
+        )}
+      </div>
     </div>
   );
 }

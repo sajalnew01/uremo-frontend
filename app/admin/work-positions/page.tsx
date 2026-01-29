@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 
@@ -393,7 +394,13 @@ export default function AdminWorkPositionsPage() {
                     {p.active === false ? "Inactive" : "Active"}
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
+                  <Link
+                    href={`/admin/work-positions/${p._id}`}
+                    className="btn-primary"
+                  >
+                    Manage
+                  </Link>
                   <button
                     type="button"
                     className="btn-secondary"
