@@ -177,11 +177,25 @@ export default function AdminServicesPage() {
   }, [editCategory, editAvailableSubcategories, editSubcategory]);
 
   // PATCH_18: Listen for services:refresh events (e.g., from JarvisX)
+  // PATCH_42: Added auto-refresh every 30 seconds for real-time updates
   useEffect(() => {
+    // Initial load
+    loadServices();
+
+    // Listen for same-tab refresh events
     const cleanup = onServicesRefresh(() => {
       loadServices();
     });
-    return cleanup;
+
+    // Auto-refresh every 30 seconds for cross-tab/external updates
+    const intervalId = setInterval(() => {
+      loadServices();
+    }, 30_000);
+
+    return () => {
+      cleanup();
+      clearInterval(intervalId);
+    };
   }, []);
 
   // PATCH_18: Lock body scroll when modal is open
@@ -197,6 +211,7 @@ export default function AdminServicesPage() {
   }, [editing]);
 
   // load services
+  // PATCH_42: Added error handling with toast notification
   const loadServices = async () => {
     try {
       const data = await apiRequest("/api/admin/services", "GET", null, true);
@@ -207,8 +222,9 @@ export default function AdminServicesPage() {
           ? data.services
           : [];
       setServices(servicesList);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error("Failed to load services:", err);
+      toast(err?.message || "Failed to load services", "error");
     }
   };
 

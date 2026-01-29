@@ -358,7 +358,13 @@ export default function AdminWorkPositionsPage() {
                       pos,
                       true,
                     );
-                  } catch {}
+                  } catch (e: any) {
+                    console.error(
+                      "Failed to create position:",
+                      pos.title,
+                      e?.message,
+                    );
+                  }
                 }
                 toast("Default positions created!", "success");
                 await load();

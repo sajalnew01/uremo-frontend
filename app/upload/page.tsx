@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Container from "@/components/Container";
 import { useToast } from "@/hooks/useToast";
+import { getApiBaseUrl } from "@/lib/api";
 
 export default function Upload() {
   const { toast } = useToast();
@@ -20,18 +21,23 @@ export default function Upload() {
     form.append("file", file);
 
     const token = localStorage.getItem("token");
+    if (!token) {
+      toast("Please login first", "error");
+      return;
+    }
 
     setLoading(true);
     try {
+      const baseUrl = getApiBaseUrl();
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/upload/payment-proof/${orderId}`,
+        `${baseUrl}/api/upload/payment-proof/${orderId}`,
         {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
           },
           body: form,
-        }
+        },
       );
 
       const data = await res.json();

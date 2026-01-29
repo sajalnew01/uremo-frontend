@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getApiBaseUrl } from "@/lib/api";
+import { withCacheBust } from "@/lib/cacheBust";
 import { useAuth } from "@/hooks/useAuth";
 
 interface Service {
@@ -113,9 +114,15 @@ export default function RecommendedServices() {
               <div className="h-20 rounded-lg bg-gradient-to-br from-blue-500/10 to-emerald-500/10 mb-3 overflow-hidden">
                 {service.imageUrl || service.images?.[0] ? (
                   <img
-                    src={service.imageUrl || service.images?.[0]}
+                    src={withCacheBust(
+                      service.imageUrl || service.images?.[0] || "",
+                      service._id,
+                    )}
                     alt={service.title}
                     className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-2xl text-white/30">

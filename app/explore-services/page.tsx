@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getApiBaseUrl } from "@/lib/api";
+import { onServicesRefresh } from "@/lib/events";
 import Link from "next/link";
 import { withCacheBust } from "@/lib/cacheBust";
 import { useAuth } from "@/hooks/useAuth";
@@ -309,16 +310,15 @@ export default function AvailServicePage() {
     // PATCH_16: Auto refresh every 30s
     const intervalId = window.setInterval(loadServices, 30_000);
 
-    // PATCH_16: Listen for services:refresh event (dispatched by JarvisX Write)
-    const refreshHandler = () => {
+    // PATCH_42: Use centralized event listener from lib/events
+    const cleanup = onServicesRefresh(() => {
       console.log("[BuyService] services:refresh event received");
       loadServices();
-    };
-    window.addEventListener("services:refresh", refreshHandler);
+    });
 
     return () => {
       window.clearInterval(intervalId);
-      window.removeEventListener("services:refresh", refreshHandler);
+      cleanup();
     };
   }, [loadServices]);
 

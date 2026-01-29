@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/useToast";
 import EmptyState from "@/components/ui/EmptyState";
 
 interface Notification {
@@ -38,6 +39,7 @@ const typeColors: Record<string, string> = {
 export default function NotificationsPage() {
   const router = useRouter();
   const { ready, isAuthenticated } = useAuth();
+  const { toast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -66,8 +68,9 @@ export default function NotificationsPage() {
         setTotalPages(res.totalPages || 1);
         setUnreadCount(res.unreadCount || 0);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to load notifications:", err);
+      toast(err?.message || "Failed to load notifications", "error");
     } finally {
       setLoading(false);
     }
