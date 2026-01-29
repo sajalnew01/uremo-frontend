@@ -60,7 +60,7 @@ export default function AdminWorkPositionsPage() {
         "/api/admin/work-positions",
         "GET",
         null,
-        true
+        true,
       );
       setPositions(Array.isArray(data) ? data : []);
     } catch (e: any) {
@@ -158,7 +158,7 @@ export default function AdminWorkPositionsPage() {
           `/api/admin/work-positions/${draft._id}`,
           "PUT",
           payload,
-          true
+          true,
         );
         toast("Position updated", "success");
       } else {
@@ -186,7 +186,7 @@ export default function AdminWorkPositionsPage() {
         `/api/admin/work-positions/${p._id}`,
         "DELETE",
         null,
-        true
+        true,
       );
       toast("Position deleted", "success");
       await load();
@@ -200,7 +200,7 @@ export default function AdminWorkPositionsPage() {
 
     // Optimistic UI
     setPositions((cur) =>
-      cur.map((x) => (x._id === p._id ? { ...x, active: nextActive } : x))
+      cur.map((x) => (x._id === p._id ? { ...x, active: nextActive } : x)),
     );
 
     try {
@@ -208,16 +208,16 @@ export default function AdminWorkPositionsPage() {
         `/api/admin/work-positions/${p._id}`,
         "PUT",
         { active: nextActive },
-        true
+        true,
       );
       toast(
         nextActive ? "Position activated" : "Position deactivated",
-        "success"
+        "success",
       );
     } catch (e: any) {
       // Revert on error
       setPositions((cur) =>
-        cur.map((x) => (x._id === p._id ? { ...x, active: p.active } : x))
+        cur.map((x) => (x._id === p._id ? { ...x, active: p.active } : x)),
       );
       toast(e?.message || "Update failed", "error");
     }
@@ -317,7 +317,7 @@ export default function AdminWorkPositionsPage() {
             <button
               type="button"
               onClick={async () => {
-                const samplePositions = [
+                const defaultPositions = [
                   {
                     title: "KYC / Onboarding Assistant",
                     category: "operations_support",
@@ -350,22 +350,22 @@ export default function AdminWorkPositionsPage() {
                   },
                 ];
 
-                for (const pos of samplePositions) {
+                for (const pos of defaultPositions) {
                   try {
                     await apiRequest(
                       "/api/admin/work-positions",
                       "POST",
                       pos,
-                      true
+                      true,
                     );
                   } catch {}
                 }
-                toast("Sample positions created!", "success");
+                toast("Default positions created!", "success");
                 await load();
               }}
               className="btn-secondary"
             >
-              Create Sample Defaults
+              Create Default Positions
             </button>
           </div>
         </div>

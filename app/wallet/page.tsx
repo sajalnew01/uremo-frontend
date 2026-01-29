@@ -178,7 +178,8 @@ export default function WalletPage() {
               </div>
 
               <p className="text-xs text-slate-500 mt-4 text-center">
-                Note: In demo mode, balance is added instantly.
+                Balance is typically credited within a few minutes after
+                confirmation.
               </p>
             </div>
           </div>
