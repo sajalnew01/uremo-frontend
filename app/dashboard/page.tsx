@@ -13,10 +13,17 @@ export default function Dashboard() {
   const showOnboarding = user && !(user as any).onboardingCompleted;
 
   const cards = [
+    // PATCH_38: Workspace as first priority card
+    {
+      title: "Workspace",
+      desc: "Work & Earn - Complete screenings, get projects, earn money.",
+      href: "/workspace",
+      icon: "💼",
+    },
     {
       title: "Explore Services",
       desc: "Access manual onboarding & verification services.",
-      href: "/avail-service",
+      href: "/explore-services",
       icon: "✨",
     },
     {
@@ -45,12 +52,6 @@ export default function Dashboard() {
       desc: "Add balance and pay for services instantly.",
       href: "/wallet",
       icon: "💳",
-    },
-    {
-      title: "Apply to Work",
-      desc: "Join UREMO as a manual operations specialist.",
-      href: "/apply-to-work",
-      icon: "💼",
     },
     {
       title: "Support",

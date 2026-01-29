@@ -279,7 +279,7 @@ export default function OrdersPage() {
           title="You haven't availed any service yet"
           description="Browse our marketplace and find the perfect service to get started. We offer manual onboarding, verification, and more!"
           ctaText="Explore Services"
-          ctaHref="/avail-service"
+          ctaHref="/explore-services"
           secondaryCtaText="View Dashboard"
           secondaryCtaHref="/dashboard"
         />

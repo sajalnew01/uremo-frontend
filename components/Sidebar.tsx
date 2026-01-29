@@ -120,7 +120,7 @@ export default function Sidebar() {
   if (!isAuthenticated) return null;
 
   const links = [
-    { name: "Explore Services", href: "/avail-service" },
+    { name: "Explore Services", href: "/explore-services" },
     { name: "Workspace (Jobs)", href: "/workspace" },
     { name: "Deals", href: "/deals" },
     { name: "Orders", href: "/orders" },

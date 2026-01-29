@@ -81,9 +81,9 @@ export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
         }
       }
 
-      // Redirect to avail-service with category preselected
+      // Redirect to explore-services with category preselected
       if (categoryId === "general") {
-        router.push("/avail-service");
+        router.push("/explore-services");
       } else {
         // Map frontend category to backend category format
         const categoryMap: Record<string, string> = {
@@ -91,14 +91,16 @@ export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
           forex_crypto: "forex_crypto",
           banks_wallets: "banks_wallets",
         };
-        router.push(`/avail-service?category=${categoryMap[categoryId] || ""}`);
+        router.push(
+          `/explore-services?category=${categoryMap[categoryId] || ""}`,
+        );
       }
 
       onComplete?.();
     } catch (err) {
       console.error("[Onboarding] Error:", err);
       // Still redirect even on error
-      router.push("/avail-service");
+      router.push("/explore-services");
       onComplete?.();
     } finally {
       setLoading(false);

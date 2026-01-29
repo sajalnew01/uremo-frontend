@@ -92,8 +92,8 @@ export default function RecommendedServices() {
         <Link
           href={
             apiCategory
-              ? `/avail-service?category=${apiCategory}`
-              : "/avail-service"
+              ? `/explore-services?category=${apiCategory}`
+              : "/explore-services"
           }
           className="text-sm text-blue-400 hover:text-blue-300 transition"
         >

@@ -45,7 +45,7 @@ export default function Navbar() {
   }, [mobileMenuOpen]);
 
   const userLinks = [
-    { href: "/avail-service", label: "Explore Services", icon: "🧭" },
+    { href: "/explore-services", label: "Explore Services", icon: "🧭" },
     { href: "/workspace", label: "Workspace (Jobs)", icon: "💼" },
     { href: "/deals", label: "Deals", icon: "🏷️" },
     { href: "/orders", label: "Orders", icon: "📦" },
@@ -180,7 +180,7 @@ export default function Navbar() {
                     {nav.guestPrimaryCtaText}
                   </Link>
                   <Link
-                    href="/avail-service"
+                    href="/explore-services"
                     className="btn-secondary hidden sm:inline-flex"
                   >
                     {nav.guestSecondaryCtaText}

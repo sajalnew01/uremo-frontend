@@ -1,6 +1,6 @@
 "use client";
 
-// PATCH_33: Redirect old /buy-service to /avail-service
+// PATCH_38: Redirect old /buy-service to /explore-services
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
@@ -8,7 +8,7 @@ export default function BuyServiceRedirect() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace("/avail-service");
+    router.replace("/explore-services");
   }, [router]);
 
   return (

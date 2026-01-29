@@ -151,7 +151,7 @@ export default function MyRentalsPage() {
             title="No active rentals yet"
             description="Rent premium services on a subscription basis. Perfect for ongoing access to wallets, accounts, and other recurring services."
             ctaText="Browse Rental Services"
-            ctaHref="/avail-service"
+            ctaHref="/explore-services"
             secondaryCtaText="View Dashboard"
             secondaryCtaHref="/dashboard"
           />

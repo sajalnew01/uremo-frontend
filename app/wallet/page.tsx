@@ -199,7 +199,7 @@ export default function WalletPage() {
                 ctaText="Add Balance Now"
                 ctaHref="#"
                 secondaryCtaText="Explore Services"
-                secondaryCtaHref="/avail-service"
+                secondaryCtaHref="/explore-services"
               />
             </div>
           ) : (

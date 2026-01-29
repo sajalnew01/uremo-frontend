@@ -250,7 +250,7 @@ export default function ServiceDetailsPage() {
             {error || copy.notAvailableSubtitle}
           </p>
           <div className="mt-4 flex gap-3 flex-wrap">
-            <Link href="/avail-service" className="btn-secondary">
+            <Link href="/explore-services" className="btn-secondary">
               {copy.backToServicesText}
             </Link>
             <button
@@ -318,7 +318,7 @@ export default function ServiceDetailsPage() {
       <div className="mb-6 flex items-center justify-between gap-4 flex-wrap">
         <div>
           <Link
-            href="/avail-service"
+            href="/explore-services"
             className="text-sm text-[#9CA3AF] hover:text-white transition"
           >
             ← {copy.backToServicesText}

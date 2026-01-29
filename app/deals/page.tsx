@@ -94,7 +94,7 @@ export default function DealsPage() {
           title="No deal services yet"
           description="When bank/crypto deal services are available, they’ll appear here."
           ctaText="Explore Services"
-          ctaHref="/avail-service"
+          ctaHref="/explore-services"
         />
       )}
 
