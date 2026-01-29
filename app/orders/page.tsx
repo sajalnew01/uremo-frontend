@@ -10,6 +10,12 @@ import {
   useSiteSettings,
 } from "@/hooks/useSiteSettings";
 import EmptyState from "@/components/ui/EmptyState";
+// PATCH_39: Status label normalization
+import {
+  getStatusLabel,
+  getStatusColor,
+  getStatusIcon,
+} from "@/lib/statusLabels";
 
 export default function OrdersPage() {
   const router = useRouter();
@@ -39,18 +45,10 @@ export default function OrdersPage() {
     loadOrders();
   }, []);
 
+  // PATCH_39: Use centralized status utilities
   const statusBadge = (status: string) => {
     const base = "u-pill font-medium";
-    const map: Record<string, string> = {
-      pending: "border-slate-500/25 bg-slate-500/10 text-slate-200",
-      in_progress: "border-purple-500/25 bg-purple-500/10 text-purple-200",
-      waiting_user: "border-amber-500/25 bg-amber-500/10 text-amber-200",
-      completed: "border-emerald-500/25 bg-emerald-500/10 text-emerald-200",
-      cancelled: "border-red-500/25 bg-red-500/10 text-red-200",
-    };
-    return `${base} ${
-      map[status] || "border-white/10 bg-white/5 text-slate-200"
-    }`;
+    return `${base} ${getStatusColor(status)}`;
   };
 
   const pendingOrWaiting = orders.filter(
@@ -77,15 +75,6 @@ export default function OrdersPage() {
     const lastMessage = o.lastMessage;
     const hasUnread = lastMessage?.senderRole === "admin";
 
-    // Status icon map
-    const statusIcon: Record<string, string> = {
-      pending: "⏳",
-      in_progress: "⚡",
-      waiting_user: "🔍",
-      completed: "🎉",
-      cancelled: "❌",
-    };
-
     return (
       <div className="relative group overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-800/50 backdrop-blur-sm hover:border-white/20 transition-all duration-300">
         {/* Status indicator stripe */}
@@ -110,7 +99,8 @@ export default function OrdersPage() {
           <div className="flex justify-between items-start gap-4">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <span className="text-2xl">{statusIcon[o.status] || "📦"}</span>
+                {/* PATCH_39: Use centralized status icon */}
+                <span className="text-2xl">{getStatusIcon(o.status)}</span>
                 <h3 className="font-semibold text-lg text-white truncate">
                   {o.serviceId?.title || "Service"}
                 </h3>
@@ -127,7 +117,8 @@ export default function OrdersPage() {
                 </span>
               )}
               <span className={statusBadge(o.status)}>
-                {String(o.status).replace(/_/g, " ")}
+                {/* PATCH_39: Use centralized status label */}
+                {getStatusLabel(o.status)}
               </span>
             </div>
           </div>

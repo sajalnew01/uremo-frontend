@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiRequest } from "@/lib/api";
 import EmptyState from "@/components/ui/EmptyState";
+// PATCH_39: Status label normalization
+import { getStatusLabel } from "@/lib/statusLabels";
 
 /**
- * PATCH_38: Enhanced Workspace Page
+ * PATCH_38/39: Enhanced Workspace Page
  * Shows worker status flow: Fresh → Screening Available → Ready To Work → Assigned → Earning
  */
 

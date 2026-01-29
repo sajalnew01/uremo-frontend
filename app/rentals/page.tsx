@@ -6,6 +6,11 @@ import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import EmptyState from "@/components/ui/EmptyState";
+// PATCH_39: Status label normalization
+import {
+  getStatusLabel,
+  getStatusColor as getStatusColorUtil,
+} from "@/lib/statusLabels";
 
 interface Rental {
   _id: string;
@@ -80,20 +85,23 @@ export default function MyRentalsPage() {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  // PATCH_39: Use centralized status utilities
+  const getStatusColorLocal = (status: string) => {
+    // Rentals have specific visual treatment
+    const base = "px-2 py-1 rounded-full text-xs font-medium ";
     switch (status) {
       case "active":
-        return "text-emerald-300 bg-emerald-500/20";
+        return base + "text-emerald-300 bg-emerald-500/20";
       case "pending":
-        return "text-yellow-300 bg-yellow-500/20";
+        return base + "text-yellow-300 bg-yellow-500/20";
       case "expired":
-        return "text-red-300 bg-red-500/20";
+        return base + "text-red-300 bg-red-500/20";
       case "cancelled":
-        return "text-slate-400 bg-slate-500/20";
+        return base + "text-slate-400 bg-slate-500/20";
       case "renewed":
-        return "text-purple-300 bg-purple-500/20";
+        return base + "text-purple-300 bg-purple-500/20";
       default:
-        return "text-slate-300 bg-slate-500/20";
+        return base + "text-slate-300 bg-slate-500/20";
     }
   };
 
@@ -187,10 +195,9 @@ export default function MyRentalsPage() {
                       {rental.duration} {rental.rentalType} • ${rental.price}
                     </p>
                     <div className="flex items-center gap-2 mt-2">
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(rental.status)}`}
-                      >
-                        {rental.status}
+                      <span className={getStatusColorLocal(rental.status)}>
+                        {/* PATCH_39: Use centralized status label */}
+                        {getStatusLabel(rental.status)}
                       </span>
                       {rental.isActive &&
                         rental.daysRemaining !== undefined && (
