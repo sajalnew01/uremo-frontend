@@ -75,14 +75,33 @@ type JobApplication = {
   createdAt: string;
 };
 
+// PATCH_45: Support both old (profile) and new (applications) API formats
+type LegacyProfile = {
+  _id: string;
+  workerStatus: string;
+  status: string;
+  totalEarnings: number;
+  pendingEarnings: number;
+  payRate: number;
+  screeningsCompleted: any[];
+  createdAt: string;
+};
+
 type WorkspaceData = {
   hasProfile: boolean;
-  applications: JobApplication[];
+  // New format (PATCH_43)
+  applications?: JobApplication[];
+  // Legacy format (pre-PATCH_43)
+  profile?: LegacyProfile;
+  availableScreenings?: any[];
+  assignedProjects?: any[];
+  completedProjects?: any[];
   stats: {
     totalEarnings: number;
     pendingEarnings: number;
     projectsCompleted: number;
-    jobsApplied: number;
+    jobsApplied?: number;
+    screeningsCompleted?: number;
   };
   message?: string;
 };
@@ -467,6 +486,47 @@ export default function WorkspacePage() {
 
   const { applications, stats } = data;
 
+  // PATCH_45: Convert legacy profile format to applications array format
+  // Legacy format has a single profile object; new format has applications array
+  const normalizedApplications: JobApplication[] = applications
+    ? applications
+    : data.profile
+      ? [
+          {
+            _id: data.profile._id,
+            position: {
+              _id: "legacy",
+              title: "Worker",
+              category: "General",
+              description: "Legacy worker profile",
+            } as Position,
+            positionTitle: "Worker",
+            category: "General",
+            workerStatus: (data.profile.workerStatus ||
+              "applied") as JobApplication["workerStatus"],
+            applicationStatus: (data.profile.status ||
+              "pending") as JobApplication["applicationStatus"],
+            attemptCount: 0,
+            maxAttempts: 3,
+            totalEarnings: data.profile.totalEarnings || 0,
+            pendingEarnings: data.profile.pendingEarnings || 0,
+            payRate: data.profile.payRate || 0,
+            screening: undefined,
+            trainingMaterials: [],
+            assignedProjects: [],
+            completedProjects: [],
+            screeningsCompleted: data.profile.screeningsCompleted || [],
+            createdAt: data.profile.createdAt,
+          } as JobApplication,
+        ]
+      : [];
+
+  const normalizedStats = {
+    ...stats,
+    jobsApplied: stats.jobsApplied ?? 1,
+    screeningsCompleted: stats.screeningsCompleted ?? 0,
+  };
+
   return (
     <div className="u-container max-w-6xl">
       {/* Header */}
@@ -479,25 +539,25 @@ export default function WorkspacePage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="card text-center">
           <p className="text-2xl font-bold text-emerald-400">
-            ${stats.totalEarnings.toFixed(2)}
+            ${normalizedStats.totalEarnings.toFixed(2)}
           </p>
           <p className="text-xs text-slate-400">Total Earnings</p>
         </div>
         <div className="card text-center">
           <p className="text-2xl font-bold text-amber-400">
-            ${stats.pendingEarnings.toFixed(2)}
+            ${normalizedStats.pendingEarnings.toFixed(2)}
           </p>
           <p className="text-xs text-slate-400">Pending</p>
         </div>
         <div className="card text-center">
           <p className="text-2xl font-bold text-blue-400">
-            {stats.projectsCompleted}
+            {normalizedStats.projectsCompleted}
           </p>
           <p className="text-xs text-slate-400">Projects Done</p>
         </div>
         <div className="card text-center">
           <p className="text-2xl font-bold text-purple-400">
-            {stats.jobsApplied}
+            {normalizedStats.jobsApplied}
           </p>
           <p className="text-xs text-slate-400">Jobs Applied</p>
         </div>
@@ -516,7 +576,7 @@ export default function WorkspacePage() {
       {/* Job Applications */}
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">Your Job Roles</h2>
-        {applications.length === 0 ? (
+        {normalizedApplications.length === 0 ? (
           <div className="card text-center py-8">
             <div className="text-4xl mb-4">📋</div>
             <p className="text-lg font-medium">No Active Applications</p>
@@ -525,7 +585,9 @@ export default function WorkspacePage() {
             </p>
           </div>
         ) : (
-          applications.map((app) => <JobCard key={app._id} app={app} />)
+          normalizedApplications.map((app) => (
+            <JobCard key={app._id} app={app} />
+          ))
         )}
       </div>
     </div>
