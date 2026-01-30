@@ -1,88 +1,100 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+/**
+ * PATCH_50: Public Homepage Conversion & Trust Rebuild
+ * Premium, high-trust, high-conversion landing page
+ */
+
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/api";
-import { withCacheBust } from "@/lib/cacheBust";
-import {
-  DEFAULT_PUBLIC_SITE_SETTINGS,
-  useSiteSettings,
-} from "@/hooks/useSiteSettings";
-// PATCH_21: Listen for services:refresh to update homepage in real-time
-import { onServicesRefresh } from "@/lib/events";
 
-type Service = {
-  _id: string;
-  title: string;
-  description?: string;
-  category?: string;
-  price: number;
-  currency?: string;
-  deliveryType?: string;
-  images?: string[];
-  imageUrl?: string;
-  updatedAt?: string;
-  active?: boolean;
+type PlatformStats = {
+  activeServices: number;
+  activeJobRoles: number;
+  totalUsers: number;
+  completedOrders: number;
 };
+
+type AudienceTab = {
+  id: string;
+  label: string;
+  icon: string;
+  description: string;
+};
+
+const AUDIENCE_TABS: AudienceTab[] = [
+  {
+    id: "beginners",
+    label: "Beginners",
+    icon: "🌱",
+    description:
+      "New to online work? UREMO guides you step-by-step with training materials, screening tests, and supervised projects. No experience required.",
+  },
+  {
+    id: "freelancers",
+    label: "Freelancers",
+    icon: "💻",
+    description:
+      "Expand your income streams with verified gigs, microjobs, and project-based work. Get paid securely through our wallet system.",
+  },
+  {
+    id: "students",
+    label: "Students",
+    icon: "📚",
+    description:
+      "Earn while you learn with flexible work opportunities. Complete tasks on your schedule and build real-world skills.",
+  },
+  {
+    id: "side-hustlers",
+    label: "Side Hustlers",
+    icon: "🚀",
+    description:
+      "Looking for extra income? Pick up verified microjobs and projects that fit around your main job or commitments.",
+  },
+  {
+    id: "entrepreneurs",
+    label: "Digital Entrepreneurs",
+    icon: "🏆",
+    description:
+      "Access premium digital services, account rentals, and tools to scale your online business. Build your affiliate network.",
+  },
+];
 
 export default function LandingPage() {
   const router = useRouter();
   const { ready, isAuthenticated } = useAuth();
-  const { data: settings } = useSiteSettings();
+  const [stats, setStats] = useState<PlatformStats | null>(null);
+  const [activeAudienceTab, setActiveAudienceTab] = useState("beginners");
 
-  const landing = settings?.landing || DEFAULT_PUBLIC_SITE_SETTINGS.landing;
-
-  const [services, setServices] = useState<Service[]>([]);
-  const [servicesLoading, setServicesLoading] = useState(true);
-
-  // PATCH_21: Memoized fetch function for reuse
-  const fetchServices = useCallback(async () => {
-    setServicesLoading(true);
+  // Fetch platform stats
+  const fetchStats = useCallback(async () => {
     try {
-      const data = await apiRequest<Service[]>("/api/services");
-      setServices(Array.isArray(data) ? data : []);
+      const data = await apiRequest<{ ok: boolean; stats: PlatformStats }>(
+        "/api/public/stats",
+      );
+      if (data?.ok) {
+        setStats(data.stats);
+      }
     } catch {
-      setServices([]);
-    } finally {
-      setServicesLoading(false);
+      // Silently fail - stats are optional
     }
   }, []);
 
   useEffect(() => {
-    // Redirect logged-in users to dashboard
     if (ready && isAuthenticated) {
       router.replace("/dashboard");
     }
   }, [ready, isAuthenticated, router]);
 
-  // PATCH_21: Initial fetch
   useEffect(() => {
     if (!ready || isAuthenticated) return;
-    fetchServices();
-  }, [ready, isAuthenticated, fetchServices]);
+    fetchStats();
+  }, [ready, isAuthenticated, fetchStats]);
 
-  // PATCH_21: Listen for services:refresh events to update in real-time
-  useEffect(() => {
-    if (!ready || isAuthenticated) return;
-    const cleanup = onServicesRefresh(() => {
-      fetchServices();
-    });
-    return cleanup;
-  }, [ready, isAuthenticated]);
-
-  const popularServices = useMemo(() => {
-    const list = Array.isArray(services) ? services : [];
-    // Prefer active services; keep stable ordering.
-    const activeFirst = list
-      .slice()
-      .sort((a, b) => Number(Boolean(b.active)) - Number(Boolean(a.active)));
-    return activeFirst.slice(0, 3);
-  }, [services]);
-
-  // While checking auth or if authenticated (before redirect), show minimal loading
   if (!ready || isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -93,277 +105,524 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen">
-      {/* Hero Section */}
+      {/* ==================== SECTION 1: HERO ==================== */}
       <motion.section
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="max-w-6xl mx-auto px-4 sm:px-6 py-20 md:py-32 text-center"
+        className="max-w-6xl mx-auto px-4 sm:px-6 py-16 md:py-28"
       >
-        <h1 className="text-5xl md:text-7xl font-bold mb-5 bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent">
-          {landing.heroTitle}
-        </h1>
-        <p className="text-base md:text-xl text-slate-300 max-w-2xl mx-auto mb-10">
-          {landing.heroSubtitle}
-        </p>
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          {/* Left Content */}
+          <div>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent">
+              Work. Earn. Learn.
+              <br />
+              <span className="text-blue-400">
+                Or Build Your Digital Career
+              </span>
+              <br />— All in One Platform.
+            </h1>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <Link href="/buy-service">
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.98 }}
-              className="btn-primary w-full sm:w-auto"
-            >
-              {landing.ctaPrimaryText}
-            </motion.button>
-          </Link>
-          <Link href="/signup">
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="btn-secondary w-full sm:w-auto"
-            >
-              {landing.ctaSecondaryText}
-            </motion.button>
-          </Link>
-        </div>
+            <p className="text-lg md:text-xl text-slate-300 mt-6 max-w-xl">
+              UREMO connects people with verified online gigs, microjobs,
+              financial account services, and guided work opportunities — with
+              real human support.
+            </p>
 
-        <div className="mt-12 grid gap-4 sm:grid-cols-3 text-left">
-          {landing.features.map((f) => (
-            <div key={f.title} className="card">
-              <h3 className="font-semibold text-lg">{f.title}</h3>
-              <p className="text-sm text-slate-400 mt-2">{f.desc}</p>
+            <div className="flex flex-col sm:flex-row gap-4 mt-8">
+              <Link href="/buy-service">
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="btn-primary w-full sm:w-auto text-lg px-8 py-3"
+                >
+                  Explore Services
+                </motion.button>
+              </Link>
+              <Link href="/apply-to-work">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="btn-secondary w-full sm:w-auto text-lg px-8 py-3"
+                >
+                  Apply To Work
+                </motion.button>
+              </Link>
             </div>
-          ))}
+
+            <p className="text-slate-500 mt-6 text-sm">
+              Already have an account?{" "}
+              <Link href="/login" className="text-blue-400 hover:text-blue-300">
+                Login →
+              </Link>
+            </p>
+          </div>
+
+          {/* Right Visual */}
+          <div className="hidden lg:block">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-purple-500/10 to-emerald-500/20 rounded-3xl blur-3xl" />
+              <div className="relative grid grid-cols-2 gap-4">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="card p-6 bg-gradient-to-br from-blue-500/10 to-blue-500/5"
+                >
+                  <div className="text-4xl mb-3">🛒</div>
+                  <h3 className="font-semibold text-white">Buy Services</h3>
+                  <p className="text-sm text-slate-400 mt-1">
+                    Verified digital services
+                  </p>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="card p-6 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5"
+                >
+                  <div className="text-4xl mb-3">💰</div>
+                  <h3 className="font-semibold text-white">Earn Money</h3>
+                  <p className="text-sm text-slate-400 mt-1">
+                    Complete verified tasks
+                  </p>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="card p-6 bg-gradient-to-br from-purple-500/10 to-purple-500/5"
+                >
+                  <div className="text-4xl mb-3">📚</div>
+                  <h3 className="font-semibold text-white">Learn Skills</h3>
+                  <p className="text-sm text-slate-400 mt-1">
+                    Training & screening
+                  </p>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="card p-6 bg-gradient-to-br from-amber-500/10 to-amber-500/5"
+                >
+                  <div className="text-4xl mb-3">🤝</div>
+                  <h3 className="font-semibold text-white">Human Support</h3>
+                  <p className="text-sm text-slate-400 mt-1">
+                    Real people helping you
+                  </p>
+                </motion.div>
+              </div>
+            </div>
+          </div>
         </div>
       </motion.section>
 
-      {/* Supported services band */}
+      {/* ==================== SECTION 2: WHAT YOU CAN DO ==================== */}
       <motion.section
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
         transition={{ duration: 0.6 }}
         viewport={{ once: true }}
-        className="max-w-6xl mx-auto px-4 sm:px-6 pb-10"
+        className="max-w-6xl mx-auto px-4 sm:px-6 py-16"
       >
-        <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-6">
-          <p className="text-xs tracking-widest text-[#9CA3AF]">
-            {landing.supportedServicesTitle}
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold">
+            What You Can Do on UREMO
+          </h2>
+          <p className="text-slate-400 mt-3 max-w-2xl mx-auto">
+            Three paths to success — choose what fits your goals
           </p>
-          <div className="mt-3 flex flex-wrap gap-2 justify-center">
-            {landing.supportedServicesTags.map((tag) => (
-              <span key={tag} className="u-pill text-slate-200">
-                {tag}
-              </span>
-            ))}
-          </div>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6">
+          {/* Card 1: Explore Services */}
+          <motion.div
+            whileHover={{ y: -8 }}
+            className="card p-8 bg-gradient-to-br from-blue-500/10 via-transparent to-blue-500/5 border-blue-500/20 hover:border-blue-500/40 transition-all"
+          >
+            <div className="text-5xl mb-6">🛒</div>
+            <h3 className="text-xl font-bold text-white mb-4">
+              Explore Services
+            </h3>
+            <ul className="space-y-3 text-slate-300">
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400">✓</span>
+                Buy verified digital services
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400">✓</span>
+                Rent accounts & tools
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400">✓</span>
+                Complete deals at percentage
+              </li>
+            </ul>
+            <Link
+              href="/buy-service"
+              className="btn-primary w-full mt-6 block text-center"
+            >
+              Browse Services →
+            </Link>
+          </motion.div>
+
+          {/* Card 2: Apply To Work */}
+          <motion.div
+            whileHover={{ y: -8 }}
+            className="card p-8 bg-gradient-to-br from-emerald-500/10 via-transparent to-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40 transition-all"
+          >
+            <div className="text-5xl mb-6">🧑‍💻</div>
+            <h3 className="text-xl font-bold text-white mb-4">Apply To Work</h3>
+            <ul className="space-y-3 text-slate-300">
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400">✓</span>
+                Microjobs & quick tasks
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400">✓</span>
+                Writing & content jobs
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400">✓</span>
+                Screening-based projects
+              </li>
+            </ul>
+            <Link
+              href="/apply-to-work"
+              className="btn-primary w-full mt-6 block text-center"
+            >
+              View Job Roles →
+            </Link>
+          </motion.div>
+
+          {/* Card 3: Workspace */}
+          <motion.div
+            whileHover={{ y: -8 }}
+            className="card p-8 bg-gradient-to-br from-purple-500/10 via-transparent to-purple-500/5 border-purple-500/20 hover:border-purple-500/40 transition-all"
+          >
+            <div className="text-5xl mb-6">💼</div>
+            <h3 className="text-xl font-bold text-white mb-4">Workspace</h3>
+            <ul className="space-y-3 text-slate-300">
+              <li className="flex items-start gap-2">
+                <span className="text-purple-400">1.</span>
+                Complete Training
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-purple-400">2.</span>
+                Pass Screening Test
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-purple-400">3.</span>
+                Work on Projects & Earn
+              </li>
+            </ul>
+            <Link
+              href="/signup"
+              className="btn-primary w-full mt-6 block text-center"
+            >
+              Get Started →
+            </Link>
+          </motion.div>
         </div>
       </motion.section>
 
-      {/* 3-Step Process */}
+      {/* ==================== SECTION 3: HOW UREMO WORKS ==================== */}
       <motion.section
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
-        transition={{ duration: 0.8 }}
+        transition={{ duration: 0.6 }}
         viewport={{ once: true }}
         className="max-w-6xl mx-auto px-4 sm:px-6 py-16"
       >
-        <h2 className="text-3xl font-bold text-center mb-12">
-          {landing.howItWorksTitle}
-        </h2>
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold">How UREMO Works</h2>
+          <p className="text-slate-400 mt-3">Simple steps to get started</p>
+        </div>
 
-        <div className="grid md:grid-cols-4 gap-6">
-          {landing.howItWorksSteps.map((item) => (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+          {[
+            {
+              step: 1,
+              icon: "🔍",
+              title: "Explore or Apply",
+              desc: "Browse services or apply to work positions",
+            },
+            {
+              step: 2,
+              icon: "✅",
+              title: "Get Verified",
+              desc: "Complete screening & verification process",
+            },
+            {
+              step: 3,
+              icon: "⚡",
+              title: "Start Working",
+              desc: "Begin tasks or avail services",
+            },
+            {
+              step: 4,
+              icon: "💰",
+              title: "Earn or Receive",
+              desc: "Get paid or receive your delivery",
+            },
+          ].map((item, idx) => (
             <motion.div
-              key={item.title}
-              whileHover={{ y: -4 }}
-              className="card text-center"
+              key={item.step}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.1 }}
+              viewport={{ once: true }}
+              className="card text-center p-6 relative"
             >
-              <div className="w-12 h-12 rounded-full bg-blue-500/15 border border-blue-500/20 text-blue-100 flex items-center justify-center text-xl font-bold mx-auto mb-4">
-                {item.icon}
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-blue-500 text-white text-sm font-bold flex items-center justify-center">
+                {item.step}
               </div>
-              <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
+              <div className="text-4xl mb-4 mt-2">{item.icon}</div>
+              <h3 className="font-semibold text-white mb-2">{item.title}</h3>
               <p className="text-sm text-slate-400">{item.desc}</p>
             </motion.div>
           ))}
         </div>
       </motion.section>
 
-      {/* Popular services */}
+      {/* ==================== SECTION 4: WHY PEOPLE TRUST UREMO ==================== */}
       <motion.section
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
-        transition={{ duration: 0.7 }}
-        viewport={{ once: true }}
-        className="max-w-6xl mx-auto px-4 sm:px-6 py-16"
-      >
-        <div className="flex items-end justify-between gap-4 flex-wrap">
-          <div>
-            <h2 className="text-3xl font-bold">{landing.popularTitle}</h2>
-            <p className="text-slate-300 mt-2 max-w-2xl">
-              {landing.popularSubtitle}
-            </p>
-          </div>
-          <Link href="/buy-service" className="btn-secondary px-4 py-2 text-sm">
-            {landing.popularBrowseAllText}
-          </Link>
-        </div>
-
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 overflow-x-hidden">
-          {servicesLoading ? (
-            [0, 1, 2].map((i) => (
-              <div key={i} className="card">
-                <div className="h-32 rounded-xl bg-white/5 border border-white/10 animate-pulse" />
-                <div className="mt-4 h-4 w-2/3 bg-white/5 rounded animate-pulse" />
-                <div className="mt-3 h-3 w-1/2 bg-white/5 rounded animate-pulse" />
-              </div>
-            ))
-          ) : popularServices.length === 0 ? (
-            <div className="card md:col-span-3">
-              <p className="text-slate-300">{landing.popularEmptyTitle}</p>
-              <p className="text-sm text-[#9CA3AF] mt-1">
-                {landing.popularEmptySubtitle}
-              </p>
-              <div className="mt-4">
-                <Link href="/buy-service" className="btn-primary">
-                  {landing.popularEmptyCtaText}
-                </Link>
-              </div>
-            </div>
-          ) : (
-            popularServices.map((s) => (
-              <Link
-                key={s._id}
-                href={`/services/${s._id}`}
-                className="block group h-full"
-              >
-                <div className="card cursor-pointer overflow-hidden h-full flex flex-col">
-                  <div className="relative">
-                    <div className="aspect-video w-full rounded-xl border border-white/10 bg-gradient-to-br from-blue-500/15 via-white/5 to-emerald-500/10 overflow-hidden">
-                      {s.imageUrl ||
-                      (Array.isArray(s.images) && s.images[0]) ? (
-                        <img
-                          src={withCacheBust(
-                            s.imageUrl || s.images?.[0],
-                            s.updatedAt || s._id,
-                          )}
-                          alt={s.title}
-                          className="h-full w-full object-cover opacity-90 group-hover:opacity-100 transition"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="h-full w-full flex items-center justify-center text-3xl text-white/70">
-                          ✦
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="absolute top-3 right-3">
-                      <span className="px-3 py-1 rounded-full text-xs border border-emerald-500/25 bg-emerald-500/10 text-emerald-200 font-semibold">
-                        ${s.price}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="text-lg font-semibold text-white line-clamp-2">
-                        {s.title}
-                      </h3>
-                      <div className="mt-2 flex items-center gap-2 flex-wrap">
-                        {s.category && (
-                          <span className="u-pill text-slate-200">
-                            {s.category}
-                          </span>
-                        )}
-                        {s.deliveryType && (
-                          <span className="u-pill text-slate-200">
-                            {String(s.deliveryType).replace(/_/g, " ")}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <p className="text-sm text-slate-300 mt-3 line-clamp-3 flex-1">
-                    {s.description ||
-                      settings?.services?.trustBlockText ||
-                      DEFAULT_PUBLIC_SITE_SETTINGS.services.trustBlockText}
-                  </p>
-                </div>
-              </Link>
-            ))
-          )}
-        </div>
-      </motion.section>
-
-      {/* CTA */}
-      <motion.section
-        initial={{ opacity: 0, y: 10 }}
-        whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
         viewport={{ once: true }}
         className="max-w-6xl mx-auto px-4 sm:px-6 py-16"
       >
-        <div className="card text-center">
-          <h2 className="text-2xl md:text-3xl font-bold">
-            {landing.finalCtaTitle}
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold">
+            Why People Trust UREMO
           </h2>
-          <p className="text-slate-300 mt-3 max-w-2xl mx-auto">
-            {landing.finalCtaSubtitle}
+          <p className="text-slate-400 mt-3">
+            Built with security and transparency in mind
           </p>
-          <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/signup" className="btn-primary">
-              {landing.finalCtaPrimaryText}
-            </Link>
-            <Link href="/buy-service" className="btn-secondary">
-              {landing.finalCtaSecondaryText}
-            </Link>
-          </div>
         </div>
-      </motion.section>
 
-      {/* Features */}
-      <motion.section
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        transition={{ duration: 0.8 }}
-        viewport={{ once: true }}
-        className="max-w-6xl mx-auto px-4 sm:px-6 py-16"
-      >
-        <h2 className="text-3xl font-bold text-center mb-12">
-          {landing.whyChooseTitle}
-        </h2>
-
-        <div className="grid md:grid-cols-3 gap-6">
-          {landing.whyChooseFeatures.map((feat) => (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[
+            {
+              icon: "🔍",
+              title: "Manual Human Verification",
+              desc: "Every user, service, and transaction is reviewed by real humans — no bots or automation.",
+            },
+            {
+              icon: "👨‍💼",
+              title: "Admin Moderated Jobs",
+              desc: "All job roles, screenings, and projects are created and managed by UREMO admins.",
+            },
+            {
+              icon: "🛡️",
+              title: "No Auto-Payout Scams",
+              desc: "Earnings are manually credited after proof verification. No automatic deductions or fake payouts.",
+            },
+            {
+              icon: "💳",
+              title: "Wallet-Based Secure System",
+              desc: "All payments flow through a secure wallet system with full transaction history.",
+            },
+            {
+              icon: "🎫",
+              title: "Support Ticket System",
+              desc: "Real support tickets with human responses. Get help when you need it.",
+            },
+            {
+              icon: "🔒",
+              title: "Private Proof Of Work",
+              desc: "Your work submissions are private by default. Only visible to admins for verification.",
+            },
+          ].map((item, idx) => (
             <motion.div
-              key={feat.title}
-              whileHover={{ scale: 1.02 }}
-              className="card"
+              key={item.title}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.1 }}
+              viewport={{ once: true }}
+              className="card p-6 bg-gradient-to-br from-white/5 to-transparent"
             >
-              <div className="text-4xl mb-4">{feat.icon}</div>
-              <h3 className="font-semibold text-lg mb-2">{feat.title}</h3>
-              <p className="text-sm text-slate-400">{feat.desc}</p>
+              <div className="text-3xl mb-4">{item.icon}</div>
+              <h3 className="font-semibold text-white mb-2">{item.title}</h3>
+              <p className="text-sm text-slate-400">{item.desc}</p>
             </motion.div>
           ))}
         </div>
       </motion.section>
 
-      {/* Trust Disclaimer */}
+      {/* ==================== SECTION 5: FEATURE HIGHLIGHTS ==================== */}
       <motion.section
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
-        transition={{ duration: 0.8 }}
+        transition={{ duration: 0.6 }}
         viewport={{ once: true }}
-        className="max-w-4xl mx-auto px-4 sm:px-6 py-16"
+        className="max-w-6xl mx-auto px-4 sm:px-6 py-16"
       >
-        <div className="card text-center">
-          <p className="text-slate-300 leading-relaxed">
-            {landing.trustDisclaimerText}
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold">Platform Features</h2>
+          <p className="text-slate-400 mt-3">
+            Everything you need in one place
           </p>
         </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {[
+            { icon: "📊", title: "Smart Workspace" },
+            { icon: "💰", title: "Wallet System" },
+            { icon: "🤝", title: "Affiliate Program" },
+            { icon: "🏠", title: "Rentals & Subs" },
+            { icon: "🔔", title: "Notifications" },
+            { icon: "🤖", title: "JarvisX AI" },
+          ].map((item) => (
+            <motion.div
+              key={item.title}
+              whileHover={{ scale: 1.05 }}
+              className="card p-4 text-center bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              <div className="text-3xl mb-2">{item.icon}</div>
+              <p className="text-sm font-medium text-slate-300">{item.title}</p>
+            </motion.div>
+          ))}
+        </div>
       </motion.section>
+
+      {/* ==================== SECTION 6: REAL PLATFORM STATS ==================== */}
+      {stats && (
+        <motion.section
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          transition={{ duration: 0.6 }}
+          viewport={{ once: true }}
+          className="max-w-6xl mx-auto px-4 sm:px-6 py-16"
+        >
+          <div className="card p-8 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-emerald-500/10 border-blue-500/20">
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
+              Real Platform Stats
+            </h2>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+              <div>
+                <p className="text-4xl md:text-5xl font-bold text-blue-400">
+                  {stats.activeServices}
+                </p>
+                <p className="text-slate-400 mt-2">Active Services</p>
+              </div>
+              <div>
+                <p className="text-4xl md:text-5xl font-bold text-emerald-400">
+                  {stats.activeJobRoles}
+                </p>
+                <p className="text-slate-400 mt-2">Job Roles</p>
+              </div>
+              <div>
+                <p className="text-4xl md:text-5xl font-bold text-purple-400">
+                  {stats.totalUsers}
+                </p>
+                <p className="text-slate-400 mt-2">Verified Users</p>
+              </div>
+              <div>
+                <p className="text-4xl md:text-5xl font-bold text-amber-400">
+                  {stats.completedOrders}
+                </p>
+                <p className="text-slate-400 mt-2">Completed Orders</p>
+              </div>
+            </div>
+          </div>
+        </motion.section>
+      )}
+
+      {/* ==================== SECTION 7: WHO UREMO IS FOR ==================== */}
+      <motion.section
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        transition={{ duration: 0.6 }}
+        viewport={{ once: true }}
+        className="max-w-6xl mx-auto px-4 sm:px-6 py-16"
+      >
+        <div className="text-center mb-8">
+          <h2 className="text-3xl md:text-4xl font-bold">Who UREMO Is For</h2>
+          <p className="text-slate-400 mt-3">Find your path on the platform</p>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex flex-wrap justify-center gap-2 mb-8">
+          {AUDIENCE_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveAudienceTab(tab.id)}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                activeAudienceTab === tab.id
+                  ? "bg-blue-500 text-white"
+                  : "bg-white/5 text-slate-400 hover:bg-white/10"
+              }`}
+            >
+              {tab.icon} {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab Content */}
+        <motion.div
+          key={activeAudienceTab}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="card p-8 text-center max-w-2xl mx-auto"
+        >
+          <div className="text-5xl mb-4">
+            {AUDIENCE_TABS.find((t) => t.id === activeAudienceTab)?.icon}
+          </div>
+          <h3 className="text-xl font-bold text-white mb-3">
+            {AUDIENCE_TABS.find((t) => t.id === activeAudienceTab)?.label}
+          </h3>
+          <p className="text-slate-300 leading-relaxed">
+            {AUDIENCE_TABS.find((t) => t.id === activeAudienceTab)?.description}
+          </p>
+        </motion.div>
+      </motion.section>
+
+      {/* ==================== SECTION 8: FINAL CTA ==================== */}
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        viewport={{ once: true }}
+        className="max-w-6xl mx-auto px-4 sm:px-6 py-20"
+      >
+        <div className="card p-12 text-center bg-gradient-to-br from-blue-500/15 via-purple-500/10 to-emerald-500/15 border-blue-500/30">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            Start Your Journey With UREMO Today
+          </h2>
+          <p className="text-slate-300 max-w-xl mx-auto mb-8">
+            Join thousands of users who are already earning, learning, and
+            building their digital careers on UREMO.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/signup">
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
+                className="btn-primary text-lg px-8 py-3 w-full sm:w-auto"
+              >
+                Create Account
+              </motion.button>
+            </Link>
+            <Link href="/buy-service">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="btn-secondary text-lg px-8 py-3 w-full sm:w-auto"
+              >
+                Explore Services
+              </motion.button>
+            </Link>
+          </div>
+        </div>
+      </motion.section>
+
+      {/* Footer spacing */}
+      <div className="h-16" />
     </div>
   );
 }
