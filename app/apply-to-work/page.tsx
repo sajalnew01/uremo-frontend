@@ -46,11 +46,23 @@ export default function ApplyToWorkPage() {
   const [existing, setExisting] = useState<Application | null>(null);
   const [checking, setChecking] = useState(true);
 
+  // PATCH_47: Service context when coming from a service page
+  const [serviceId, setServiceId] = useState<string>("");
+  const [serviceTitle, setServiceTitle] = useState<string>("");
+  const [fromService, setFromService] = useState(false);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
       const params = new URLSearchParams(window.location.search);
       setRequestedPositionId(params.get("positionId") || "");
+
+      // PATCH_47: Capture service context
+      const svcId = params.get("serviceId") || "";
+      const svcTitle = params.get("serviceTitle") || "";
+      setServiceId(svcId);
+      setServiceTitle(svcTitle);
+      setFromService(!!svcId);
     } catch {
       setRequestedPositionId("");
     }
@@ -105,7 +117,7 @@ export default function ApplyToWorkPage() {
     try {
       const data = await apiRequest<WorkPosition[]>(
         "/api/work-positions",
-        "GET"
+        "GET",
       );
       const list = Array.isArray(data) ? data : [];
       const activeOnly = list.filter((p) => p && p.active !== false);
@@ -222,6 +234,27 @@ export default function ApplyToWorkPage() {
         <h1 className="text-2xl font-bold">{ui.title}</h1>
         <p className="text-[#9CA3AF]">{ui.subtitle}</p>
       </div>
+
+      {/* PATCH_47: Service context banner when coming from a service page */}
+      {fromService && (
+        <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 p-4">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">💼</span>
+            <div>
+              <p className="font-medium text-blue-300">Applying from Service</p>
+              {serviceTitle && (
+                <p className="text-sm text-slate-300 mt-1">
+                  You're applying to work on: <strong>{serviceTitle}</strong>
+                </p>
+              )}
+              <p className="text-xs text-slate-400 mt-2">
+                Complete the application below to start earning by working on
+                this service.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Application Form */}
       <Card title={ui.formTitle}>

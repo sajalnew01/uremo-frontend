@@ -200,9 +200,32 @@ export default function ServiceDetailsPage() {
     }
   };
 
-  const applyToWork = () => {
+  // PATCH_47: Apply to work with service context - passes serviceId to find linked job role
+  const applyToWork = async () => {
     if (!ensureLoggedIn()) return;
-    router.push("/apply-to-work");
+
+    try {
+      // Try to find the linked job role for this service
+      const jobRoleRes = await apiRequest(
+        `/api/work-positions/by-service/${service._id}`,
+        "GET",
+      );
+
+      if (jobRoleRes?.hasJobRole && jobRoleRes.position?._id) {
+        // Direct link to the specific job role
+        router.push(
+          `/apply-to-work?positionId=${jobRoleRes.position._id}&serviceId=${service._id}`,
+        );
+      } else {
+        // No linked job role, go to general apply page with service context
+        router.push(
+          `/apply-to-work?serviceId=${service._id}&serviceTitle=${encodeURIComponent(service.title)}`,
+        );
+      }
+    } catch {
+      // Fallback to general apply page
+      router.push("/apply-to-work");
+    }
   };
 
   const createDealOrder = async () => {

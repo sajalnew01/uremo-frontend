@@ -8,8 +8,37 @@ import { useToast } from "@/hooks/useToast";
 
 /**
  * PATCH_43: Admin Job Role Control Panel
+ * PATCH_46: Enhanced UX with Screening Editor, Projects Tab, and Human-Friendly Actions
  * Manage applicants, screenings, training materials, and worker assignments
  */
+
+type ScreeningQuestion = {
+  _id?: string;
+  question: string;
+  options: string[];
+  correctAnswer: number;
+};
+
+type Screening = {
+  _id?: string;
+  title: string;
+  description?: string;
+  questions: ScreeningQuestion[];
+  timeLimit: number;
+  passingScore: number;
+  maxAttempts: number;
+};
+
+type Project = {
+  _id?: string;
+  title: string;
+  description?: string;
+  payRate: number;
+  payType: "per_task" | "hourly" | "fixed";
+  deadline?: string;
+  status: "draft" | "active" | "completed";
+  assignedWorker?: string;
+};
 
 type TrainingMaterial = {
   title: string;
@@ -100,6 +129,28 @@ export default function AdminJobRolePage() {
   // Training materials form
   const [trainingForm, setTrainingForm] = useState<TrainingMaterial[]>([]);
 
+  // PATCH_46: Screening editor state
+  const [screeningForm, setScreeningForm] = useState<Screening>({
+    title: "",
+    description: "",
+    questions: [],
+    timeLimit: 30,
+    passingScore: 70,
+    maxAttempts: 3,
+  });
+  const [screeningMode, setScreeningMode] = useState<"view" | "edit">("view");
+
+  // PATCH_46: Projects state
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectForm, setProjectForm] = useState<Project>({
+    title: "",
+    description: "",
+    payRate: 0,
+    payType: "per_task",
+    status: "draft",
+  });
+  const [projectMode, setProjectMode] = useState<"list" | "create">("list");
+
   const loadJob = async () => {
     if (!jobId) return;
     setLoading(true);
@@ -137,6 +188,7 @@ export default function AdminJobRolePage() {
   useEffect(() => {
     loadJob();
     loadApplicants();
+    loadProjects();
   }, [jobId]);
 
   useEffect(() => {
@@ -264,6 +316,138 @@ export default function AdminJobRolePage() {
     const updated = [...trainingForm];
     (updated[idx] as any)[field] = value;
     setTrainingForm(updated);
+  };
+
+  // PATCH_46: Screening Editor Functions
+  const addQuestion = () => {
+    setScreeningForm({
+      ...screeningForm,
+      questions: [
+        ...screeningForm.questions,
+        { question: "", options: ["", "", "", ""], correctAnswer: 0 },
+      ],
+    });
+  };
+
+  const removeQuestion = (idx: number) => {
+    setScreeningForm({
+      ...screeningForm,
+      questions: screeningForm.questions.filter((_, i) => i !== idx),
+    });
+  };
+
+  const updateQuestion = (idx: number, field: string, value: any) => {
+    const updated = [...screeningForm.questions];
+    (updated[idx] as any)[field] = value;
+    setScreeningForm({ ...screeningForm, questions: updated });
+  };
+
+  const updateOption = (qIdx: number, optIdx: number, value: string) => {
+    const updated = [...screeningForm.questions];
+    updated[qIdx].options[optIdx] = value;
+    setScreeningForm({ ...screeningForm, questions: updated });
+  };
+
+  const saveScreening = async () => {
+    if (!screeningForm.title || screeningForm.questions.length === 0) {
+      toast("Please add a title and at least one question", "error");
+      return;
+    }
+    setSaving(true);
+    try {
+      await apiRequest(
+        `/api/admin/workspace/job/${jobId}/set-screening`,
+        "PUT",
+        { screening: screeningForm },
+        true,
+      );
+      toast("Screening saved successfully", "success");
+      setScreeningMode("view");
+      loadJob();
+    } catch (e: any) {
+      toast(e?.message || "Failed to save screening", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const startEditScreening = () => {
+    if (job?.screeningId) {
+      // Load existing screening data
+      setScreeningForm({
+        _id: job.screeningId._id,
+        title: job.screeningId.title,
+        description: "",
+        questions: [],
+        timeLimit: job.screeningId.timeLimit,
+        passingScore: job.screeningId.passingScore,
+        maxAttempts: 3,
+      });
+    }
+    setScreeningMode("edit");
+  };
+
+  // PATCH_46: Project Functions
+  const loadProjects = async () => {
+    try {
+      const res = await apiRequest(
+        `/api/admin/workspace/job/${jobId}/projects`,
+        "GET",
+        null,
+        true,
+      );
+      setProjects(res.projects || []);
+    } catch (e: any) {
+      console.log("Projects not available yet");
+    }
+  };
+
+  const createProject = async () => {
+    if (!projectForm.title) {
+      toast("Please add a project title", "error");
+      return;
+    }
+    setSaving(true);
+    try {
+      await apiRequest(
+        `/api/admin/workspace/job/${jobId}/projects`,
+        "POST",
+        projectForm,
+        true,
+      );
+      toast("Project created", "success");
+      setProjectMode("list");
+      setProjectForm({
+        title: "",
+        description: "",
+        payRate: 0,
+        payType: "per_task",
+        status: "draft",
+      });
+      loadProjects();
+    } catch (e: any) {
+      toast(e?.message || "Failed to create project", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const assignProject = async (projectId: string, workerId: string) => {
+    setSaving(true);
+    try {
+      await apiRequest(
+        `/api/admin/workspace/job/${jobId}/projects/${projectId}/assign`,
+        "PUT",
+        { workerId },
+        true,
+      );
+      toast("Project assigned", "success");
+      loadProjects();
+    } catch (e: any) {
+      toast(e?.message || "Failed to assign", "error");
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) {
@@ -496,30 +680,237 @@ export default function AdminJobRolePage() {
         </div>
       )}
 
-      {/* Screening Tab */}
+      {/* Screening Tab - PATCH_46: Full Screening Editor */}
       {activeTab === "screening" && (
         <div className="card">
-          <h3 className="font-semibold mb-4">Screening Setup</h3>
-          {job.screeningId ? (
-            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-              <p className="font-medium">{job.screeningId.title}</p>
-              <p className="text-sm text-slate-400 mt-1">
-                Pass: {job.screeningId.passingScore}% • Time:{" "}
-                {job.screeningId.timeLimit} min
-              </p>
-            </div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold">📋 Screening Test Builder</h3>
+            {screeningMode === "view" && (
+              <button
+                onClick={startEditScreening}
+                className="px-3 py-1 rounded-lg bg-blue-500/20 text-blue-300 text-sm hover:bg-blue-500/30"
+              >
+                {job.screeningId ? "✏️ Edit Screening" : "➕ Create Screening"}
+              </button>
+            )}
+          </div>
+
+          {screeningMode === "view" ? (
+            // View Mode
+            job.screeningId ? (
+              <div className="space-y-4">
+                <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                  <p className="font-medium text-lg">{job.screeningId.title}</p>
+                  <div className="flex flex-wrap gap-4 mt-3 text-sm">
+                    <span className="flex items-center gap-1">
+                      <span className="text-emerald-400">✓</span>
+                      Pass: {job.screeningId.passingScore}%
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="text-blue-400">⏱</span>
+                      Time: {job.screeningId.timeLimit} min
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Click "Edit Screening" to modify questions, time limit, or
+                  passing score.
+                </p>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-slate-400">
+                <div className="text-4xl mb-3">📝</div>
+                <p className="font-medium">No screening test yet</p>
+                <p className="text-sm mt-2">
+                  Create a screening test to evaluate worker knowledge before
+                  they start working.
+                </p>
+              </div>
+            )
           ) : (
-            <div className="text-center py-8 text-slate-400">
-              <p>No screening attached</p>
-              <p className="text-sm mt-2">
-                Create a screening in the Screenings management page
-              </p>
+            // Edit Mode - Full Screening Editor
+            <div className="space-y-6">
+              {/* Settings */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">
+                    Test Title
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Data Entry Skills Test"
+                    value={screeningForm.title}
+                    onChange={(e) =>
+                      setScreeningForm({
+                        ...screeningForm,
+                        title: e.target.value,
+                      })
+                    }
+                    className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">
+                    Time Limit (min)
+                  </label>
+                  <input
+                    type="number"
+                    min={5}
+                    max={120}
+                    value={screeningForm.timeLimit}
+                    onChange={(e) =>
+                      setScreeningForm({
+                        ...screeningForm,
+                        timeLimit: Number(e.target.value),
+                      })
+                    }
+                    className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">
+                    Pass Score (%)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={screeningForm.passingScore}
+                    onChange={(e) =>
+                      setScreeningForm({
+                        ...screeningForm,
+                        passingScore: Number(e.target.value),
+                      })
+                    }
+                    className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">
+                    Max Attempts
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={10}
+                    value={screeningForm.maxAttempts}
+                    onChange={(e) =>
+                      setScreeningForm({
+                        ...screeningForm,
+                        maxAttempts: Number(e.target.value),
+                      })
+                    }
+                    className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Questions */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-medium">
+                    Questions ({screeningForm.questions.length})
+                  </label>
+                  <button
+                    onClick={addQuestion}
+                    className="px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-sm hover:bg-emerald-500/30"
+                  >
+                    ➕ Add Question
+                  </button>
+                </div>
+
+                {screeningForm.questions.length === 0 ? (
+                  <div className="text-center py-6 border border-dashed border-white/20 rounded-xl text-slate-400">
+                    <p>No questions yet. Click "Add Question" to start.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {screeningForm.questions.map((q, qIdx) => (
+                      <div
+                        key={qIdx}
+                        className="p-4 rounded-xl bg-white/5 border border-white/10"
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <span className="bg-blue-500/20 text-blue-300 text-xs px-2 py-1 rounded">
+                            Q{qIdx + 1}
+                          </span>
+                          <button
+                            onClick={() => removeQuestion(qIdx)}
+                            className="text-red-400 text-xs hover:text-red-300"
+                          >
+                            🗑 Remove
+                          </button>
+                        </div>
+
+                        <input
+                          type="text"
+                          placeholder="Enter your question..."
+                          value={q.question}
+                          onChange={(e) =>
+                            updateQuestion(qIdx, "question", e.target.value)
+                          }
+                          className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm mb-3"
+                        />
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          {q.options.map((opt, optIdx) => (
+                            <div
+                              key={optIdx}
+                              className="flex items-center gap-2"
+                            >
+                              <button
+                                onClick={() =>
+                                  updateQuestion(qIdx, "correctAnswer", optIdx)
+                                }
+                                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition ${
+                                  q.correctAnswer === optIdx
+                                    ? "bg-emerald-500 text-white"
+                                    : "bg-white/10 text-slate-400 hover:bg-white/20"
+                                }`}
+                              >
+                                {String.fromCharCode(65 + optIdx)}
+                              </button>
+                              <input
+                                type="text"
+                                placeholder={`Option ${String.fromCharCode(65 + optIdx)}`}
+                                value={opt}
+                                onChange={(e) =>
+                                  updateOption(qIdx, optIdx, e.target.value)
+                                }
+                                className="flex-1 bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-xs text-slate-500 mt-2">
+                          Click a letter button to mark it as the correct answer
+                          (currently:{" "}
+                          {String.fromCharCode(65 + q.correctAnswer)})
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-4 border-t border-white/10">
+                <button
+                  onClick={saveScreening}
+                  disabled={saving}
+                  className="btn-primary disabled:opacity-50"
+                >
+                  {saving ? "Saving..." : "💾 Save Screening"}
+                </button>
+                <button
+                  onClick={() => setScreeningMode("view")}
+                  className="btn-secondary"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           )}
-          <p className="text-xs text-slate-500 mt-4">
-            To attach a screening, use the Workspace → Screenings page to create
-            one, then update this job role.
-          </p>
         </div>
       )}
 
@@ -601,14 +992,232 @@ export default function AdminJobRolePage() {
         </div>
       )}
 
-      {/* Projects Tab */}
+      {/* Projects Tab - PATCH_46: Full Project Management */}
       {activeTab === "projects" && (
         <div className="card">
-          <h3 className="font-semibold mb-4">Project Management</h3>
-          <p className="text-slate-400 text-center py-8">
-            Project assignment coming soon. Use the Workspace → Projects page to
-            manage projects.
-          </p>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold">💼 Project Management</h3>
+            {projectMode === "list" && (
+              <button
+                onClick={() => setProjectMode("create")}
+                className="px-3 py-1 rounded-lg bg-blue-500/20 text-blue-300 text-sm hover:bg-blue-500/30"
+              >
+                ➕ Create Project
+              </button>
+            )}
+          </div>
+
+          {projectMode === "list" ? (
+            // List Mode
+            <>
+              {projects.length === 0 ? (
+                <div className="text-center py-8 text-slate-400">
+                  <div className="text-4xl mb-3">📦</div>
+                  <p className="font-medium">No projects yet</p>
+                  <p className="text-sm mt-2">
+                    Create projects to assign work to ready workers.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {projects.map((proj) => (
+                    <div
+                      key={proj._id}
+                      className="p-4 rounded-xl bg-white/5 border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-3"
+                    >
+                      <div>
+                        <p className="font-medium">{proj.title}</p>
+                        <div className="flex flex-wrap gap-3 mt-1 text-sm text-slate-400">
+                          <span>
+                            💰 ${proj.payRate} {proj.payType}
+                          </span>
+                          <span
+                            className={`px-2 py-0.5 rounded text-xs ${
+                              proj.status === "active"
+                                ? "bg-emerald-500/20 text-emerald-300"
+                                : proj.status === "completed"
+                                  ? "bg-blue-500/20 text-blue-300"
+                                  : "bg-slate-500/20 text-slate-300"
+                            }`}
+                          >
+                            {proj.status}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {proj.status === "draft" && (
+                          <button className="px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-sm hover:bg-emerald-500/30">
+                            Activate
+                          </button>
+                        )}
+                        {proj.status === "active" && !proj.assignedWorker && (
+                          <button className="px-3 py-1 rounded-lg bg-blue-500/20 text-blue-300 text-sm hover:bg-blue-500/30">
+                            Assign Worker
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Ready Workers for Assignment */}
+              <div className="mt-6 pt-4 border-t border-white/10">
+                <h4 className="text-sm font-medium mb-3">
+                  🟢 Ready Workers (
+                  {
+                    applicants.filter((a) => a.workerStatus === "ready_to_work")
+                      .length
+                  }
+                  )
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {applicants
+                    .filter((a) => a.workerStatus === "ready_to_work")
+                    .map((worker) => (
+                      <div
+                        key={worker._id}
+                        className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between"
+                      >
+                        <div>
+                          <p className="font-medium text-sm">
+                            {worker.user?.name}
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            {worker.user?.email}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() =>
+                            setWorkerStatus(worker._id, "assigned")
+                          }
+                          disabled={saving}
+                          className="px-2 py-1 rounded bg-blue-500/20 text-blue-300 text-xs hover:bg-blue-500/30"
+                        >
+                          Assign
+                        </button>
+                      </div>
+                    ))}
+                  {applicants.filter((a) => a.workerStatus === "ready_to_work")
+                    .length === 0 && (
+                    <p className="text-sm text-slate-500 col-span-2">
+                      No workers ready for assignment yet.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : (
+            // Create Mode
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">
+                    Project Title
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Data Entry Batch #1"
+                    value={projectForm.title}
+                    onChange={(e) =>
+                      setProjectForm({ ...projectForm, title: e.target.value })
+                    }
+                    className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">
+                    Pay Type
+                  </label>
+                  <select
+                    value={projectForm.payType}
+                    onChange={(e) =>
+                      setProjectForm({
+                        ...projectForm,
+                        payType: e.target.value as any,
+                      })
+                    }
+                    className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                  >
+                    <option value="per_task">Per Task</option>
+                    <option value="hourly">Hourly</option>
+                    <option value="fixed">Fixed</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">
+                    Pay Rate ($)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={projectForm.payRate}
+                    onChange={(e) =>
+                      setProjectForm({
+                        ...projectForm,
+                        payRate: Number(e.target.value),
+                      })
+                    }
+                    className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">
+                    Deadline (optional)
+                  </label>
+                  <input
+                    type="date"
+                    value={projectForm.deadline || ""}
+                    onChange={(e) =>
+                      setProjectForm({
+                        ...projectForm,
+                        deadline: e.target.value,
+                      })
+                    }
+                    className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">
+                  Description
+                </label>
+                <textarea
+                  placeholder="Describe the project tasks and requirements..."
+                  value={projectForm.description || ""}
+                  onChange={(e) =>
+                    setProjectForm({
+                      ...projectForm,
+                      description: e.target.value,
+                    })
+                  }
+                  rows={3}
+                  className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-white/10">
+                <button
+                  onClick={createProject}
+                  disabled={saving}
+                  className="btn-primary disabled:opacity-50"
+                >
+                  {saving ? "Creating..." : "📦 Create Project"}
+                </button>
+                <button
+                  onClick={() => setProjectMode("list")}
+                  className="btn-secondary"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

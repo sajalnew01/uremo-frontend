@@ -23,6 +23,8 @@ interface Project {
     lastName: string;
   };
   earnings: number;
+  earningsCredited?: number; // PATCH_48: Track if earnings were credited
+  completionNotes?: string; // PATCH_48: Worker's completion notes
   deadline?: string;
   createdAt: string;
 }
@@ -67,6 +69,12 @@ function ProjectsContent() {
   // Assign modal state
   const [assignModal, setAssignModal] = useState<Project | null>(null);
   const [selectedWorker, setSelectedWorker] = useState<string>("");
+
+  // PATCH_48: Credit earnings modal state
+  const [creditModal, setCreditModal] = useState<Project | null>(null);
+  const [creditAmount, setCreditAmount] = useState<number>(0);
+  const [creditRating, setCreditRating] = useState<number>(5);
+  const [crediting, setCrediting] = useState(false);
 
   useEffect(() => {
     loadProjects();
@@ -144,6 +152,30 @@ function ProjectsContent() {
       loadProjects();
     } catch (e: any) {
       setError(e.message || "Failed to assign project");
+    }
+  };
+
+  // PATCH_48: Handle credit earnings
+  const handleCreditEarnings = async () => {
+    if (!creditModal || creditAmount <= 0) return;
+
+    setCrediting(true);
+    try {
+      await apiRequest(
+        `/api/admin/workspace/project/${creditModal._id}/credit`,
+        "PUT",
+        { amount: creditAmount, rating: creditRating },
+        true,
+      );
+      setSuccess(`$${creditAmount.toFixed(2)} credited to worker!`);
+      setCreditModal(null);
+      setCreditAmount(0);
+      setCreditRating(5);
+      loadProjects();
+    } catch (e: any) {
+      setError(e.message || "Failed to credit earnings");
+    } finally {
+      setCrediting(false);
     }
   };
 
@@ -283,6 +315,25 @@ function ProjectsContent() {
                       Assign
                     </button>
                   )}
+                  {/* PATCH_48: Credit button for completed projects */}
+                  {project.status === "completed" &&
+                    !project.earningsCredited && (
+                      <button
+                        onClick={() => {
+                          setCreditModal(project);
+                          setCreditAmount(project.earnings || 0);
+                        }}
+                        className="btn-primary text-sm"
+                      >
+                        💰 Credit
+                      </button>
+                    )}
+                  {project.status === "completed" &&
+                    project.earningsCredited && (
+                      <span className="text-xs text-emerald-400">
+                        ✅ Credited
+                      </span>
+                    )}
                 </div>
               </div>
             </div>
@@ -464,6 +515,82 @@ function ProjectsContent() {
                 className="btn-primary flex-1 disabled:opacity-50"
               >
                 Assign
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PATCH_48: Credit Earnings Modal */}
+      {creditModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 rounded-2xl p-6 w-full max-w-md border border-white/10">
+            <h2 className="text-xl font-bold mb-2">💰 Credit Earnings</h2>
+            <p className="text-sm text-slate-400 mb-4">
+              Credit earnings for &quot;{creditModal.title}&quot;
+            </p>
+
+            <div className="mb-4">
+              <label className="block text-sm text-slate-400 mb-1">
+                Amount ($)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={creditAmount}
+                onChange={(e) =>
+                  setCreditAmount(parseFloat(e.target.value) || 0)
+                }
+                className="input w-full"
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                Default payout: ${creditModal.earnings?.toFixed(2) || "0.00"}
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm text-slate-400 mb-1">
+                Rating (1-5 stars)
+              </label>
+              <div className="flex gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setCreditRating(star)}
+                    className={`text-2xl transition-transform hover:scale-110 ${
+                      star <= creditRating
+                        ? "grayscale-0"
+                        : "grayscale opacity-30"
+                    }`}
+                  >
+                    ⭐
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setCreditModal(null);
+                  setCreditAmount(0);
+                  setCreditRating(5);
+                }}
+                className="btn-secondary flex-1"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreditEarnings}
+                disabled={crediting || creditAmount <= 0}
+                className="btn-primary flex-1 disabled:opacity-50"
+              >
+                {crediting
+                  ? "Crediting..."
+                  : `Credit $${creditAmount.toFixed(2)}`}
               </button>
             </div>
           </div>
