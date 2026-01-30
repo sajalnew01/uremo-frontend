@@ -62,7 +62,11 @@ type JobApplication = {
     | "ready_to_work"
     | "assigned"
     | "working"
-    | "suspended";
+    | "suspended"
+    // Legacy statuses (backwards compat)
+    | "fresh"
+    | "screening_available"
+    | "inactive";
   applicationStatus: "pending" | "approved" | "rejected";
   attemptCount: number;
   maxAttempts: number;
@@ -279,7 +283,7 @@ function getStatusCTA(app: JobApplication): {
         action: "project",
         href: app.assignedProjects?.[0]
           ? `/workspace/project/${app.assignedProjects[0]._id}`
-          : undefined,
+          : "/workspace/projects",
       };
     case "working":
       return {
@@ -287,12 +291,35 @@ function getStatusCTA(app: JobApplication): {
         action: "submit",
         href: app.assignedProjects?.[0]
           ? `/workspace/project/${app.assignedProjects[0]._id}`
-          : undefined,
+          : "/workspace/projects",
       };
     case "suspended":
       return { text: "❌ Account Suspended", action: null, disabled: true };
+    // Legacy statuses (backwards compat)
+    case "fresh":
+      return {
+        text: "⏳ Waiting for Admin Approval",
+        action: null,
+        disabled: true,
+      };
+    case "screening_available":
+      return {
+        text: "📚 Start Training",
+        action: "training",
+        href: "/workspace",
+      };
+    case "inactive":
+      return {
+        text: "⏳ Inactive",
+        action: null,
+        disabled: true,
+      };
     default:
-      return { text: "View Details", action: null };
+      return {
+        text: "View Details",
+        action: "details",
+        href: "/apply-to-work",
+      };
   }
 }
 
@@ -774,6 +801,12 @@ export default function WorkspacePage() {
       <div className="mb-6 flex gap-3 flex-wrap">
         <Link href="/apply-to-work" className="btn-primary">
           + Apply to New Position
+        </Link>
+        <Link href="/workspace/projects" className="btn-secondary">
+          📂 My Projects
+        </Link>
+        <Link href="/workspace/my-proofs" className="btn-secondary">
+          📋 My Proofs
         </Link>
         <Link href="/wallet" className="btn-secondary">
           💰 Wallet

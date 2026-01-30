@@ -5,6 +5,7 @@
 // With TrustBadges and premium UX
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { getApiBaseUrl } from "@/lib/api";
 import { onServicesRefresh } from "@/lib/events";
 import Link from "next/link";
@@ -87,6 +88,7 @@ export default function AvailServicePage() {
   const servicesCopy =
     settings?.services?.list || DEFAULT_PUBLIC_SITE_SETTINGS.services.list;
 
+  const router = useRouter();
   // PATCH_19: 3-step flow state
   const [step, setStep] = useState<Step>(1);
   const [services, setServices] = useState<Service[]>([]);
@@ -422,6 +424,13 @@ export default function AvailServicePage() {
           <TrustBadges variant="horizontal" />
         </div>
 
+        {/* PATCH_48: Public PoW messaging (no public proof galleries) */}
+        <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-5">
+          <p className="text-sm text-slate-200">
+            All work is manually reviewed by UREMO moderators before approval.
+          </p>
+        </div>
+
         {/* PATCH_19: Step indicator */}
         {step > 1 && (
           <div className="mt-4 flex items-center gap-2 text-sm text-slate-400">
@@ -453,7 +462,7 @@ export default function AvailServicePage() {
           <div className="mb-8 grid md:grid-cols-3 gap-4">
             <button
               type="button"
-              onClick={() => handleCategorySelect("online_gigs")}
+              onClick={() => router.push("/apply-to-work?category=online_gigs")}
               className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-blue-500/20 via-transparent to-transparent p-6 text-left transition-all hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/10"
             >
               <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-blue-500/10 blur-2xl transform translate-x-8 -translate-y-8 group-hover:scale-150 transition-transform" />

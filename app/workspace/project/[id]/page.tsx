@@ -8,7 +8,8 @@ import { useToast } from "@/hooks/useToast";
 
 /**
  * PATCH_47: Project Detail Page
- * Worker views project details and can submit completion
+ * PATCH_48: Added Proof of Work submission
+ * Worker views project details and can submit proof
  */
 
 type Project = {
@@ -24,6 +25,15 @@ type Project = {
   deliverables?: { title: string; description: string; required: boolean }[];
 };
 
+type Proof = {
+  _id: string;
+  status: "pending" | "approved" | "rejected";
+  submissionText: string;
+  attachments: { url: string; filename?: string }[];
+  rejectionReason?: string;
+  createdAt: string;
+};
+
 export default function ProjectDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -37,6 +47,12 @@ export default function ProjectDetailPage() {
   const [completionNotes, setCompletionNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // PATCH_48: Proof of work state
+  const [proof, setProof] = useState<Proof | null>(null);
+  const [proofText, setProofText] = useState("");
+  const [proofFiles, setProofFiles] = useState<File[]>([]);
+  const [proofSubmitting, setProofSubmitting] = useState(false);
+
   useEffect(() => {
     const loadProject = async () => {
       if (!projectId) return;
@@ -49,6 +65,17 @@ export default function ProjectDetailPage() {
           true,
         );
         setProject(res.project);
+
+        // Load existing proof
+        const proofRes = await apiRequest(
+          `/api/workspace/project/${projectId}/proof`,
+          "GET",
+          null,
+          true,
+        );
+        if (proofRes.proof) {
+          setProof(proofRes.proof);
+        }
       } catch (e: any) {
         setError(e?.message || "Failed to load project");
       } finally {
@@ -99,6 +126,60 @@ export default function ProjectDetailPage() {
       toast(e?.message || "Failed to submit", "error");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // PATCH_48: Submit proof of work
+  const submitProof = async () => {
+    if (!proofText.trim()) {
+      toast("Please describe your work", "error");
+      return;
+    }
+    setProofSubmitting(true);
+    try {
+      // Upload files first if any
+      const attachments: { url: string; filename: string }[] = [];
+      for (const file of proofFiles) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const uploadRes = await apiRequest(
+          "/api/upload/chat",
+          "POST",
+          formData,
+          true,
+          true,
+        );
+        attachments.push({
+          url: uploadRes.url,
+          filename: file.name,
+        });
+      }
+
+      await apiRequest(
+        `/api/workspace/project/${projectId}/proof`,
+        "POST",
+        {
+          submissionText: proofText,
+          attachments,
+        },
+        true,
+      );
+      toast("Proof submitted successfully!", "success");
+
+      // Reload proof
+      const proofRes = await apiRequest(
+        `/api/workspace/project/${projectId}/proof`,
+        "GET",
+        null,
+        true,
+      );
+      setProof(proofRes.proof);
+      setProofText("");
+      setProofFiles([]);
+    } catch (e: any) {
+      toast(e?.message || "Failed to submit proof", "error");
+    } finally {
+      setProofSubmitting(false);
     }
   };
 
@@ -246,32 +327,98 @@ export default function ProjectDetailPage() {
 
       {project.status === "in_progress" && (
         <div className="card">
-          <h3 className="font-medium mb-4">Submit Completion</h3>
-          <p className="text-slate-400 text-sm mb-4">
-            Once you've completed all the work, add your notes and submit for
-            review.
-          </p>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm text-slate-400 block mb-1">
-                Completion Notes
-              </label>
-              <textarea
-                value={completionNotes}
-                onChange={(e) => setCompletionNotes(e.target.value)}
-                placeholder="Describe what you completed, any files submitted, links, etc..."
-                rows={4}
-                className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
-              />
-            </div>
-            <button
-              onClick={submitProject}
-              disabled={submitting || !completionNotes.trim()}
-              className="btn-primary disabled:opacity-50"
+          <h3 className="font-medium mb-4">📤 Submit Proof of Work</h3>
+
+          {/* Existing proof status */}
+          {proof && (
+            <div
+              className={`p-4 rounded-xl mb-4 border ${
+                proof.status === "pending"
+                  ? "bg-amber-500/10 border-amber-500/30"
+                  : proof.status === "approved"
+                    ? "bg-emerald-500/10 border-emerald-500/30"
+                    : "bg-red-500/10 border-red-500/30"
+              }`}
             >
-              {submitting ? "Submitting..." : "Submit for Review"}
-            </button>
-          </div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-medium">Proof Status:</span>
+                <span
+                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    proof.status === "pending"
+                      ? "bg-amber-500/20 text-amber-300"
+                      : proof.status === "approved"
+                        ? "bg-emerald-500/20 text-emerald-300"
+                        : "bg-red-500/20 text-red-300"
+                  }`}
+                >
+                  {proof.status.toUpperCase()}
+                </span>
+              </div>
+              {proof.status === "rejected" && proof.rejectionReason && (
+                <div className="mt-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                  <p className="text-sm text-red-300">
+                    <span className="font-medium">Rejection Reason:</span>{" "}
+                    {proof.rejectionReason}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-2">
+                    You can resubmit your proof below.
+                  </p>
+                </div>
+              )}
+              {proof.status === "pending" && (
+                <p className="text-sm text-slate-400">
+                  Your proof is being reviewed by our team.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Submit form (show if no proof or rejected) */}
+          {(!proof || proof.status === "rejected") && (
+            <div className="space-y-4">
+              <p className="text-slate-400 text-sm mb-4">
+                Submit proof of your completed work including screenshots,
+                links, or descriptions.
+              </p>
+              <div>
+                <label className="text-sm text-slate-400 block mb-1">
+                  Describe Your Work *
+                </label>
+                <textarea
+                  value={proofText}
+                  onChange={(e) => setProofText(e.target.value)}
+                  placeholder="Describe what you completed, include links, explain the deliverables..."
+                  rows={5}
+                  className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 block mb-1">
+                  Attachments (Screenshots, PDFs, etc.)
+                </label>
+                <input
+                  type="file"
+                  multiple
+                  onChange={(e) =>
+                    setProofFiles(Array.from(e.target.files || []))
+                  }
+                  className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                />
+                {proofFiles.length > 0 && (
+                  <p className="text-xs text-slate-500 mt-1">
+                    {proofFiles.length} file(s) selected
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={submitProof}
+                disabled={proofSubmitting || !proofText.trim()}
+                className="btn-primary disabled:opacity-50"
+              >
+                {proofSubmitting ? "Submitting..." : "Submit Proof of Work"}
+              </button>
+            </div>
+          )}
         </div>
       )}
 

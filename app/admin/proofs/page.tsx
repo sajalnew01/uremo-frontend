@@ -1,0 +1,391 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { apiRequest } from "@/lib/api";
+import { useToast } from "@/hooks/useToast";
+
+/**
+ * PATCH_48: Admin Proofs Page
+ * Review and approve/reject worker proof submissions
+ */
+
+type Proof = {
+  _id: string;
+  workerId: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  projectId: {
+    _id: string;
+    title: string;
+    payRate?: number;
+    status?: string;
+  };
+  jobRoleId?: {
+    title: string;
+  };
+  status: "pending" | "approved" | "rejected";
+  submissionText: string;
+  attachments: { url: string; filename?: string }[];
+  rejectionReason?: string;
+  reviewedBy?: {
+    firstName: string;
+    lastName: string;
+  };
+  reviewedAt?: string;
+  createdAt: string;
+};
+
+type Stats = {
+  pending: number;
+  approved: number;
+  rejected: number;
+};
+
+export default function AdminProofsPage() {
+  const { toast } = useToast();
+  const [proofs, setProofs] = useState<Proof[]>([]);
+  const [stats, setStats] = useState<Stats>({
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<string>("pending");
+
+  // Modal states
+  const [selectedProof, setSelectedProof] = useState<Proof | null>(null);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [processing, setProcessing] = useState(false);
+
+  useEffect(() => {
+    loadProofs();
+  }, [filter]);
+
+  const loadProofs = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (filter !== "all") params.set("status", filter);
+      const res = await apiRequest(
+        `/api/admin/proofs?${params.toString()}`,
+        "GET",
+        null,
+        true,
+      );
+      setProofs(res.proofs || []);
+      setStats(res.stats || { pending: 0, approved: 0, rejected: 0 });
+    } catch (e: any) {
+      toast(e?.message || "Failed to load proofs", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApprove = async (proof: Proof) => {
+    if (
+      !confirm(
+        `Approve this proof and credit $${proof.projectId?.payRate || 0} to the worker?`,
+      )
+    ) {
+      return;
+    }
+    setProcessing(true);
+    try {
+      await apiRequest(
+        `/api/admin/proofs/${proof._id}/approve`,
+        "PUT",
+        {},
+        true,
+      );
+      toast("Proof approved and earnings credited!", "success");
+      loadProofs();
+    } catch (e: any) {
+      toast(e?.message || "Failed to approve", "error");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!selectedProof || !rejectionReason.trim()) {
+      toast("Please provide a rejection reason", "error");
+      return;
+    }
+    setProcessing(true);
+    try {
+      await apiRequest(
+        `/api/admin/proofs/${selectedProof._id}/reject`,
+        "PUT",
+        { rejectionReason },
+        true,
+      );
+      toast("Proof rejected", "success");
+      setShowRejectModal(false);
+      setSelectedProof(null);
+      setRejectionReason("");
+      loadProofs();
+    } catch (e: any) {
+      toast(e?.message || "Failed to reject", "error");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "pending":
+        return "bg-amber-500/20 text-amber-300";
+      case "approved":
+        return "bg-emerald-500/20 text-emerald-300";
+      case "rejected":
+        return "bg-red-500/20 text-red-300";
+      default:
+        return "bg-slate-500/20 text-slate-300";
+    }
+  };
+
+  return (
+    <div className="u-container max-w-6xl">
+      {/* Header */}
+      <div className="mb-6">
+        <Link
+          href="/admin"
+          className="text-sm text-slate-400 hover:text-white mb-2 inline-block"
+        >
+          ← Back to Admin
+        </Link>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">📋 Proof of Work Review</h1>
+            <p className="text-slate-400 text-sm">
+              Review and approve worker submissions
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
+          <p className="text-2xl font-bold text-amber-400">{stats.pending}</p>
+          <p className="text-sm text-slate-400">Pending Review</p>
+        </div>
+        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+          <p className="text-2xl font-bold text-emerald-400">
+            {stats.approved}
+          </p>
+          <p className="text-sm text-slate-400">Approved</p>
+        </div>
+        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30">
+          <p className="text-2xl font-bold text-red-400">{stats.rejected}</p>
+          <p className="text-sm text-slate-400">Rejected</p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex gap-2 mb-6">
+        {["pending", "all", "approved", "rejected"].map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`px-4 py-2 rounded-lg text-sm transition-colors ${
+              filter === f
+                ? "bg-blue-600 text-white"
+                : "bg-white/5 text-slate-400 hover:bg-white/10"
+            }`}
+          >
+            {f.charAt(0).toUpperCase() + f.slice(1)}
+            {f === "pending" && stats.pending > 0 && (
+              <span className="ml-2 px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-xs">
+                {stats.pending}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Loading */}
+      {loading && (
+        <div className="text-center py-12">
+          <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4" />
+          <p className="text-slate-400">Loading proofs...</p>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && proofs.length === 0 && (
+        <div className="text-center py-12 card">
+          <div className="text-4xl mb-4">📭</div>
+          <p className="text-slate-400">No proofs to review</p>
+        </div>
+      )}
+
+      {/* Proofs List */}
+      {!loading && proofs.length > 0 && (
+        <div className="space-y-4">
+          {proofs.map((proof) => (
+            <div
+              key={proof._id}
+              className="card hover:border-white/20 transition-colors"
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold text-white">
+                      {proof.projectId?.title || "Unknown Project"}
+                    </h3>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-xs ${getStatusBadge(
+                        proof.status,
+                      )}`}
+                    >
+                      {proof.status.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4 text-sm text-slate-400">
+                    <span>
+                      👤 {proof.workerId?.firstName} {proof.workerId?.lastName}
+                    </span>
+                    <span>📧 {proof.workerId?.email}</span>
+                    {proof.jobRoleId && <span>💼 {proof.jobRoleId.title}</span>}
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  {proof.projectId?.payRate != null && (
+                    <p className="text-lg font-bold text-emerald-400">
+                      ${proof.projectId.payRate}
+                    </p>
+                  )}
+                  <p className="text-xs text-slate-500">
+                    {new Date(proof.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+
+              {/* Submission Text */}
+              <div className="p-4 rounded-xl bg-white/5 border border-white/10 mb-4">
+                <p className="text-sm text-slate-300 whitespace-pre-wrap">
+                  {proof.submissionText}
+                </p>
+              </div>
+
+              {/* Attachments */}
+              {proof.attachments && proof.attachments.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-sm text-slate-400 mb-2">📎 Attachments:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {proof.attachments.map((att, idx) => (
+                      <a
+                        key={idx}
+                        href={att.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1.5 rounded-lg bg-blue-500/20 text-blue-300 text-sm hover:bg-blue-500/30 transition-colors"
+                      >
+                        {att.filename || `Attachment ${idx + 1}`} ↗
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Rejection reason if rejected */}
+              {proof.status === "rejected" && proof.rejectionReason && (
+                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 mb-4">
+                  <p className="text-sm text-red-300">
+                    <span className="font-medium">Rejection Reason:</span>{" "}
+                    {proof.rejectionReason}
+                  </p>
+                </div>
+              )}
+
+              {/* Review info if reviewed */}
+              {proof.reviewedBy && proof.reviewedAt && (
+                <p className="text-xs text-slate-500 mb-4">
+                  Reviewed by {proof.reviewedBy.firstName}{" "}
+                  {proof.reviewedBy.lastName} on{" "}
+                  {new Date(proof.reviewedAt).toLocaleDateString()}
+                </p>
+              )}
+
+              {/* Actions */}
+              {proof.status === "pending" && (
+                <div className="flex gap-3 pt-4 border-t border-white/10">
+                  <button
+                    onClick={() => handleApprove(proof)}
+                    disabled={processing}
+                    className="btn-primary disabled:opacity-50"
+                  >
+                    ✅ Approve & Credit ${proof.projectId?.payRate || 0}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedProof(proof);
+                      setShowRejectModal(true);
+                    }}
+                    disabled={processing}
+                    className="btn-secondary text-red-400 hover:text-red-300 disabled:opacity-50"
+                  >
+                    ❌ Reject
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Reject Modal */}
+      {showRejectModal && selectedProof && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 rounded-2xl p-6 w-full max-w-md border border-white/10">
+            <h2 className="text-xl font-bold mb-2">❌ Reject Proof</h2>
+            <p className="text-sm text-slate-400 mb-4">
+              Reject proof for &quot;{selectedProof.projectId?.title}&quot;
+            </p>
+
+            <div className="mb-4">
+              <label className="block text-sm text-slate-400 mb-1">
+                Rejection Reason *
+              </label>
+              <textarea
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Explain why this proof is being rejected..."
+                rows={4}
+                className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowRejectModal(false);
+                  setSelectedProof(null);
+                  setRejectionReason("");
+                }}
+                className="btn-secondary flex-1"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReject}
+                disabled={processing || !rejectionReason.trim()}
+                className="btn-primary bg-red-600 hover:bg-red-500 flex-1 disabled:opacity-50"
+              >
+                {processing ? "Rejecting..." : "Reject Proof"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

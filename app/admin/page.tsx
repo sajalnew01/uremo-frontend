@@ -3,6 +3,16 @@
 import Link from "next/link";
 
 const adminModules = [
+  // PATCH_48: Proof of Work Review (high priority)
+  {
+    title: "Proof Review",
+    description: "Review & approve worker proof submissions",
+    href: "/admin/proofs",
+    icon: "✅",
+    gradient: "from-emerald-500/20 to-green-500/20",
+    borderColor: "border-emerald-500/30",
+    hoverBorder: "hover:border-emerald-500/50",
+  },
   // PATCH_44: Workspace Management Hub
   {
     title: "Workspace",

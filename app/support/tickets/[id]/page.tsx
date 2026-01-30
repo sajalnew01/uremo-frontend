@@ -127,7 +127,7 @@ export default function TicketViewPage() {
         formData.append("file", file);
 
         const uploadRes = await apiRequest<any>(
-          "/api/uploads/chat",
+          "/api/upload/chat",
           "POST",
           formData,
           true,

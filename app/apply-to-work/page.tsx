@@ -57,6 +57,11 @@ export default function ApplyToWorkPage() {
       const params = new URLSearchParams(window.location.search);
       setRequestedPositionId(params.get("positionId") || "");
 
+      const requestedCategory = String(params.get("category") || "").trim();
+      if (requestedCategory) {
+        setCategoryFilter(requestedCategory);
+      }
+
       // PATCH_47: Capture service context
       const svcId = params.get("serviceId") || "";
       const svcTitle = params.get("serviceTitle") || "";
@@ -122,6 +127,14 @@ export default function ApplyToWorkPage() {
       const list = Array.isArray(data) ? data : [];
       const activeOnly = list.filter((p) => p && p.active !== false);
       setPositions(activeOnly);
+
+      // If a category was requested via query param but doesn't exist, fall back.
+      if (
+        categoryFilter !== "all" &&
+        !activeOnly.some((p) => String(p.category || "") === categoryFilter)
+      ) {
+        setCategoryFilter("all");
+      }
 
       const preferredId = requestedPositionId.trim();
       if (preferredId && activeOnly.some((p) => p._id === preferredId)) {
