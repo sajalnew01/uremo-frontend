@@ -3,6 +3,16 @@
 import Link from "next/link";
 
 const adminModules = [
+  // PATCH_44: Workspace Management Hub
+  {
+    title: "Workspace",
+    description: "Manage workers, projects, screenings & job roles",
+    href: "/admin/workspace",
+    icon: "⚡",
+    gradient: "from-amber-500/20 to-orange-500/20",
+    borderColor: "border-amber-500/30",
+    hoverBorder: "hover:border-amber-500/50",
+  },
   {
     title: "Services",
     description: "Add & manage marketplace services",
@@ -96,6 +106,26 @@ const adminModules = [
     gradient: "from-indigo-500/20 to-violet-500/20",
     borderColor: "border-indigo-500/30",
     hoverBorder: "hover:border-indigo-500/50",
+  },
+  // PATCH_44: Analytics Dashboard
+  {
+    title: "Analytics",
+    description: "View platform statistics & insights",
+    href: "/admin/analytics",
+    icon: "📊",
+    gradient: "from-cyan-500/20 to-blue-500/20",
+    borderColor: "border-cyan-500/30",
+    hoverBorder: "hover:border-cyan-500/50",
+  },
+  // PATCH_44: Support Tickets
+  {
+    title: "Support Tickets",
+    description: "Manage customer support requests",
+    href: "/admin/tickets",
+    icon: "🎫",
+    gradient: "from-red-500/20 to-rose-500/20",
+    borderColor: "border-red-500/30",
+    hoverBorder: "hover:border-red-500/50",
   },
   {
     title: "Blogs",
