@@ -6,6 +6,7 @@ import { apiRequest } from "@/lib/api";
 
 /**
  * PATCH_44: Admin Workspace Hub
+ * PATCH_49: Enhanced with better summary cards and UX
  * Central dashboard for managing workers, projects, screenings, and job roles
  */
 
@@ -16,6 +17,9 @@ interface WorkspaceStats {
   totalProjects: number;
   activeProjects: number;
   totalScreenings: number;
+  workersWaitingScreening: number;
+  workersReadyToWork: number;
+  totalJobRoles: number;
 }
 
 const workspaceModules = [
@@ -60,7 +64,7 @@ export default function AdminWorkspacePage() {
   useEffect(() => {
     const loadStats = async () => {
       try {
-        // Load workers count
+        // PATCH_49: Enhanced stats loading with more granular counts
         const workersRes = await apiRequest<any>(
           "/api/admin/workspace/workers?limit=1",
           "GET",
@@ -79,6 +83,19 @@ export default function AdminWorkspacePage() {
           null,
           true,
         );
+        // PATCH_49: Get job roles count
+        let jobRolesCount = 0;
+        try {
+          const jobRolesRes = await apiRequest<any[]>(
+            "/api/admin/work-positions",
+            "GET",
+            null,
+            true,
+          );
+          jobRolesCount = Array.isArray(jobRolesRes) ? jobRolesRes.length : 0;
+        } catch {
+          // Ignore errors
+        }
 
         setStats({
           totalWorkers: workersRes.total || 0,
@@ -87,6 +104,9 @@ export default function AdminWorkspacePage() {
           totalProjects: projectsRes.total || 0,
           activeProjects: projectsRes.activeCount || 0,
           totalScreenings: screeningsRes.screenings?.length || 0,
+          workersWaitingScreening: workersRes.waitingScreeningCount || 0,
+          workersReadyToWork: workersRes.readyToWorkCount || 0,
+          totalJobRoles: jobRolesCount,
         });
       } catch (e) {
         console.error("Failed to load workspace stats:", e);
@@ -118,32 +138,65 @@ export default function AdminWorkspacePage() {
         </div>
       </div>
 
-      {/* Stats Overview */}
+      {/* PATCH_49: Enhanced Stats Overview with more metrics */}
       {!loading && stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="card text-center">
-            <p className="text-2xl font-bold text-blue-400">
-              {stats.totalWorkers}
-            </p>
-            <p className="text-xs text-slate-400">Total Workers</p>
+        <div className="space-y-4 mb-8">
+          {/* Primary Stats Row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="card text-center">
+              <p className="text-2xl font-bold text-purple-400">
+                {stats.totalJobRoles}
+              </p>
+              <p className="text-xs text-slate-400">Total Job Roles</p>
+            </div>
+            <div className="card text-center">
+              <p className="text-2xl font-bold text-amber-400">
+                {stats.workersWaitingScreening || stats.pendingApplicants}
+              </p>
+              <p className="text-xs text-slate-400">
+                Workers Waiting Screening
+              </p>
+            </div>
+            <div className="card text-center">
+              <p className="text-2xl font-bold text-emerald-400">
+                {stats.workersReadyToWork || 0}
+              </p>
+              <p className="text-xs text-slate-400">Workers Ready To Work</p>
+            </div>
+            <div className="card text-center">
+              <p className="text-2xl font-bold text-blue-400">
+                {stats.activeProjects}
+              </p>
+              <p className="text-xs text-slate-400">Active Projects</p>
+            </div>
           </div>
-          <div className="card text-center">
-            <p className="text-2xl font-bold text-emerald-400">
-              {stats.totalProjects}
-            </p>
-            <p className="text-xs text-slate-400">Total Projects</p>
-          </div>
-          <div className="card text-center">
-            <p className="text-2xl font-bold text-amber-400">
-              {stats.totalScreenings}
-            </p>
-            <p className="text-xs text-slate-400">Screenings</p>
-          </div>
-          <div className="card text-center">
-            <p className="text-2xl font-bold text-purple-400">
-              {stats.pendingApplicants}
-            </p>
-            <p className="text-xs text-slate-400">Pending Applicants</p>
+
+          {/* Secondary Stats Row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="card text-center bg-slate-800/50">
+              <p className="text-xl font-bold text-slate-300">
+                {stats.totalWorkers}
+              </p>
+              <p className="text-xs text-slate-500">Total Workers</p>
+            </div>
+            <div className="card text-center bg-slate-800/50">
+              <p className="text-xl font-bold text-slate-300">
+                {stats.totalProjects}
+              </p>
+              <p className="text-xs text-slate-500">Total Projects</p>
+            </div>
+            <div className="card text-center bg-slate-800/50">
+              <p className="text-xl font-bold text-slate-300">
+                {stats.totalScreenings}
+              </p>
+              <p className="text-xs text-slate-500">Screenings</p>
+            </div>
+            <div className="card text-center bg-slate-800/50">
+              <p className="text-xl font-bold text-slate-300">
+                {stats.pendingApplicants}
+              </p>
+              <p className="text-xs text-slate-500">Pending Applicants</p>
+            </div>
           </div>
         </div>
       )}

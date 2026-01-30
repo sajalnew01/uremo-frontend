@@ -199,10 +199,30 @@ export default function ProjectDetailPage() {
       <div className="u-container max-w-3xl">
         <div className="card text-center py-12">
           <div className="text-4xl mb-4">❌</div>
-          <p className="text-red-400 mb-4">{error || "Project not found"}</p>
-          <Link href="/workspace/projects" className="btn-secondary">
-            Back to Projects
-          </Link>
+          <h2 className="text-xl font-semibold text-red-300 mb-2">
+            Something went wrong
+          </h2>
+          <p className="text-slate-400 mb-6">{error || "Project not found"}</p>
+          <div className="flex flex-wrap justify-center gap-3">
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition"
+            >
+              🔄 Retry
+            </button>
+            <Link
+              href="/workspace/projects"
+              className="px-4 py-2 bg-slate-500/20 text-slate-300 rounded-lg hover:bg-slate-500/30 transition"
+            >
+              ← Back to Projects
+            </Link>
+            <Link
+              href="/support"
+              className="px-4 py-2 bg-purple-500/20 text-purple-300 rounded-lg hover:bg-purple-500/30 transition"
+            >
+              📞 Contact Support
+            </Link>
+          </div>
         </div>
       </div>
     );

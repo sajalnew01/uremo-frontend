@@ -89,7 +89,7 @@ export default function AdminProofsPage() {
   const handleApprove = async (proof: Proof) => {
     if (
       !confirm(
-        `Approve this proof and credit $${proof.projectId?.payRate || 0} to the worker?`,
+        `Approve this proof? The project will be marked complete.\n\nNote: You must credit earnings separately in the Projects section.`,
       )
     ) {
       return;
@@ -102,7 +102,7 @@ export default function AdminProofsPage() {
         {},
         true,
       );
-      toast("Proof approved and earnings credited!", "success");
+      toast("Proof approved! Go to Projects to credit earnings.", "success");
       loadProofs();
     } catch (e: any) {
       toast(e?.message || "Failed to approve", "error");
@@ -220,8 +220,23 @@ export default function AdminProofsPage() {
       {/* Empty State */}
       {!loading && proofs.length === 0 && (
         <div className="text-center py-12 card">
-          <div className="text-4xl mb-4">📭</div>
-          <p className="text-slate-400">No proofs to review</p>
+          <div className="text-5xl mb-4">📭</div>
+          <h3 className="text-lg font-semibold text-white mb-2">
+            No Proofs to Review
+          </h3>
+          <p className="text-slate-400 mb-4 max-w-md mx-auto">
+            {filter === "pending"
+              ? "All pending proofs have been reviewed. Great job!"
+              : `No proofs with "${filter}" status.`}
+          </p>
+          {filter !== "pending" && (
+            <button
+              onClick={() => setFilter("pending")}
+              className="px-4 py-2 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition"
+            >
+              View Pending Proofs
+            </button>
+          )}
         </div>
       )}
 

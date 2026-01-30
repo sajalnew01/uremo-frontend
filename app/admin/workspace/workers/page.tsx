@@ -124,8 +124,14 @@ export default function AdminWorkersPage() {
 
       {/* Error */}
       {error && (
-        <div className="p-4 mb-6 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400">
-          {error}
+        <div className="p-4 mb-6 rounded-lg bg-red-500/10 border border-red-500/30 text-center">
+          <p className="text-red-400 mb-3">{error}</p>
+          <button
+            onClick={() => loadWorkers()}
+            className="px-4 py-2 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition"
+          >
+            🔄 Retry
+          </button>
         </div>
       )}
 
@@ -198,8 +204,24 @@ export default function AdminWorkersPage() {
 
       {/* Empty State */}
       {!loading && workers.length === 0 && (
-        <div className="text-center py-12 text-slate-400">
-          No workers found with the selected filter.
+        <div className="text-center py-12">
+          <div className="text-5xl mb-4">👷</div>
+          <h3 className="text-lg font-semibold text-white mb-2">
+            No Workers Found
+          </h3>
+          <p className="text-slate-400 mb-4">
+            {filter === "all"
+              ? "No workers have applied yet. Workers will appear here after they apply to job roles."
+              : `No workers with "${filter}" status found.`}
+          </p>
+          {filter !== "all" && (
+            <button
+              onClick={() => setFilter("all")}
+              className="px-4 py-2 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition"
+            >
+              View All Workers
+            </button>
+          )}
         </div>
       )}
 

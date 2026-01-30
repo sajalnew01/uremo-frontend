@@ -1,18 +1,16 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiRequest } from "@/lib/api";
 import EmptyState from "@/components/ui/EmptyState";
 import { useToast } from "@/hooks/useToast";
 
 /**
- * PATCH_49: Experience Flow Polish + Admin UX Cleanup + Smart Workspace Routing
- *
- * Smart Workspace Landing - Conditional default tab based on worker status:
- * - If any job has workerStatus = "screening_unlocked" or "test_submitted" → SCREENINGS tab
- * - Else if any job has workerStatus = "assigned" or "working" → PROJECTS tab
- * - Else → APPLICATIONS tab
+ * PATCH_43: Worker Journey Engine - Enhanced Workspace Page
+ * PATCH_46: Workspace UX + Job Flow Clarity Upgrade
+ * Multi-job support with independent status per job role
+ * States: Applied → Screening Unlocked → Training Viewed → Test Submitted → Ready To Work → Assigned → Working
  */
 
 type TrainingMaterial = {
@@ -65,6 +63,7 @@ type JobApplication = {
     | "assigned"
     | "working"
     | "suspended"
+    // Legacy statuses (backwards compat)
     | "fresh"
     | "screening_available"
     | "inactive";
@@ -79,13 +78,31 @@ type JobApplication = {
   assignedProjects: Project[];
   completedProjects: Project[];
   screeningsCompleted: any[];
-  adminMessage?: string;
+  adminMessage?: string; // PATCH_46: Optional admin message
+  createdAt: string;
+};
+
+// PATCH_45: Support both old (profile) and new (applications) API formats
+type LegacyProfile = {
+  _id: string;
+  workerStatus: string;
+  status: string;
+  totalEarnings: number;
+  pendingEarnings: number;
+  payRate: number;
+  screeningsCompleted: any[];
   createdAt: string;
 };
 
 type WorkspaceData = {
   hasProfile: boolean;
+  // New format (PATCH_43)
   applications?: JobApplication[];
+  // Legacy format (pre-PATCH_43)
+  profile?: LegacyProfile;
+  availableScreenings?: any[];
+  assignedProjects?: any[];
+  completedProjects?: any[];
   stats: {
     totalEarnings: number;
     pendingEarnings: number;
@@ -96,9 +113,7 @@ type WorkspaceData = {
   message?: string;
 };
 
-type WorkspaceTab = "applications" | "screenings" | "projects";
-
-// PATCH_49: Authoritative status configuration
+// PATCH_43 + PATCH_46: Authoritative status configuration with human-friendly messages
 const STATUS_CONFIG: Record<
   string,
   {
@@ -179,6 +194,7 @@ const STATUS_CONFIG: Record<
     icon: "⏸️",
     description: "Contact support for assistance",
   },
+  // Legacy fallbacks
   fresh: {
     label: "Applied",
     humanMessage: "Application Received",
@@ -202,6 +218,7 @@ const STATUS_CONFIG: Record<
   },
 };
 
+// PATCH_46: Updated journey steps with training_viewed
 const JOURNEY_STEPS = [
   "applied",
   "screening_unlocked",
@@ -211,36 +228,7 @@ const JOURNEY_STEPS = [
   "working",
 ];
 
-// PATCH_49: Tab configuration
-const TABS: { key: WorkspaceTab; label: string; icon: string }[] = [
-  { key: "applications", label: "Applications", icon: "📋" },
-  { key: "screenings", label: "Screenings", icon: "📚" },
-  { key: "projects", label: "Projects", icon: "💼" },
-];
-
-// PATCH_49: Smart default tab determination
-function determineDefaultTab(applications: JobApplication[]): WorkspaceTab {
-  // Priority 1: Any job in screening state
-  const hasScreeningState = applications.some(
-    (app) =>
-      app.workerStatus === "screening_unlocked" ||
-      app.workerStatus === "test_submitted" ||
-      app.workerStatus === "training_viewed" ||
-      app.workerStatus === "failed",
-  );
-  if (hasScreeningState) return "screenings";
-
-  // Priority 2: Any job with active project
-  const hasActiveProject = applications.some(
-    (app) => app.workerStatus === "assigned" || app.workerStatus === "working",
-  );
-  if (hasActiveProject) return "projects";
-
-  // Default: Applications tab
-  return "applications";
-}
-
-// PATCH_49: CTA button logic
+// PATCH_46: Status to CTA button mapping
 function getStatusCTA(app: JobApplication): {
   text: string;
   action: string | null;
@@ -307,7 +295,13 @@ function getStatusCTA(app: JobApplication): {
       };
     case "suspended":
       return { text: "❌ Account Suspended", action: null, disabled: true };
+    // Legacy statuses (backwards compat)
     case "fresh":
+      return {
+        text: "⏳ Waiting for Admin Approval",
+        action: null,
+        disabled: true,
+      };
     case "screening_available":
       return {
         text: "📚 Start Training",
@@ -315,7 +309,11 @@ function getStatusCTA(app: JobApplication): {
         href: "/workspace",
       };
     case "inactive":
-      return { text: "⏳ Inactive", action: null, disabled: true };
+      return {
+        text: "⏳ Inactive",
+        action: null,
+        disabled: true,
+      };
     default:
       return {
         text: "View Details",
@@ -325,41 +323,18 @@ function getStatusCTA(app: JobApplication): {
   }
 }
 
-// PATCH_49: Enhanced JobCard component
-function JobCard({
-  app,
-  onViewTrainingComplete,
-}: {
-  app: JobApplication;
-  onViewTrainingComplete?: () => void;
-}) {
+// PATCH_46: Enhanced JobCard with dynamic CTAs and human-friendly UX
+function JobCard({ app }: { app: JobApplication }) {
   const status = STATUS_CONFIG[app.workerStatus] || STATUS_CONFIG.applied;
   const currentStepIdx = JOURNEY_STEPS.indexOf(app.workerStatus);
   const cta = getStatusCTA(app);
   const [trainingViewed, setTrainingViewed] = useState(false);
-  const { toast } = useToast();
-  const [markingViewed, setMarkingViewed] = useState(false);
 
-  // PATCH_49: Mark training as viewed via API
+  // Mark training as viewed
   const handleViewTraining = async () => {
-    setMarkingViewed(true);
-    try {
-      await apiRequest(
-        `/api/workspace/application/${app._id}/mark-training-viewed`,
-        "PUT",
-        null,
-        true,
-      );
-      setTrainingViewed(true);
-      onViewTrainingComplete?.();
-      toast("Training marked as completed", "success");
-    } catch (e: any) {
-      // Still allow local state change on error
-      setTrainingViewed(true);
-      console.error("Failed to mark training viewed:", e);
-    } finally {
-      setMarkingViewed(false);
-    }
+    setTrainingViewed(true);
+    // In a real implementation, this would call the API to update status
+    // For now, just show the test button
   };
 
   return (
@@ -404,16 +379,16 @@ function JobCard({
           </p>
           <p className="text-xs text-slate-400">Pending</p>
         </div>
-        {(app.workerStatus === "failed" ||
-          app.workerStatus === "screening_unlocked" ||
-          app.workerStatus === "training_viewed") && (
+        {app.workerStatus === "failed" ||
+        app.workerStatus === "screening_unlocked" ||
+        app.workerStatus === "training_viewed" ? (
           <div className="flex-1 min-w-[80px]">
             <p className="text-xl font-bold text-purple-400">
               {app.maxAttempts - app.attemptCount}/{app.maxAttempts}
             </p>
             <p className="text-xs text-slate-400">Attempts Left</p>
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Progress Tracker */}
@@ -458,7 +433,7 @@ function JobCard({
         </div>
       </div>
 
-      {/* Admin Message */}
+      {/* Admin Message (if any) */}
       {app.adminMessage && (
         <div className="mb-4 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
           <p className="text-sm text-blue-300">
@@ -506,57 +481,14 @@ function JobCard({
               </div>
               <button
                 onClick={handleViewTraining}
-                disabled={markingViewed}
-                className="w-full btn-primary disabled:opacity-50"
+                className="w-full btn-primary"
               >
-                {markingViewed ? "⏳ Saving..." : "✅ I've Completed Training"}
+                ✅ I&apos;ve Completed Training
               </button>
             </div>
           )}
 
-        {/* Failed - Show training again + retry */}
-        {app.workerStatus === "failed" &&
-          app.maxAttempts - app.attemptCount > 0 &&
-          app.trainingMaterials &&
-          app.trainingMaterials.length > 0 && (
-            <div className="space-y-4">
-              <div className="bg-red-500/10 rounded-xl p-4 border border-red-500/20">
-                <h4 className="font-medium text-red-300 mb-2">
-                  ❌ Test Failed - Review Materials
-                </h4>
-                <p className="text-xs text-slate-400 mb-3">
-                  Review the training materials again before retrying
-                </p>
-                <div className="space-y-2">
-                  {app.trainingMaterials.map((m, i) => (
-                    <a
-                      key={i}
-                      href={m.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm text-red-200 hover:text-red-100 p-2 rounded-lg hover:bg-red-500/10 transition"
-                    >
-                      {m.type === "video" && "🎥"}
-                      {m.type === "pdf" && "📄"}
-                      {m.type === "link" && "🔗"}
-                      <span className="flex-1">{m.title}</span>
-                    </a>
-                  ))}
-                </div>
-              </div>
-              {app.screening && (
-                <Link
-                  href={`/workspace/screening/${app.screening._id}?position=${app._id}`}
-                  className="w-full btn-primary text-center block"
-                >
-                  🔄 Retry Test ({app.maxAttempts - app.attemptCount} Attempt
-                  {app.maxAttempts - app.attemptCount !== 1 ? "s" : ""} Left)
-                </Link>
-              )}
-            </div>
-          )}
-
-        {/* Take Test Button - Show after training viewed */}
+        {/* Take Test Button - Show after training viewed OR if training_viewed status */}
         {((app.workerStatus === "screening_unlocked" && trainingViewed) ||
           app.workerStatus === "training_viewed") &&
           app.screening && (
@@ -580,8 +512,7 @@ function JobCard({
 
         {/* Primary CTA Button for other statuses */}
         {app.workerStatus !== "screening_unlocked" &&
-          app.workerStatus !== "training_viewed" &&
-          app.workerStatus !== "failed" && (
+          app.workerStatus !== "training_viewed" && (
             <div className="text-center">
               {cta.href ? (
                 <Link
@@ -622,27 +553,20 @@ function JobCard({
                   You&apos;re approved! Waiting for a project assignment
                 </p>
               )}
-            </div>
-          )}
-
-        {/* Failed - No attempts left */}
-        {app.workerStatus === "failed" &&
-          app.maxAttempts - app.attemptCount <= 0 && (
-            <div className="text-center">
-              <div className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium bg-slate-700/50 text-slate-400">
-                ⏳ Waiting for Admin Reset
-              </div>
-              <div className="mt-3">
-                <p className="text-xs text-slate-500 mb-2">
-                  Contact admin to reset your attempts
-                </p>
-                <Link
-                  href="/support"
-                  className="text-sm text-blue-400 hover:text-blue-300"
-                >
-                  📞 Contact Support
-                </Link>
-              </div>
+              {app.workerStatus === "failed" &&
+                app.maxAttempts - app.attemptCount <= 0 && (
+                  <div className="mt-3">
+                    <p className="text-xs text-slate-500 mb-2">
+                      Contact admin to reset your attempts
+                    </p>
+                    <Link
+                      href="/support"
+                      className="text-sm text-blue-400 hover:text-blue-300"
+                    >
+                      📞 Contact Support
+                    </Link>
+                  </div>
+                )}
             </div>
           )}
 
@@ -690,335 +614,37 @@ function JobCard({
   );
 }
 
-// PATCH_49: Applications Tab Content
-function ApplicationsTab({
-  applications,
-  onRefresh,
-}: {
-  applications: JobApplication[];
-  onRefresh: () => void;
-}) {
-  const pendingApps = applications.filter(
-    (a) => a.applicationStatus === "pending",
-  );
-  const approvedApps = applications.filter(
-    (a) => a.applicationStatus === "approved",
-  );
-  const rejectedApps = applications.filter(
-    (a) => a.applicationStatus === "rejected",
-  );
-
-  return (
-    <div className="space-y-6">
-      {/* Pending Applications */}
-      {pendingApps.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <span className="text-amber-400">⏳</span> Pending Review (
-            {pendingApps.length})
-          </h3>
-          <div className="space-y-4">
-            {pendingApps.map((app) => (
-              <JobCard
-                key={app._id}
-                app={app}
-                onViewTrainingComplete={onRefresh}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Approved Applications */}
-      {approvedApps.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <span className="text-emerald-400">✅</span> Active Jobs (
-            {approvedApps.length})
-          </h3>
-          <div className="space-y-4">
-            {approvedApps.map((app) => (
-              <JobCard
-                key={app._id}
-                app={app}
-                onViewTrainingComplete={onRefresh}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Rejected Applications */}
-      {rejectedApps.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <span className="text-red-400">❌</span> Rejected (
-            {rejectedApps.length})
-          </h3>
-          <div className="space-y-4 opacity-60">
-            {rejectedApps.map((app) => (
-              <JobCard key={app._id} app={app} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {applications.length === 0 && (
-        <EmptyState
-          icon="📋"
-          title="No Applications Yet"
-          description="Apply to a work position to start your journey as a worker."
-          ctaText="Browse Work Positions"
-          ctaHref="/apply-to-work"
-        />
-      )}
-    </div>
-  );
-}
-
-// PATCH_49: Screenings Tab Content
-function ScreeningsTab({
-  applications,
-  onRefresh,
-}: {
-  applications: JobApplication[];
-  onRefresh: () => void;
-}) {
-  // Filter applications that are in screening-related states
-  const screeningApps = applications.filter(
-    (a) =>
-      a.workerStatus === "screening_unlocked" ||
-      a.workerStatus === "training_viewed" ||
-      a.workerStatus === "test_submitted" ||
-      a.workerStatus === "failed",
-  );
-
-  return (
-    <div className="space-y-6">
-      {screeningApps.length > 0 ? (
-        <>
-          <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-xl p-4 border border-amber-500/20">
-            <p className="text-sm text-amber-200">
-              📚 <strong>Complete your screenings</strong> to unlock work
-              opportunities. Review training materials carefully before taking
-              tests.
-            </p>
-          </div>
-          <div className="space-y-4">
-            {screeningApps.map((app) => (
-              <JobCard
-                key={app._id}
-                app={app}
-                onViewTrainingComplete={onRefresh}
-              />
-            ))}
-          </div>
-        </>
-      ) : (
-        <EmptyState
-          icon="📚"
-          title="No Active Screenings"
-          description="You don't have any pending screenings. Apply to new positions to get started."
-          ctaText="Apply to New Position"
-          ctaHref="/apply-to-work"
-        />
-      )}
-    </div>
-  );
-}
-
-// PATCH_49: Projects Tab Content
-function ProjectsTab({ applications }: { applications: JobApplication[] }) {
-  // Filter applications with active projects
-  const workingApps = applications.filter(
-    (a) => a.workerStatus === "assigned" || a.workerStatus === "working",
-  );
-  const readyApps = applications.filter(
-    (a) => a.workerStatus === "ready_to_work",
-  );
-
-  // Collect all assigned projects
-  const allProjects = workingApps.flatMap((a) => a.assignedProjects);
-  const allCompleted = applications.flatMap((a) => a.completedProjects);
-
-  return (
-    <div className="space-y-6">
-      {/* Active Projects */}
-      {allProjects.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <span className="text-blue-400">💼</span> Active Projects (
-            {allProjects.length})
-          </h3>
-          <div className="grid gap-4 md:grid-cols-2">
-            {allProjects.map((project) => (
-              <Link
-                key={project._id}
-                href={`/workspace/project/${project._id}`}
-                className="p-4 rounded-xl border border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 transition"
-              >
-                <h4 className="font-medium mb-2">{project.title}</h4>
-                {project.description && (
-                  <p className="text-sm text-slate-400 mb-3 line-clamp-2">
-                    {project.description}
-                  </p>
-                )}
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-emerald-400">
-                    ${project.payRate} / {project.payType}
-                  </span>
-                  <span className="text-sm text-blue-400">Open →</span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Ready to Work - Waiting for assignment */}
-      {readyApps.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <span className="text-emerald-400">✅</span> Ready for Projects (
-            {readyApps.length})
-          </h3>
-          <div className="space-y-3">
-            {readyApps.map((app) => (
-              <div
-                key={app._id}
-                className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium">{app.positionTitle}</h4>
-                    <p className="text-sm text-slate-400">{app.category}</p>
-                  </div>
-                  <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-full text-sm">
-                    Waiting for Assignment
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Completed Projects */}
-      {allCompleted.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <span className="text-green-400">🏆</span> Completed (
-            {allCompleted.length})
-          </h3>
-          <div className="grid gap-3 md:grid-cols-2">
-            {allCompleted.slice(0, 6).map((project: any, idx) => (
-              <div
-                key={project._id || idx}
-                className="p-3 rounded-xl border border-green-500/20 bg-green-500/5"
-              >
-                <p className="font-medium text-sm">
-                  {project.title || "Project"}
-                </p>
-                <p className="text-xs text-emerald-400">
-                  Earned: ${(project.earnings || 0).toFixed(2)}
-                </p>
-              </div>
-            ))}
-          </div>
-          {allCompleted.length > 6 && (
-            <Link
-              href="/workspace/projects"
-              className="text-sm text-blue-400 hover:text-blue-300"
-            >
-              View all {allCompleted.length} completed projects →
-            </Link>
-          )}
-        </div>
-      )}
-
-      {allProjects.length === 0 && readyApps.length === 0 && (
-        <EmptyState
-          icon="💼"
-          title="No Projects Yet"
-          description="Complete your screenings to become eligible for project assignments."
-          ctaText="View Screenings"
-          ctaHref="/workspace"
-        />
-      )}
-    </div>
-  );
-}
-
 export default function WorkspacePage() {
   const [data, setData] = useState<WorkspaceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<WorkspaceTab>("applications");
-  const [retrying, setRetrying] = useState(false);
   const { toast } = useToast();
 
-  const loadData = async (showToast = true) => {
+  useEffect(() => {
+    let mounted = true;
     setLoading(true);
     setError("");
-    try {
-      const response = await apiRequest<WorkspaceData>(
-        "/api/workspace/profile",
-        "GET",
-        null,
-        true,
-      );
-      setData(response);
 
-      // PATCH_49: Smart default tab
-      if (response.applications && response.applications.length > 0) {
-        const defaultTab = determineDefaultTab(response.applications);
-        setActiveTab(defaultTab);
-      }
-    } catch (e: any) {
-      const msg = e?.message || "Failed to load workspace";
-      setError(msg);
-      if (showToast) toast(msg, "error");
-    } finally {
-      setLoading(false);
-      setRetrying(false);
-    }
-  };
+    apiRequest("/api/workspace/profile", "GET")
+      .then((response: any) => {
+        if (!mounted) return;
+        setData(response);
+      })
+      .catch((e: any) => {
+        if (!mounted) return;
+        const msg = e?.message || "Failed to load workspace";
+        setError(msg);
+        toast(msg, "error");
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setLoading(false);
+      });
 
-  const handleRetry = () => {
-    setRetrying(true);
-    loadData(true);
-  };
-
-  useEffect(() => {
-    loadData(false);
-  }, []);
-
-  // Normalize applications
-  const applications = useMemo(() => {
-    if (!data?.applications) return [];
-    return data.applications;
-  }, [data]);
-
-  // Tab counts for badges
-  const tabCounts = useMemo(() => {
-    const screeningCount = applications.filter(
-      (a) =>
-        a.workerStatus === "screening_unlocked" ||
-        a.workerStatus === "training_viewed" ||
-        a.workerStatus === "test_submitted" ||
-        a.workerStatus === "failed",
-    ).length;
-
-    const projectCount = applications.filter(
-      (a) => a.workerStatus === "assigned" || a.workerStatus === "working",
-    ).length;
-
-    return {
-      applications: applications.length,
-      screenings: screeningCount,
-      projects: projectCount,
+    return () => {
+      mounted = false;
     };
-  }, [applications]);
+  }, []);
 
   if (loading) {
     return (
@@ -1034,8 +660,8 @@ export default function WorkspacePage() {
     );
   }
 
-  // PATCH_49: Error state with retry button (no silent failures)
   if (error) {
+    // PATCH_46: Error Recovery UI with Retry, Home, and Support buttons
     return (
       <div className="u-container max-w-6xl">
         <div className="mb-6">
@@ -1050,11 +676,10 @@ export default function WorkspacePage() {
           <p className="text-slate-400 mb-6">{error}</p>
           <div className="flex flex-wrap justify-center gap-3">
             <button
-              onClick={handleRetry}
-              disabled={retrying}
-              className="px-4 py-2 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition disabled:opacity-50"
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition"
             >
-              {retrying ? "⏳ Retrying..." : "🔄 Retry"}
+              🔄 Retry
             </button>
             <Link
               href="/dashboard"
@@ -1093,7 +718,48 @@ export default function WorkspacePage() {
     );
   }
 
-  const stats = data.stats;
+  const { applications, stats } = data;
+
+  // PATCH_45: Convert legacy profile format to applications array format
+  // Legacy format has a single profile object; new format has applications array
+  const normalizedApplications: JobApplication[] = applications
+    ? applications
+    : data.profile
+      ? [
+          {
+            _id: data.profile._id,
+            position: {
+              _id: "legacy",
+              title: "Worker",
+              category: "General",
+              description: "Legacy worker profile",
+            } as Position,
+            positionTitle: "Worker",
+            category: "General",
+            workerStatus: (data.profile.workerStatus ||
+              "applied") as JobApplication["workerStatus"],
+            applicationStatus: (data.profile.status ||
+              "pending") as JobApplication["applicationStatus"],
+            attemptCount: 0,
+            maxAttempts: 3,
+            totalEarnings: data.profile.totalEarnings || 0,
+            pendingEarnings: data.profile.pendingEarnings || 0,
+            payRate: data.profile.payRate || 0,
+            screening: undefined,
+            trainingMaterials: [],
+            assignedProjects: [],
+            completedProjects: [],
+            screeningsCompleted: data.profile.screeningsCompleted || [],
+            createdAt: data.profile.createdAt,
+          } as JobApplication,
+        ]
+      : [];
+
+  const normalizedStats = {
+    ...stats,
+    jobsApplied: stats.jobsApplied ?? 1,
+    screeningsCompleted: stats.screeningsCompleted ?? 0,
+  };
 
   return (
     <div className="u-container max-w-6xl">
@@ -1107,25 +773,25 @@ export default function WorkspacePage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="card text-center">
           <p className="text-2xl font-bold text-emerald-400">
-            ${stats.totalEarnings.toFixed(2)}
+            ${normalizedStats.totalEarnings.toFixed(2)}
           </p>
           <p className="text-xs text-slate-400">Total Earnings</p>
         </div>
         <div className="card text-center">
           <p className="text-2xl font-bold text-amber-400">
-            ${stats.pendingEarnings.toFixed(2)}
+            ${normalizedStats.pendingEarnings.toFixed(2)}
           </p>
           <p className="text-xs text-slate-400">Pending</p>
         </div>
         <div className="card text-center">
           <p className="text-2xl font-bold text-blue-400">
-            {stats.projectsCompleted}
+            {normalizedStats.projectsCompleted}
           </p>
           <p className="text-xs text-slate-400">Projects Done</p>
         </div>
         <div className="card text-center">
           <p className="text-2xl font-bold text-purple-400">
-            {stats.jobsApplied || applications.length}
+            {normalizedStats.jobsApplied}
           </p>
           <p className="text-xs text-slate-400">Jobs Applied</p>
         </div>
@@ -1136,6 +802,9 @@ export default function WorkspacePage() {
         <Link href="/apply-to-work" className="btn-primary">
           + Apply to New Position
         </Link>
+        <Link href="/workspace/projects" className="btn-secondary">
+          📂 My Projects
+        </Link>
         <Link href="/workspace/my-proofs" className="btn-secondary">
           📋 My Proofs
         </Link>
@@ -1144,56 +813,21 @@ export default function WorkspacePage() {
         </Link>
       </div>
 
-      {/* PATCH_49: Tab Navigation */}
-      <div className="mb-6">
-        <div className="flex border-b border-white/10">
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${
-                activeTab === tab.key
-                  ? "text-white"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              <span>{tab.icon}</span>
-              <span>{tab.label}</span>
-              {tabCounts[tab.key] > 0 && (
-                <span
-                  className={`ml-1 px-2 py-0.5 rounded-full text-xs ${
-                    activeTab === tab.key
-                      ? "bg-blue-500/30 text-blue-200"
-                      : "bg-slate-700 text-slate-400"
-                  }`}
-                >
-                  {tabCounts[tab.key]}
-                </span>
-              )}
-              {activeTab === tab.key && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Tab Content */}
-      <div className="min-h-[300px]">
-        {activeTab === "applications" && (
-          <ApplicationsTab
-            applications={applications}
-            onRefresh={() => loadData(false)}
-          />
-        )}
-        {activeTab === "screenings" && (
-          <ScreeningsTab
-            applications={applications}
-            onRefresh={() => loadData(false)}
-          />
-        )}
-        {activeTab === "projects" && (
-          <ProjectsTab applications={applications} />
+      {/* Job Applications */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Your Job Roles</h2>
+        {normalizedApplications.length === 0 ? (
+          <div className="card text-center py-8">
+            <div className="text-4xl mb-4">📋</div>
+            <p className="text-lg font-medium">No Active Applications</p>
+            <p className="text-slate-400 mt-2">
+              Apply to a job role to start your journey.
+            </p>
+          </div>
+        ) : (
+          normalizedApplications.map((app) => (
+            <JobCard key={app._id} app={app} />
+          ))
         )}
       </div>
     </div>
