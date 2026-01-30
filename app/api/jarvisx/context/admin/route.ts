@@ -13,9 +13,10 @@ function getBackendBase(): string {
 export const runtime = "nodejs";
 
 // PATCH_14: Admin context proxy route (was missing, causing 404)
+// PATCH_44: Fixed to use correct backend route path
 export async function GET(req: Request) {
   const backend = getBackendBase();
-  const url = `${backend}/api/jarvisx/context/admin`;
+  const url = `${backend}/api/jarvisx/admin-context`;
 
   const headers: Record<string, string> = {};
   const auth = req.headers.get("authorization");
