@@ -15,53 +15,64 @@ interface Screening {
   title: string;
   description: string;
   category: string;
-  jobId?: {
-    _id: string;
-    title: string;
-  };
   questions: {
     question: string;
     options: string[];
-    correctAnswer: number;
+    type?: "single" | "multi" | "multiple_choice" | "text" | "file_upload";
+    correctAnswer?: number | string;
+    correctAnswers?: string[];
   }[];
   passingScore: number;
   timeLimit: number;
-  isActive: boolean;
+  active?: boolean;
+  isActive?: boolean;
   createdAt: string;
 }
 
-interface JobPosition {
-  _id: string;
-  title: string;
-}
+type ScreeningFormQuestion = {
+  question: string;
+  options: string[];
+  type: "single" | "multi";
+  correctAnswerIndexes: number[];
+};
 
 function ScreeningsContent() {
   const searchParams = useSearchParams();
   const showCreate = searchParams.get("action") === "create";
 
   const [screenings, setScreenings] = useState<Screening[]>([]);
-  const [jobs, setJobs] = useState<JobPosition[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(showCreate);
-  const [viewScreening, setViewScreening] = useState<Screening | null>(null);
 
   // Create form state
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    title: string;
+    description: string;
+    category: string;
+    passingScore: number;
+    timeLimit: number;
+    questions: ScreeningFormQuestion[];
+  }>({
     title: "",
     description: "",
     category: "microjobs",
-    jobId: "",
     passingScore: 70,
     timeLimit: 30,
-    questions: [{ question: "", options: ["", "", "", ""], correctAnswer: 0 }],
+    questions: [
+      {
+        question: "",
+        options: ["", "", "", ""],
+        type: "single",
+        correctAnswerIndexes: [0],
+      },
+    ],
   });
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     loadScreenings();
-    loadJobs();
   }, []);
 
   const loadScreenings = async () => {
@@ -81,19 +92,8 @@ function ScreeningsContent() {
     }
   };
 
-  const loadJobs = async () => {
-    try {
-      const res = await apiRequest<any>(
-        "/api/admin/work-positions",
-        "GET",
-        null,
-        true,
-      );
-      setJobs(res.positions || res.jobs || []);
-    } catch (e) {
-      console.error("Failed to load jobs:", e);
-    }
-  };
+  const normalizeOptions = (options: string[]) =>
+    options.map((o) => o.trim()).filter(Boolean);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,9 +101,10 @@ function ScreeningsContent() {
     setError(null);
 
     // Validate questions
-    const validQuestions = form.questions.filter(
-      (q) => q.question.trim() && q.options.filter((o) => o.trim()).length >= 2,
-    );
+    const validQuestions = form.questions.filter((q) => {
+      const options = normalizeOptions(q.options);
+      return q.question.trim() && options.length >= 2;
+    });
 
     if (validQuestions.length === 0) {
       setError("Please add at least one question with at least 2 options");
@@ -111,13 +112,42 @@ function ScreeningsContent() {
       return;
     }
 
+    for (const q of validQuestions) {
+      const options = normalizeOptions(q.options);
+      const correctAnswers = q.correctAnswerIndexes
+        .filter((idx) => options[idx])
+        .map((idx) => options[idx]);
+
+      if (correctAnswers.length === 0) {
+        setError("Each question must have at least one correct answer");
+        setCreating(false);
+        return;
+      }
+
+      if (q.type === "single" && correctAnswers.length !== 1) {
+        setError(
+          "Single-choice questions must have exactly one correct answer",
+        );
+        setCreating(false);
+        return;
+      }
+    }
+
     try {
       const payload = {
         ...form,
-        questions: validQuestions.map((q) => ({
-          ...q,
-          options: q.options.filter((o) => o.trim()),
-        })),
+        questions: validQuestions.map((q) => {
+          const options = normalizeOptions(q.options);
+          const correctAnswers = q.correctAnswerIndexes
+            .filter((idx) => options[idx])
+            .map((idx) => options[idx]);
+          return {
+            question: q.question.trim(),
+            type: q.type,
+            options,
+            correctAnswers,
+          };
+        }),
       };
 
       await apiRequest(
@@ -132,11 +162,15 @@ function ScreeningsContent() {
         title: "",
         description: "",
         category: "microjobs",
-        jobId: "",
         passingScore: 70,
         timeLimit: 30,
         questions: [
-          { question: "", options: ["", "", "", ""], correctAnswer: 0 },
+          {
+            question: "",
+            options: ["", "", "", ""],
+            type: "single",
+            correctAnswerIndexes: [0],
+          },
         ],
       });
       loadScreenings();
@@ -152,7 +186,12 @@ function ScreeningsContent() {
       ...form,
       questions: [
         ...form.questions,
-        { question: "", options: ["", "", "", ""], correctAnswer: 0 },
+        {
+          question: "",
+          options: ["", "", "", ""],
+          type: "single",
+          correctAnswerIndexes: [0],
+        },
       ],
     });
   };
@@ -168,10 +207,13 @@ function ScreeningsContent() {
   const updateQuestion = (
     index: number,
     field: string,
-    value: string | number | string[],
+    value: string | number | string[] | number[],
   ) => {
     const updated = [...form.questions];
-    updated[index] = { ...updated[index], [field]: value };
+    updated[index] = {
+      ...updated[index],
+      [field]: value,
+    } as ScreeningFormQuestion;
     setForm({ ...form, questions: updated });
   };
 
@@ -179,6 +221,56 @@ function ScreeningsContent() {
     const updated = [...form.questions];
     updated[qIndex].options[oIndex] = value;
     setForm({ ...form, questions: updated });
+  };
+
+  const toggleCorrectAnswer = (qIndex: number, oIndex: number) => {
+    const updated = [...form.questions];
+    const q = updated[qIndex];
+    if (q.type === "single") {
+      q.correctAnswerIndexes = [oIndex];
+    } else {
+      if (q.correctAnswerIndexes.includes(oIndex)) {
+        q.correctAnswerIndexes = q.correctAnswerIndexes.filter(
+          (idx) => idx !== oIndex,
+        );
+      } else {
+        q.correctAnswerIndexes = [...q.correctAnswerIndexes, oIndex];
+      }
+    }
+    setForm({ ...form, questions: updated });
+  };
+
+  const handleDuplicate = async (id: string) => {
+    try {
+      await apiRequest(
+        `/api/admin/workspace/screenings/${id}/clone`,
+        "POST",
+        null,
+        true,
+      );
+      setSuccess("Screening duplicated successfully!");
+      loadScreenings();
+    } catch (e: any) {
+      setError(e?.message || "Failed to duplicate screening");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Delete this screening? This cannot be undone.")) {
+      return;
+    }
+    try {
+      await apiRequest(
+        `/api/admin/workspace/screenings/${id}`,
+        "DELETE",
+        null,
+        true,
+      );
+      setSuccess("Screening deleted successfully!");
+      loadScreenings();
+    } catch (e: any) {
+      setError(e?.message || "Failed to delete screening");
+    }
   };
 
   return (
@@ -242,12 +334,14 @@ function ScreeningsContent() {
                     </h3>
                     <span
                       className={`px-2 py-0.5 rounded-full text-xs ${
-                        screening.isActive
+                        (screening.active ?? screening.isActive)
                           ? "bg-emerald-500/20 text-emerald-400"
                           : "bg-slate-500/20 text-slate-400"
                       }`}
                     >
-                      {screening.isActive ? "Active" : "Inactive"}
+                      {(screening.active ?? screening.isActive)
+                        ? "Active"
+                        : "Inactive"}
                     </span>
                   </div>
                   <p className="text-sm text-slate-400 line-clamp-2">
@@ -257,16 +351,29 @@ function ScreeningsContent() {
                     <span>📚 {screening.questions?.length || 0} questions</span>
                     <span>⏱ {screening.timeLimit} min</span>
                     <span>🎯 {screening.passingScore}% to pass</span>
-                    {screening.jobId && <span>💼 {screening.jobId.title}</span>}
                   </div>
                 </div>
 
-                <button
-                  onClick={() => setViewScreening(screening)}
-                  className="btn-secondary text-sm shrink-0"
-                >
-                  View
-                </button>
+                <div className="flex flex-col gap-2 shrink-0">
+                  <Link
+                    href={`/admin/workspace/screenings/${screening._id}`}
+                    className="btn-secondary text-sm text-center"
+                  >
+                    View / Edit
+                  </Link>
+                  <button
+                    onClick={() => handleDuplicate(screening._id)}
+                    className="btn-secondary text-sm"
+                  >
+                    Duplicate
+                  </button>
+                  <button
+                    onClick={() => handleDelete(screening._id)}
+                    className="px-3 py-1 rounded-lg bg-red-500/20 text-red-300 text-sm hover:bg-red-500/30"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -330,29 +437,11 @@ function ScreeningsContent() {
                     className="input w-full"
                   >
                     <option value="microjobs">Microjobs</option>
-                    <option value="data-entry">Data Entry</option>
-                    <option value="content">Content</option>
-                    <option value="research">Research</option>
-                    <option value="general">General</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm text-slate-400 mb-1">
-                    Link to Job (optional)
-                  </label>
-                  <select
-                    value={form.jobId}
-                    onChange={(e) =>
-                      setForm({ ...form, jobId: e.target.value })
-                    }
-                    className="input w-full"
-                  >
-                    <option value="">No linked job</option>
-                    {jobs.map((job) => (
-                      <option key={job._id} value={job._id}>
-                        {job.title}
-                      </option>
-                    ))}
+                    <option value="writing">Writing</option>
+                    <option value="teaching">Teaching</option>
+                    <option value="coding_math">Coding & Math</option>
+                    <option value="outlier">Outlier</option>
+                    <option value="other">Other</option>
                   </select>
                 </div>
                 <div>
@@ -422,27 +511,67 @@ function ScreeningsContent() {
                           </button>
                         )}
                       </div>
-                      <input
-                        type="text"
-                        value={q.question}
-                        onChange={(e) =>
-                          updateQuestion(qIndex, "question", e.target.value)
-                        }
-                        className="input w-full mb-3"
-                        placeholder="Enter question..."
-                      />
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
+                        <input
+                          type="text"
+                          value={q.question}
+                          onChange={(e) =>
+                            updateQuestion(qIndex, "question", e.target.value)
+                          }
+                          className="input w-full md:col-span-2"
+                          placeholder="Enter question..."
+                        />
+                        <select
+                          value={q.type}
+                          onChange={(e) => {
+                            const nextType = e.target.value as
+                              | "single"
+                              | "multi";
+                            const updated = [...form.questions];
+                            updated[qIndex].type = nextType;
+                            if (
+                              nextType === "single" &&
+                              updated[qIndex].correctAnswerIndexes.length > 1
+                            ) {
+                              updated[qIndex].correctAnswerIndexes = [
+                                updated[qIndex].correctAnswerIndexes[0],
+                              ];
+                            }
+                            setForm({ ...form, questions: updated });
+                          }}
+                          className="input w-full"
+                        >
+                          <option value="single">Single Correct</option>
+                          <option value="multi">Multi Correct</option>
+                        </select>
+                      </div>
                       <div className="grid grid-cols-2 gap-2">
                         {q.options.map((opt, oIndex) => (
                           <div key={oIndex} className="flex items-center gap-2">
-                            <input
-                              type="radio"
-                              name={`correct-${qIndex}`}
-                              checked={q.correctAnswer === oIndex}
-                              onChange={() =>
-                                updateQuestion(qIndex, "correctAnswer", oIndex)
-                              }
-                              className="shrink-0"
-                            />
+                            {q.type === "single" ? (
+                              <input
+                                type="radio"
+                                name={`correct-${qIndex}`}
+                                checked={q.correctAnswerIndexes.includes(
+                                  oIndex,
+                                )}
+                                onChange={() =>
+                                  toggleCorrectAnswer(qIndex, oIndex)
+                                }
+                                className="shrink-0"
+                              />
+                            ) : (
+                              <input
+                                type="checkbox"
+                                checked={q.correctAnswerIndexes.includes(
+                                  oIndex,
+                                )}
+                                onChange={() =>
+                                  toggleCorrectAnswer(qIndex, oIndex)
+                                }
+                                className="shrink-0"
+                              />
+                            )}
                             <input
                               type="text"
                               value={opt}
@@ -456,7 +585,9 @@ function ScreeningsContent() {
                         ))}
                       </div>
                       <p className="text-xs text-slate-500 mt-2">
-                        Select the radio for the correct answer
+                        {q.type === "single"
+                          ? "Select the radio for the correct answer"
+                          : "Select all correct answers"}
                       </p>
                     </div>
                   ))}
@@ -480,73 +611,6 @@ function ScreeningsContent() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* View Modal */}
-      {viewScreening && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-slate-900 rounded-2xl p-6 w-full max-w-2xl border border-white/10 my-8">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h2 className="text-xl font-bold">{viewScreening.title}</h2>
-                <p className="text-sm text-slate-400 mt-1">
-                  {viewScreening.description}
-                </p>
-              </div>
-              <button
-                onClick={() => setViewScreening(null)}
-                className="text-slate-400 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="flex gap-4 mb-4 text-sm text-slate-400">
-              <span>📚 {viewScreening.questions?.length || 0} questions</span>
-              <span>⏱ {viewScreening.timeLimit} min</span>
-              <span>🎯 {viewScreening.passingScore}% to pass</span>
-            </div>
-
-            <div className="space-y-4 max-h-96 overflow-y-auto">
-              {viewScreening.questions?.map((q, i) => (
-                <div
-                  key={i}
-                  className="p-4 rounded-lg bg-white/5 border border-white/10"
-                >
-                  <p className="font-medium mb-2">
-                    {i + 1}. {q.question}
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {q.options.map((opt, oi) => (
-                      <div
-                        key={oi}
-                        className={`p-2 rounded text-sm ${
-                          q.correctAnswer === oi
-                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                            : "bg-white/5 text-slate-400"
-                        }`}
-                      >
-                        {opt}
-                        {q.correctAnswer === oi && (
-                          <span className="ml-2">✓</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex justify-end pt-4 border-t border-white/10 mt-4">
-              <button
-                onClick={() => setViewScreening(null)}
-                className="btn-secondary"
-              >
-                Close
-              </button>
-            </div>
           </div>
         </div>
       )}

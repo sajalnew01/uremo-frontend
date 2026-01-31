@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
@@ -12,21 +12,11 @@ import { useToast } from "@/hooks/useToast";
  * Manage applicants, screenings, training materials, and worker assignments
  */
 
-type ScreeningQuestion = {
-  _id?: string;
-  question: string;
-  options: string[];
-  correctAnswer: number;
-};
-
-type Screening = {
-  _id?: string;
+type ScreeningOption = {
+  _id: string;
   title: string;
-  description?: string;
-  questions: ScreeningQuestion[];
-  timeLimit: number;
   passingScore: number;
-  maxAttempts: number;
+  timeLimit: number;
 };
 
 type Project = {
@@ -112,7 +102,6 @@ const STATUS_LABELS: Record<string, string> = {
 
 export default function AdminJobRolePage() {
   const params = useParams();
-  const router = useRouter();
   const { toast } = useToast();
   const jobId = params?.jobId as string;
 
@@ -129,16 +118,9 @@ export default function AdminJobRolePage() {
   // Training materials form
   const [trainingForm, setTrainingForm] = useState<TrainingMaterial[]>([]);
 
-  // PATCH_46: Screening editor state
-  const [screeningForm, setScreeningForm] = useState<Screening>({
-    title: "",
-    description: "",
-    questions: [],
-    timeLimit: 30,
-    passingScore: 70,
-    maxAttempts: 3,
-  });
-  const [screeningMode, setScreeningMode] = useState<"view" | "edit">("view");
+  // PATCH_52A: Centralized screening selection
+  const [screenings, setScreenings] = useState<ScreeningOption[]>([]);
+  const [selectedScreeningId, setSelectedScreeningId] = useState<string>("");
 
   // PATCH_46: Projects state
   const [projects, setProjects] = useState<Project[]>([]);
@@ -164,6 +146,7 @@ export default function AdminJobRolePage() {
       setJob(res.job);
       setStats(res.stats);
       setTrainingForm(res.job.trainingMaterials || []);
+      setSelectedScreeningId(res.job.screeningId?._id || "");
     } catch (e: any) {
       toast(e?.message || "Failed to load job role", "error");
     } finally {
@@ -185,10 +168,25 @@ export default function AdminJobRolePage() {
     }
   };
 
+  const loadScreenings = async () => {
+    try {
+      const res = await apiRequest(
+        "/api/admin/workspace/screenings",
+        "GET",
+        null,
+        true,
+      );
+      setScreenings(res.screenings || []);
+    } catch (e: any) {
+      console.error("Failed to load screenings:", e);
+    }
+  };
+
   useEffect(() => {
     loadJob();
     loadApplicants();
     loadProjects();
+    loadScreenings();
   }, [jobId]);
 
   useEffect(() => {
@@ -318,73 +316,23 @@ export default function AdminJobRolePage() {
     setTrainingForm(updated);
   };
 
-  // PATCH_46: Screening Editor Functions
-  const addQuestion = () => {
-    setScreeningForm({
-      ...screeningForm,
-      questions: [
-        ...screeningForm.questions,
-        { question: "", options: ["", "", "", ""], correctAnswer: 0 },
-      ],
-    });
-  };
-
-  const removeQuestion = (idx: number) => {
-    setScreeningForm({
-      ...screeningForm,
-      questions: screeningForm.questions.filter((_, i) => i !== idx),
-    });
-  };
-
-  const updateQuestion = (idx: number, field: string, value: any) => {
-    const updated = [...screeningForm.questions];
-    (updated[idx] as any)[field] = value;
-    setScreeningForm({ ...screeningForm, questions: updated });
-  };
-
-  const updateOption = (qIdx: number, optIdx: number, value: string) => {
-    const updated = [...screeningForm.questions];
-    updated[qIdx].options[optIdx] = value;
-    setScreeningForm({ ...screeningForm, questions: updated });
-  };
-
-  const saveScreening = async () => {
-    if (!screeningForm.title || screeningForm.questions.length === 0) {
-      toast("Please add a title and at least one question", "error");
-      return;
-    }
+  // PATCH_52A: Screening selection functions
+  const saveScreeningSelection = async () => {
     setSaving(true);
     try {
       await apiRequest(
         `/api/admin/workspace/job/${jobId}/set-screening`,
         "PUT",
-        { screening: screeningForm },
+        { screeningId: selectedScreeningId || null },
         true,
       );
-      toast("Screening saved successfully", "success");
-      setScreeningMode("view");
+      toast("Screening updated", "success");
       loadJob();
     } catch (e: any) {
-      toast(e?.message || "Failed to save screening", "error");
+      toast(e?.message || "Failed to update screening", "error");
     } finally {
       setSaving(false);
     }
-  };
-
-  const startEditScreening = () => {
-    if (job?.screeningId) {
-      // Load existing screening data
-      setScreeningForm({
-        _id: job.screeningId._id,
-        title: job.screeningId.title,
-        description: "",
-        questions: [],
-        timeLimit: job.screeningId.timeLimit,
-        passingScore: job.screeningId.passingScore,
-        maxAttempts: 3,
-      });
-    }
-    setScreeningMode("edit");
   };
 
   // PATCH_46: Project Functions
@@ -449,6 +397,11 @@ export default function AdminJobRolePage() {
       setSaving(false);
     }
   };
+
+  const selectedScreening =
+    screenings.find((s) => s._id === selectedScreeningId) ||
+    job?.screeningId ||
+    null;
 
   if (loading) {
     return (
@@ -680,235 +633,87 @@ export default function AdminJobRolePage() {
         </div>
       )}
 
-      {/* Screening Tab - PATCH_46: Full Screening Editor */}
+      {/* Screening Tab - PATCH_52A: Centralized Selection */}
       {activeTab === "screening" && (
-        <div className="card">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold">📋 Screening Test Builder</h3>
-            {screeningMode === "view" && (
-              <button
-                onClick={startEditScreening}
-                className="px-3 py-1 rounded-lg bg-blue-500/20 text-blue-300 text-sm hover:bg-blue-500/30"
-              >
-                {job.screeningId ? "✏️ Edit Screening" : "➕ Create Screening"}
-              </button>
-            )}
+        <div className="card space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold">📋 Screening Selection</h3>
+            <Link
+              href="/admin/workspace/screenings"
+              className="text-sm text-slate-400 hover:text-white"
+            >
+              Manage Screenings →
+            </Link>
           </div>
 
-          {screeningMode === "view" ? (
-            // View Mode
-            job.screeningId ? (
-              <div className="space-y-4">
-                <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                  <p className="font-medium text-lg">{job.screeningId.title}</p>
-                  <div className="flex flex-wrap gap-4 mt-3 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="md:col-span-2">
+              <label className="text-xs text-slate-400 mb-1 block">
+                Select Screening
+              </label>
+              <select
+                value={selectedScreeningId}
+                onChange={(e) => setSelectedScreeningId(e.target.value)}
+                className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+              >
+                <option value="">No screening</option>
+                {screenings.map((s) => (
+                  <option key={s._id} value={s._id}>
+                    {s.title}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-500 mt-2">
+                Job roles only select existing screenings. Edit screenings in
+                the workspace screenings manager.
+              </p>
+            </div>
+            <div className="flex items-end">
+              <button
+                onClick={saveScreeningSelection}
+                disabled={saving}
+                className="btn-primary w-full disabled:opacity-50"
+              >
+                {saving ? "Saving..." : "Save Screening"}
+              </button>
+            </div>
+          </div>
+
+          {selectedScreening ? (
+            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="font-medium text-lg">
+                    {selectedScreening.title}
+                  </p>
+                  <div className="flex flex-wrap gap-4 mt-2 text-sm">
                     <span className="flex items-center gap-1">
                       <span className="text-emerald-400">✓</span>
-                      Pass: {job.screeningId.passingScore}%
+                      Pass: {selectedScreening.passingScore}%
                     </span>
                     <span className="flex items-center gap-1">
                       <span className="text-blue-400">⏱</span>
-                      Time: {job.screeningId.timeLimit} min
+                      Time: {selectedScreening.timeLimit} min
                     </span>
                   </div>
                 </div>
-                <p className="text-xs text-slate-500">
-                  Click "Edit Screening" to modify questions, time limit, or
-                  passing score.
-                </p>
-              </div>
-            ) : (
-              <div className="text-center py-8 text-slate-400">
-                <div className="text-4xl mb-3">📝</div>
-                <p className="font-medium">No screening test yet</p>
-                <p className="text-sm mt-2">
-                  Create a screening test to evaluate worker knowledge before
-                  they start working.
-                </p>
-              </div>
-            )
-          ) : (
-            // Edit Mode - Full Screening Editor
-            <div className="space-y-6">
-              {/* Settings */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <label className="text-xs text-slate-400 mb-1 block">
-                    Test Title
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Data Entry Skills Test"
-                    value={screeningForm.title}
-                    onChange={(e) =>
-                      setScreeningForm({
-                        ...screeningForm,
-                        title: e.target.value,
-                      })
-                    }
-                    className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 mb-1 block">
-                    Time Limit (min)
-                  </label>
-                  <input
-                    type="number"
-                    min={5}
-                    max={120}
-                    value={screeningForm.timeLimit}
-                    onChange={(e) =>
-                      setScreeningForm({
-                        ...screeningForm,
-                        timeLimit: Number(e.target.value),
-                      })
-                    }
-                    className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 mb-1 block">
-                    Pass Score (%)
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={screeningForm.passingScore}
-                    onChange={(e) =>
-                      setScreeningForm({
-                        ...screeningForm,
-                        passingScore: Number(e.target.value),
-                      })
-                    }
-                    className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 mb-1 block">
-                    Max Attempts
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={10}
-                    value={screeningForm.maxAttempts}
-                    onChange={(e) =>
-                      setScreeningForm({
-                        ...screeningForm,
-                        maxAttempts: Number(e.target.value),
-                      })
-                    }
-                    className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
-                  />
-                </div>
-              </div>
-
-              {/* Questions */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <label className="text-sm font-medium">
-                    Questions ({screeningForm.questions.length})
-                  </label>
-                  <button
-                    onClick={addQuestion}
-                    className="px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-sm hover:bg-emerald-500/30"
+                {selectedScreeningId && (
+                  <Link
+                    href={`/admin/workspace/screenings/${selectedScreeningId}`}
+                    className="btn-secondary text-sm"
                   >
-                    ➕ Add Question
-                  </button>
-                </div>
-
-                {screeningForm.questions.length === 0 ? (
-                  <div className="text-center py-6 border border-dashed border-white/20 rounded-xl text-slate-400">
-                    <p>No questions yet. Click "Add Question" to start.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {screeningForm.questions.map((q, qIdx) => (
-                      <div
-                        key={qIdx}
-                        className="p-4 rounded-xl bg-white/5 border border-white/10"
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <span className="bg-blue-500/20 text-blue-300 text-xs px-2 py-1 rounded">
-                            Q{qIdx + 1}
-                          </span>
-                          <button
-                            onClick={() => removeQuestion(qIdx)}
-                            className="text-red-400 text-xs hover:text-red-300"
-                          >
-                            🗑 Remove
-                          </button>
-                        </div>
-
-                        <input
-                          type="text"
-                          placeholder="Enter your question..."
-                          value={q.question}
-                          onChange={(e) =>
-                            updateQuestion(qIdx, "question", e.target.value)
-                          }
-                          className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm mb-3"
-                        />
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          {q.options.map((opt, optIdx) => (
-                            <div
-                              key={optIdx}
-                              className="flex items-center gap-2"
-                            >
-                              <button
-                                onClick={() =>
-                                  updateQuestion(qIdx, "correctAnswer", optIdx)
-                                }
-                                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition ${
-                                  q.correctAnswer === optIdx
-                                    ? "bg-emerald-500 text-white"
-                                    : "bg-white/10 text-slate-400 hover:bg-white/20"
-                                }`}
-                              >
-                                {String.fromCharCode(65 + optIdx)}
-                              </button>
-                              <input
-                                type="text"
-                                placeholder={`Option ${String.fromCharCode(65 + optIdx)}`}
-                                value={opt}
-                                onChange={(e) =>
-                                  updateOption(qIdx, optIdx, e.target.value)
-                                }
-                                className="flex-1 bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                        <p className="text-xs text-slate-500 mt-2">
-                          Click a letter button to mark it as the correct answer
-                          (currently:{" "}
-                          {String.fromCharCode(65 + q.correctAnswer)})
-                        </p>
-                      </div>
-                    ))}
-                  </div>
+                    Edit Screening
+                  </Link>
                 )}
               </div>
-
-              {/* Actions */}
-              <div className="flex gap-3 pt-4 border-t border-white/10">
-                <button
-                  onClick={saveScreening}
-                  disabled={saving}
-                  className="btn-primary disabled:opacity-50"
-                >
-                  {saving ? "Saving..." : "💾 Save Screening"}
-                </button>
-                <button
-                  onClick={() => setScreeningMode("view")}
-                  className="btn-secondary"
-                >
-                  Cancel
-                </button>
-              </div>
+            </div>
+          ) : (
+            <div className="text-center py-6 text-slate-400">
+              <div className="text-3xl mb-2">📝</div>
+              <p className="font-medium">No screening selected</p>
+              <p className="text-sm mt-1">
+                Select an existing screening from the dropdown.
+              </p>
             </div>
           )}
         </div>
