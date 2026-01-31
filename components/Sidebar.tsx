@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSidebar } from "@/hooks/useSidebar";
 import { maskEmail } from "@/lib/maskEmail";
+import { apiRequest } from "@/lib/api";
 
 function SidebarUserMenu(props: { onNavigate?: () => void }) {
   const { user, logout } = useAuth();
@@ -117,37 +118,49 @@ export default function Sidebar() {
   const { isSidebarOpen, closeSidebar } = useSidebar();
   const pathname = usePathname();
 
+  // PATCH_53: Notification unread count for sidebar badge
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchUnreadCount = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+      const res = await apiRequest<any>(
+        "/api/notifications/unread-count",
+        "GET",
+        null,
+        true,
+      );
+      if (typeof res.unreadCount === "number") {
+        setUnreadCount(res.unreadCount);
+      }
+    } catch {
+      // Silently fail
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 30000); // Poll every 30s
+    return () => clearInterval(interval);
+  }, [fetchUnreadCount]);
+
   if (!isAuthenticated) return null;
 
-  // PATCH_52: Simplified user navigation
+  // PATCH_52 + PATCH_53: Simplified user navigation with badge support
   const links = [
-    { name: "Explore Services", href: "/explore-services" },
-    { name: "Workspace", href: "/workspace" },
-    { name: "Deals", href: "/deals" },
-    { name: "Orders", href: "/orders" },
-    { name: "Wallet", href: "/wallet" },
-    { name: "Affiliate", href: "/affiliate" },
-    { name: "Rentals", href: "/rentals" },
-    { name: "Notifications", href: "/notifications" },
-    { name: "Support", href: "/support" },
+    { name: "Explore Services", href: "/explore-services", badge: 0 },
+    { name: "Workspace", href: "/workspace", badge: 0 },
+    { name: "Deals", href: "/deals", badge: 0 },
+    { name: "Orders", href: "/orders", badge: 0 },
+    { name: "Wallet", href: "/wallet", badge: 0 },
+    { name: "Affiliate", href: "/affiliate", badge: 0 },
+    { name: "Rentals", href: "/rentals", badge: 0 },
+    { name: "Notifications", href: "/notifications", badge: unreadCount },
+    { name: "Support", href: "/support", badge: 0 },
   ];
 
-  // PATCH_52: Cleaned up admin navigation
-  const adminLinks = [
-    { name: "Dashboard", href: "/admin" },
-    { name: "Services", href: "/admin/services" },
-    { name: "Orders", href: "/admin/orders" },
-    { name: "Workspace", href: "/admin/workspace" },
-    { name: "Proofs", href: "/admin/proofs" },
-    { name: "Rentals", href: "/admin/rentals" },
-    { name: "Tickets", href: "/admin/tickets" },
-    { name: "Blogs", href: "/admin/blogs" },
-    { name: "Affiliate", href: "/admin/affiliates" },
-    { name: "Analytics", href: "/admin/analytics" },
-    { name: "Wallet", href: "/admin/wallet" },
-    { name: "Payment Methods", href: "/admin/payment-methods" },
-    { name: "Settings", href: "/admin/settings" },
-  ];
+  // PATCH_52: Cleaned up admin navigation - PATCH_53: Collapsed to single Admin link
+  const adminLinks = [{ name: "Admin", href: "/admin" }];
 
   const linkClass = (href: string) => {
     const active = pathname === href || pathname?.startsWith(`${href}/`);
@@ -189,7 +202,14 @@ export default function Sidebar() {
               className={linkClass(link.href)}
               onClick={closeSidebar}
             >
-              <span>{link.name}</span>
+              <span className="flex items-center gap-2">
+                {link.name}
+                {link.badge > 0 && (
+                  <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-red-500 text-white min-w-[18px] text-center">
+                    {link.badge > 99 ? "99+" : link.badge}
+                  </span>
+                )}
+              </span>
               <span className="opacity-0 group-hover:opacity-100 transition text-[#9CA3AF]">
                 →
               </span>
@@ -233,7 +253,14 @@ export default function Sidebar() {
               href={link.href}
               className={linkClass(link.href)}
             >
-              <span>{link.name}</span>
+              <span className="flex items-center gap-2">
+                {link.name}
+                {link.badge > 0 && (
+                  <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-red-500 text-white min-w-[18px] text-center">
+                    {link.badge > 99 ? "99+" : link.badge}
+                  </span>
+                )}
+              </span>
               <span className="opacity-0 group-hover:opacity-100 transition text-[#9CA3AF]">
                 →
               </span>

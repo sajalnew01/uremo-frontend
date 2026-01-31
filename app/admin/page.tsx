@@ -1,249 +1,187 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import PageHeader from "@/components/ui/PageHeader";
+import { useRouter } from "next/navigation";
+import { apiRequest } from "@/lib/api";
 
-const adminModules = [
-  // PATCH_48: Proof of Work Review (high priority)
-  {
-    title: "Proof Review",
-    description: "Review & approve worker proof submissions",
-    href: "/admin/proofs",
-    icon: "✅",
-    gradient: "from-emerald-500/20 to-green-500/20",
-    borderColor: "border-emerald-500/30",
-    hoverBorder: "hover:border-emerald-500/50",
-  },
-  // PATCH_44: Workspace Management Hub
-  {
-    title: "Workspace",
-    description: "Manage workers, projects, screenings & job roles",
-    href: "/admin/workspace",
-    icon: "⚡",
-    gradient: "from-amber-500/20 to-orange-500/20",
-    borderColor: "border-amber-500/30",
-    hoverBorder: "hover:border-amber-500/50",
-  },
-  {
-    title: "Services",
-    description: "Add & manage marketplace services",
-    href: "/admin/services",
-    icon: "📋",
-    gradient: "from-blue-500/20 to-cyan-500/20",
-    borderColor: "border-blue-500/30",
-    hoverBorder: "hover:border-blue-500/50",
-  },
-  {
-    title: "Orders",
-    description: "Review payments & update order status",
-    href: "/admin/orders",
-    icon: "📦",
-    gradient: "from-purple-500/20 to-pink-500/20",
-    borderColor: "border-purple-500/30",
-    hoverBorder: "hover:border-purple-500/50",
-  },
-  // PATCH_22: Rentals management
-  {
-    title: "Rentals",
-    description: "Manage rental subscriptions & access",
-    href: "/admin/rentals",
-    icon: "🔄",
-    gradient: "from-violet-500/20 to-purple-500/20",
-    borderColor: "border-violet-500/30",
-    hoverBorder: "hover:border-violet-500/50",
-  },
-  {
-    title: "Service Requests",
-    description: "Leads captured from JarvisX Support",
-    href: "/admin/service-requests",
-    icon: "🧾",
-    gradient: "from-emerald-500/20 to-teal-500/20",
-    borderColor: "border-emerald-500/30",
-    hoverBorder: "hover:border-emerald-500/50",
-  },
-  {
-    title: "Payment Methods",
-    description: "Control PayPal / Crypto payment details",
-    href: "/admin/payment-methods",
-    icon: "💳",
-    gradient: "from-green-500/20 to-emerald-500/20",
-    borderColor: "border-green-500/30",
-    hoverBorder: "hover:border-green-500/50",
-  },
-  // PATCH_23: Affiliate Withdrawals
-  {
-    title: "Affiliate Withdrawals",
-    description: "Review & process affiliate payouts",
-    href: "/admin/affiliate",
-    icon: "💰",
-    gradient: "from-yellow-500/20 to-amber-500/20",
-    borderColor: "border-yellow-500/30",
-    hoverBorder: "hover:border-yellow-500/50",
-  },
-  // PATCH_26: Affiliate Directory
-  {
-    title: "Affiliate Directory",
-    description: "View all affiliates & their earnings",
-    href: "/admin/affiliates",
-    icon: "👥",
-    gradient: "from-purple-500/20 to-violet-500/20",
-    borderColor: "border-purple-500/30",
-    hoverBorder: "hover:border-purple-500/50",
-  },
-  // PATCH_23: Wallet Management
-  {
-    title: "Wallet Management",
-    description: "View & adjust user wallet balances",
-    href: "/admin/wallet",
-    icon: "💳",
-    gradient: "from-teal-500/20 to-cyan-500/20",
-    borderColor: "border-teal-500/30",
-    hoverBorder: "hover:border-teal-500/50",
-  },
-  {
-    title: "Applications",
-    description: "Review work applications from users",
-    href: "/admin/applications",
-    icon: "📝",
-    gradient: "from-orange-500/20 to-amber-500/20",
-    borderColor: "border-orange-500/30",
-    hoverBorder: "hover:border-orange-500/50",
-  },
-  {
-    title: "Work Positions",
-    description: "Manage open positions & requirements",
-    href: "/admin/work-positions",
-    icon: "👥",
-    gradient: "from-indigo-500/20 to-violet-500/20",
-    borderColor: "border-indigo-500/30",
-    hoverBorder: "hover:border-indigo-500/50",
-  },
-  // PATCH_44: Analytics Dashboard
-  {
-    title: "Analytics",
-    description: "View platform statistics & insights",
-    href: "/admin/analytics",
-    icon: "📊",
-    gradient: "from-cyan-500/20 to-blue-500/20",
-    borderColor: "border-cyan-500/30",
-    hoverBorder: "hover:border-cyan-500/50",
-  },
-  // PATCH_44: Support Tickets
-  {
-    title: "Support Tickets",
-    description: "Manage customer support requests",
-    href: "/admin/tickets",
-    icon: "🎫",
-    gradient: "from-red-500/20 to-rose-500/20",
-    borderColor: "border-red-500/30",
-    hoverBorder: "hover:border-red-500/50",
-  },
-  {
-    title: "Blogs",
-    description: "Create & manage blog posts",
-    href: "/admin/blogs",
-    icon: "📝",
-    gradient: "from-fuchsia-500/20 to-pink-500/20",
-    borderColor: "border-fuchsia-500/30",
-    hoverBorder: "hover:border-fuchsia-500/50",
-  },
-  {
-    title: "CMS Settings",
-    description: "Site branding, SEO & configuration",
-    href: "/admin/settings",
-    icon: "⚙️",
-    gradient: "from-slate-500/20 to-zinc-500/20",
-    borderColor: "border-slate-500/30",
-    hoverBorder: "hover:border-slate-500/50",
-  },
-  {
-    title: "JarvisX Chat",
-    description: "AI assistant configuration",
-    href: "/admin/jarvisx",
-    icon: "🤖",
-    gradient: "from-rose-500/20 to-red-500/20",
-    borderColor: "border-rose-500/30",
-    hoverBorder: "hover:border-rose-500/50",
-  },
-  {
-    title: "JarvisX Write",
-    description: "Content generation settings",
-    href: "/admin/jarvisx-write",
-    icon: "✍️",
-    gradient: "from-teal-500/20 to-cyan-500/20",
-    borderColor: "border-teal-500/30",
-    hoverBorder: "hover:border-teal-500/50",
-  },
-];
+// PATCH_53: Admin Command Center - KPI banner + redirect to orders
+interface DashboardStats {
+  pendingOrders: number;
+  paymentPending: number;
+  openTickets: number;
+  pendingProofs: number;
+}
 
 export default function AdminDashboard() {
+  const router = useRouter();
+  const [stats, setStats] = useState<DashboardStats>({
+    pendingOrders: 0,
+    paymentPending: 0,
+    openTickets: 0,
+    pendingProofs: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        // Fetch orders
+        const orders = await apiRequest<any[]>(
+          "/api/admin/orders",
+          "GET",
+          null,
+          true,
+        );
+
+        // Fetch tickets
+        const tickets = await apiRequest<any>(
+          "/api/admin/tickets",
+          "GET",
+          null,
+          true,
+        );
+
+        // Fetch proofs
+        const proofs = await apiRequest<any>(
+          "/api/admin/proofs",
+          "GET",
+          null,
+          true,
+        );
+
+        // Count pending items
+        const pendingCount =
+          orders?.filter(
+            (o) => o.status === "pending" || o.status === "payment_pending",
+          ).length || 0;
+        const paymentPendingCount =
+          orders?.filter((o) => o.status === "payment_pending").length || 0;
+        const pendingProofsCount =
+          proofs?.proofs?.filter((p: any) => p.status === "pending").length ||
+          0;
+
+        setStats({
+          pendingOrders: pendingCount,
+          paymentPending: paymentPendingCount,
+          openTickets: tickets?.stats?.open || 0,
+          pendingProofs: pendingProofsCount,
+        });
+      } catch (err) {
+        console.error("Failed to load dashboard stats:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadStats();
+
+    // Auto-redirect to orders tab after stats load
+    const timer = setTimeout(() => {
+      router.push("/admin/orders");
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [router]);
+
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-      {/* Header */}
-      <PageHeader
-        title="Admin Dashboard"
-        description="Manage your platform's services, orders, payments, and team applications"
-      />
-
-      {/* Quick Stats - Optional enhancement */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-500/20">
-          <p className="text-2xl font-bold text-white">—</p>
-          <p className="text-sm text-slate-400">Active Services</p>
-        </div>
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-500/10 to-purple-500/5 border border-purple-500/20">
-          <p className="text-2xl font-bold text-white">—</p>
-          <p className="text-sm text-slate-400">Pending Orders</p>
-        </div>
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-green-500/10 to-green-500/5 border border-green-500/20">
-          <p className="text-2xl font-bold text-white">—</p>
-          <p className="text-sm text-slate-400">Total Revenue</p>
-        </div>
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-orange-500/10 to-orange-500/5 border border-orange-500/20">
-          <p className="text-2xl font-bold text-white">—</p>
-          <p className="text-sm text-slate-400">New Applications</p>
-        </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      {/* PATCH_53: Top KPI Banner */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-white mb-1">
+          Admin Command Center
+        </h1>
+        <p className="text-sm text-slate-400">
+          Quick overview of pending actions
+        </p>
       </div>
 
-      {/* Admin Modules Grid */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {adminModules.map((module) => (
-          <Link key={module.href} href={module.href}>
-            <div
-              className={`group p-6 rounded-2xl bg-gradient-to-br ${module.gradient} border ${module.borderColor} ${module.hoverBorder} transition-all duration-300 hover:shadow-lg hover:shadow-black/20 hover:-translate-y-1 cursor-pointer h-full`}
-            >
-              <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">
-                {module.icon}
-              </div>
-              <h3 className="font-semibold text-lg text-white mb-2">
-                {module.title}
-              </h3>
-              <p className="text-sm text-slate-400 leading-relaxed">
-                {module.description}
-              </p>
-            </div>
-          </Link>
-        ))}
-      </div>
-
-      {/* Help Section */}
-      <div className="mt-12 p-6 rounded-2xl bg-gradient-to-r from-slate-800/50 to-slate-900/50 border border-white/10">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div className="text-3xl">💡</div>
-          <div className="flex-1">
-            <h3 className="font-semibold text-white mb-1">Need Help?</h3>
-            <p className="text-sm text-slate-400">
-              Check out the documentation or contact support for assistance with
-              any admin features.
-            </p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <Link
+          href="/admin/orders?status=pending"
+          className="p-5 rounded-2xl bg-gradient-to-br from-purple-500/10 to-purple-500/5 border border-purple-500/20 hover:border-purple-500/40 transition group"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-3xl group-hover:scale-110 transition-transform">
+              📦
+            </span>
+            {!loading && stats.pendingOrders > 0 && (
+              <span className="px-2 py-1 rounded-full bg-purple-500/20 text-purple-300 text-xs font-semibold">
+                {stats.pendingOrders}
+              </span>
+            )}
           </div>
-          <Link
-            href="/support"
-            className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-sm font-medium transition-all"
-          >
-            Get Support
-          </Link>
-        </div>
+          <p className="text-xl font-bold text-white">
+            {loading ? "..." : stats.pendingOrders}
+          </p>
+          <p className="text-sm text-slate-400">Pending Orders</p>
+        </Link>
+
+        <Link
+          href="/admin/orders?status=payment_pending"
+          className="p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 to-amber-500/5 border border-amber-500/20 hover:border-amber-500/40 transition group"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-3xl group-hover:scale-110 transition-transform">
+              💰
+            </span>
+            {!loading && stats.paymentPending > 0 && (
+              <span className="px-2 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-semibold">
+                {stats.paymentPending}
+              </span>
+            )}
+          </div>
+          <p className="text-xl font-bold text-white">
+            {loading ? "..." : stats.paymentPending}
+          </p>
+          <p className="text-sm text-slate-400">Payment Pending</p>
+        </Link>
+
+        <Link
+          href="/admin/tickets"
+          className="p-5 rounded-2xl bg-gradient-to-br from-red-500/10 to-red-500/5 border border-red-500/20 hover:border-red-500/40 transition group"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-3xl group-hover:scale-110 transition-transform">
+              🎫
+            </span>
+            {!loading && stats.openTickets > 0 && (
+              <span className="px-2 py-1 rounded-full bg-red-500/20 text-red-300 text-xs font-semibold">
+                {stats.openTickets}
+              </span>
+            )}
+          </div>
+          <p className="text-xl font-bold text-white">
+            {loading ? "..." : stats.openTickets}
+          </p>
+          <p className="text-sm text-slate-400">Open Tickets</p>
+        </Link>
+
+        <Link
+          href="/admin/proofs"
+          className="p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20 hover:border-emerald-500/40 transition group"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-3xl group-hover:scale-110 transition-transform">
+              ✅
+            </span>
+            {!loading && stats.pendingProofs > 0 && (
+              <span className="px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold">
+                {stats.pendingProofs}
+              </span>
+            )}
+          </div>
+          <p className="text-xl font-bold text-white">
+            {loading ? "..." : stats.pendingProofs}
+          </p>
+          <p className="text-sm text-slate-400">Pending Proofs</p>
+        </Link>
+      </div>
+
+      {/* Loading indicator */}
+      <div className="text-center py-8">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        <p className="mt-4 text-slate-400">Loading Orders...</p>
       </div>
     </div>
   );

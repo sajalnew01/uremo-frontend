@@ -11,10 +11,14 @@ export interface StatusConfig {
 export const STATUS_MAP: Record<string, StatusConfig> = {
   // Order statuses
   pending: { label: "Pending", color: "yellow" },
+  payment_pending: { label: "Payment Pending", color: "yellow" },
+  payment_submitted: { label: "Payment Submitted", color: "orange" },
+  processing: { label: "Processing", color: "blue" },
   in_progress: { label: "In Progress", color: "blue" },
   waiting_user: { label: "Waiting For You", color: "orange" },
   completed: { label: "Completed", color: "green" },
   cancelled: { label: "Cancelled", color: "red" },
+  rejected: { label: "Rejected", color: "red" },
 
   // Rental statuses
   active: { label: "Active", color: "green" },
@@ -31,7 +35,7 @@ export const STATUS_MAP: Record<string, StatusConfig> = {
   assigned: { label: "Assigned", color: "blue" },
   project_in_progress: { label: "Working", color: "purple" },
   under_review: { label: "Under Review", color: "orange" },
-  rejected: { label: "Rejected", color: "red" },
+  // rejected already defined above in order statuses
   approved: { label: "Approved", color: "green" },
   inactive: { label: "Inactive", color: "gray" },
 

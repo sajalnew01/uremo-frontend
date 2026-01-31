@@ -155,6 +155,7 @@ function AdminOrdersContent() {
       <div className="flex flex-wrap gap-2">
         {[
           { key: "all", label: "All" },
+          { key: "payment_submitted", label: "⚠️ Payment Submitted" },
           { key: "pending", label: "Pending" },
           { key: "in_progress", label: "In Progress" },
           { key: "waiting_user", label: "Waiting on User" },
