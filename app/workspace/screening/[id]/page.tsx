@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/useToast";
 type Question = {
   _id?: string;
   question: string;
-  type: string;
+  type?: string;
   options: string[];
   points: number;
 };
@@ -41,7 +41,7 @@ export default function ScreeningTestPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [answers, setAnswers] = useState<Record<number, string | string[]>>({});
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [started, setStarted] = useState(false);
@@ -103,6 +103,21 @@ export default function ScreeningTestPage() {
 
   const handleAnswer = (questionIdx: number, answer: string) => {
     setAnswers((prev) => ({ ...prev, [questionIdx]: answer }));
+  };
+
+  const toggleMultiAnswer = (questionIdx: number, answer: string) => {
+    setAnswers((prev) => {
+      const current = Array.isArray(prev[questionIdx])
+        ? (prev[questionIdx] as string[])
+        : [];
+      if (current.includes(answer)) {
+        return {
+          ...prev,
+          [questionIdx]: current.filter((a) => a !== answer),
+        };
+      }
+      return { ...prev, [questionIdx]: [...current, answer] };
+    });
   };
 
   const handleSubmit = async () => {
@@ -318,9 +333,12 @@ export default function ScreeningTestPage() {
   const question = screening.questions[currentQuestion];
   const progress = ((currentQuestion + 1) / screening.questions.length) * 100;
   const isLastQuestion = currentQuestion === screening.questions.length - 1;
-  const allAnswered = screening.questions.every(
-    (_, idx) => answers[idx] !== undefined,
-  );
+  const allAnswered = screening.questions.every((q, idx) => {
+    if (q.type === "multi") {
+      return Array.isArray(answers[idx]) && (answers[idx] as string[]).length;
+    }
+    return answers[idx] !== undefined && answers[idx] !== "";
+  });
 
   return (
     <div className="u-container max-w-3xl">
@@ -359,11 +377,20 @@ export default function ScreeningTestPage() {
         {/* Options */}
         <div className="space-y-3 mb-8">
           {question.options.map((option, optIdx) => {
-            const isSelected = answers[currentQuestion] === option;
+            const isMulti = question.type === "multi";
+            const isSelected = isMulti
+              ? Array.isArray(answers[currentQuestion]) &&
+                (answers[currentQuestion] as string[]).includes(option)
+              : answers[currentQuestion] === option;
+
             return (
               <button
                 key={optIdx}
-                onClick={() => handleAnswer(currentQuestion, option)}
+                onClick={() =>
+                  isMulti
+                    ? toggleMultiAnswer(currentQuestion, option)
+                    : handleAnswer(currentQuestion, option)
+                }
                 className={`w-full text-left p-4 rounded-xl border transition ${
                   isSelected
                     ? "border-blue-500 bg-blue-500/20 text-white"
@@ -379,6 +406,11 @@ export default function ScreeningTestPage() {
                     {String.fromCharCode(65 + optIdx)}
                   </span>
                   <span>{option}</span>
+                  {isMulti && (
+                    <span className="ml-auto text-xs text-slate-400">
+                      {isSelected ? "Selected" : "Tap to select"}
+                    </span>
+                  )}
                 </div>
               </button>
             );
