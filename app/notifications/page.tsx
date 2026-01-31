@@ -6,6 +6,7 @@ import { apiRequest } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/useToast";
 import EmptyState from "@/components/ui/EmptyState";
+import PageHeader from "@/components/ui/PageHeader";
 
 interface Notification {
   _id: string;
@@ -155,14 +156,14 @@ export default function NotificationsPage() {
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold">Notifications</h1>
-            {unreadCount > 0 && (
-              <p className="text-sm text-gray-400 mt-1">
-                {unreadCount} unread notification{unreadCount > 1 ? "s" : ""}
-              </p>
-            )}
-          </div>
+          <PageHeader
+            title="Notifications"
+            description={
+              unreadCount > 0
+                ? `${unreadCount} unread notification${unreadCount > 1 ? "s" : ""}`
+                : "Stay updated with your activity"
+            }
+          />
           {unreadCount > 0 && (
             <button
               onClick={markAllAsRead}

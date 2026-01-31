@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
+import PageHeader from "@/components/ui/PageHeader";
 
 interface Stats {
   totalUsers: number;
@@ -105,12 +106,10 @@ export default function AdminAnalyticsPage() {
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">📊 Analytics Dashboard</h1>
-            <p className="text-sm text-gray-400 mt-1">
-              Real-time platform metrics and health
-            </p>
-          </div>
+          <PageHeader
+            title="Analytics Dashboard"
+            description="Real-time platform metrics and health"
+          />
           <button
             onClick={loadData}
             disabled={loading}

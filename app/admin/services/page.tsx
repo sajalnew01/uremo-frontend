@@ -5,6 +5,7 @@ import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import { withCacheBust } from "@/lib/cacheBust";
 import { emitServicesRefresh, onServicesRefresh } from "@/lib/events";
+import PageHeader from "@/components/ui/PageHeader";
 
 // PATCH_19/21: Category and Subcategory constants - synced with backend
 const CATEGORIES = [
@@ -571,7 +572,10 @@ export default function AdminServicesPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-bold">Admin · Services</h1>
+      <PageHeader
+        title="Services"
+        description="Create and manage platform services"
+      />
 
       {/* CREATE FORM */}
       <div className="border border-[#1F2937] p-6 rounded-lg bg-[#0F172A] space-y-4">

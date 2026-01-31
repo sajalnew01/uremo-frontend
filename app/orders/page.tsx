@@ -10,12 +10,19 @@ import {
   useSiteSettings,
 } from "@/hooks/useSiteSettings";
 import EmptyState from "@/components/ui/EmptyState";
-// PATCH_39: Status label normalization
-import {
-  getStatusLabel,
-  getStatusColor,
-  getStatusIcon,
-} from "@/lib/statusLabels";
+import PageHeader from "@/components/ui/PageHeader";
+// PATCH_52: Centralized status system
+import { getStatusLabel, getStatusColor } from "@/lib/statusConfig";
+
+// Status icons map
+const STATUS_ICONS: Record<string, string> = {
+  pending: "⏳",
+  in_progress: "⚡",
+  waiting_user: "🔍",
+  completed: "🎉",
+  cancelled: "❌",
+};
+const getStatusIcon = (status: string) => STATUS_ICONS[status] || "📦";
 
 export default function OrdersPage() {
   const router = useRouter();
@@ -199,8 +206,12 @@ export default function OrdersPage() {
 
   return (
     <div className="u-container">
-      <h1 className="text-3xl font-bold mb-2">{copy.title}</h1>
-      <p className="text-slate-400 mb-8">{copy.subtitle}</p>
+      <PageHeader
+        title="My Orders"
+        description="Track and manage all your service orders"
+        actionLabel="Explore Services"
+        actionHref="/explore-services"
+      />
 
       {loading && <p className="text-sm text-[#9CA3AF]">{copy.loadingText}</p>}
 
@@ -267,12 +278,10 @@ export default function OrdersPage() {
       {!loading && orders.length === 0 && (
         <EmptyState
           icon="📦"
-          title="You haven't availed any service yet"
-          description="Browse our marketplace and find the perfect service to get started. We offer manual onboarding, verification, and more!"
+          title="You haven't placed any orders yet"
+          description="Browse our marketplace and find the perfect service to get started."
           ctaText="Explore Services"
           ctaHref="/explore-services"
-          secondaryCtaText="View Dashboard"
-          secondaryCtaHref="/dashboard"
         />
       )}
     </div>

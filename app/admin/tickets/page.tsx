@@ -5,6 +5,8 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
+import PageHeader from "@/components/ui/PageHeader";
+import { getStatusColor, getStatusLabel } from "@/lib/statusConfig";
 
 interface Ticket {
   _id: string;
@@ -60,20 +62,8 @@ const PRIORITIES = [
   { id: "low", label: "Low" },
 ];
 
-const statusColor = (status: string) => {
-  switch (status) {
-    case "open":
-      return "bg-blue-600";
-    case "in_progress":
-      return "bg-yellow-600";
-    case "waiting_user":
-      return "bg-orange-600";
-    case "closed":
-      return "bg-gray-600";
-    default:
-      return "bg-gray-600";
-  }
-};
+// Use centralized status config - getTicketStatusClass wrapper
+const getTicketStatusClass = (status: string): string => getStatusColor(status);
 
 const priorityColor = (priority: string) => {
   switch (priority) {
@@ -148,9 +138,10 @@ export default function AdminTicketsPage() {
       transition={{ duration: 0.4 }}
       className="u-container max-w-6xl py-8"
     >
-      <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
-        <h1 className="text-2xl font-bold">Support Tickets</h1>
-      </div>
+      <PageHeader
+        title="Support Tickets"
+        description="Manage and respond to customer support inquiries"
+      />
 
       {/* Stats */}
       {stats && (
@@ -306,9 +297,9 @@ export default function AdminTicketsPage() {
                   </td>
                   <td className="py-3 px-4">
                     <span
-                      className={`text-xs px-2 py-1 rounded text-white ${statusColor(ticket.status)}`}
+                      className={`text-xs px-2 py-1 rounded text-white ${getTicketStatusClass(ticket.status)}`}
                     >
-                      {ticket.status.replace(/_/g, " ").toUpperCase()}
+                      {getStatusLabel(ticket.status)}
                     </span>
                   </td>
                   <td className="py-3 px-4 text-[#9CA3AF]">

@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 import { withCacheBust } from "@/lib/cacheBust";
+import PageHeader from "@/components/ui/PageHeader";
 
 // PATCH_21: Blog CMS types
 interface RelatedService {
@@ -342,14 +343,10 @@ export default function AdminBlogsPage() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white">
-              Blog Management
-            </h1>
-            <p className="text-slate-400 mt-1">
-              Create and manage blog posts for your content hub
-            </p>
-          </div>
+          <PageHeader
+            title="Blog Management"
+            description="Create and manage blog posts for your content hub"
+          />
           <button
             onClick={openNewForm}
             className="px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2"

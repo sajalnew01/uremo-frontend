@@ -6,6 +6,7 @@ import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import { useAuth } from "@/hooks/useAuth";
 import EmptyState from "@/components/ui/EmptyState";
+import PageHeader from "@/components/ui/PageHeader";
 
 interface Transaction {
   _id: string;
@@ -97,15 +98,10 @@ export default function WalletPage() {
     <div className="min-h-screen bg-slate-950 text-white p-6">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold">💳 My Wallet</h1>
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="text-sm text-slate-400 hover:text-white"
-          >
-            ← Back to Dashboard
-          </button>
-        </div>
+        <PageHeader
+          title="My Wallet"
+          description="Manage your balance and view transaction history"
+        />
 
         {/* Balance Card */}
         <div className="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-xl p-6 mb-8 shadow-lg">
@@ -196,8 +192,8 @@ export default function WalletPage() {
               <EmptyState
                 icon="💳"
                 title="No transactions yet"
-                description="Add funds to your wallet to start availing services instantly. Your wallet balance can be used for all purchases on UREMO."
-                ctaText="Add Balance Now"
+                description="Add funds to your wallet to start using services instantly."
+                ctaText="Add Balance"
                 ctaHref="#"
                 secondaryCtaText="Explore Services"
                 secondaryCtaHref="/explore-services"

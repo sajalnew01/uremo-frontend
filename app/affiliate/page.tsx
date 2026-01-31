@@ -6,6 +6,8 @@ import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import EmptyState from "@/components/ui/EmptyState";
+import PageHeader from "@/components/ui/PageHeader";
+import { getStatusColor, getStatusLabel } from "@/lib/statusConfig";
 
 interface CommissionSummary {
   totalEarnings: number;
@@ -129,19 +131,9 @@ export default function AffiliatePage() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "approved":
-      case "paid":
-        return "text-emerald-300 bg-emerald-500/20";
-      case "pending":
-        return "text-yellow-300 bg-yellow-500/20";
-      case "rejected":
-      case "cancelled":
-        return "text-red-300 bg-red-500/20";
-      default:
-        return "text-slate-300 bg-slate-500/20";
-    }
+  // PATCH_52: Use centralized status from statusConfig
+  const getStatusBadgeClass = (status: string) => {
+    return `px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(status)}`;
   };
 
   const formatDate = (dateStr: string) => {
@@ -179,21 +171,10 @@ export default function AffiliatePage() {
       transition={{ duration: 0.4 }}
       className="u-container max-w-6xl"
     >
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">Affiliate Dashboard</h1>
-          <p className="text-slate-400 text-sm mt-1">
-            Earn {stats?.commissionRate || 10}% commission on every referral
-            purchase
-          </p>
-        </div>
-        <Link
-          href="/dashboard"
-          className="text-sm text-slate-400 hover:text-white"
-        >
-          ← Back to Dashboard
-        </Link>
-      </div>
+      <PageHeader
+        title="Affiliate Dashboard"
+        description={`Earn ${stats?.commissionRate || 10}% commission on every referral purchase`}
+      />
 
       {/* Stats Cards - 4 Cards as required */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

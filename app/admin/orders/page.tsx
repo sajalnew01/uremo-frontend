@@ -7,6 +7,8 @@ import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import { useRouter, useSearchParams } from "next/navigation";
 import { maskEmail } from "@/lib/maskEmail";
+import PageHeader from "@/components/ui/PageHeader";
+import { getStatusColor, getStatusLabel } from "@/lib/statusConfig";
 
 interface Order {
   _id: string;
@@ -32,15 +34,9 @@ interface Order {
   }>;
 }
 
-const statusBadge = (status: string) => {
-  const map: Record<string, string> = {
-    pending: "bg-slate-600",
-    in_progress: "bg-purple-600",
-    waiting_user: "bg-amber-600",
-    completed: "bg-emerald-600",
-    cancelled: "bg-red-600",
-  };
-  return map[status] || "bg-gray-600";
+// PATCH_52: Use centralized status from statusConfig
+const getOrderStatusClass = (status: string) => {
+  return `inline-flex items-center px-2 py-1 rounded text-xs font-medium border ${getStatusColor(status)}`;
 };
 
 export default function AdminOrdersPage() {
@@ -151,7 +147,10 @@ function AdminOrdersContent() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Admin — Orders</h1>
+      <PageHeader
+        title="Orders"
+        description="Review payments and update order status"
+      />
 
       <div className="flex flex-wrap gap-2">
         {[
@@ -278,12 +277,8 @@ function AdminOrdersContent() {
                       </td>
 
                       <td className="p-3">
-                        <span
-                          className={`px-2 py-1 rounded text-xs ${statusBadge(
-                            o.status,
-                          )}`}
-                        >
-                          {o.status.replace(/_/g, " ")}
+                        <span className={getOrderStatusClass(o.status)}>
+                          {getStatusLabel(o.status)}
                         </span>
                       </td>
 

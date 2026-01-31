@@ -3,6 +3,7 @@
 import Card from "@/components/Card";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/useToast";
+import PageHeader from "@/components/ui/PageHeader";
 
 export default function ProfilePage() {
   const { user, isAuthenticated, ready } = useAuth();
@@ -40,7 +41,10 @@ export default function ProfilePage() {
 
   return (
     <div className="u-container space-y-6">
-      <h1 className="text-3xl font-bold">Profile</h1>
+      <PageHeader
+        title="Profile"
+        description="Manage your account settings and information"
+      />
 
       <Card>
         <div className="space-y-4">

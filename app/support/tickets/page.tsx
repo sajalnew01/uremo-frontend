@@ -7,6 +7,8 @@ import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import EmptyState from "@/components/ui/EmptyState";
+import PageHeader from "@/components/ui/PageHeader";
+import { getStatusColor, getStatusLabel } from "@/lib/statusConfig";
 
 interface Ticket {
   _id: string;
@@ -37,19 +39,9 @@ const PRIORITIES = [
   { id: "high", label: "High" },
 ];
 
-const statusColor = (status: string) => {
-  switch (status) {
-    case "open":
-      return "bg-blue-600";
-    case "in_progress":
-      return "bg-yellow-600";
-    case "waiting_user":
-      return "bg-orange-600";
-    case "closed":
-      return "bg-gray-600";
-    default:
-      return "bg-gray-600";
-  }
+// PATCH_52: Use centralized status from statusConfig
+const getTicketStatusClass = (status: string) => {
+  return `inline-flex items-center px-2 py-1 rounded text-xs font-medium border ${getStatusColor(status)}`;
 };
 
 const priorityColor = (priority: string) => {
@@ -192,21 +184,12 @@ export default function SupportTicketsPage() {
       transition={{ duration: 0.4 }}
       className="u-container max-w-4xl py-8"
     >
-      <div className="mb-6">
-        <Link
-          href="/support"
-          className="text-sm text-[#9CA3AF] hover:text-white transition"
-        >
-          ← Back to Support
-        </Link>
-      </div>
-
-      <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
-        <h1 className="text-2xl font-bold">My Support Tickets</h1>
-        <button onClick={() => setShowCreate(true)} className="btn-primary">
-          + New Ticket
-        </button>
-      </div>
+      <PageHeader
+        title="My Support Tickets"
+        description="View and manage your support requests"
+        actionLabel="+ New Ticket"
+        actionOnClick={() => setShowCreate(true)}
+      />
 
       {/* Filters */}
       <div className="flex gap-3 mb-6">
@@ -276,10 +259,8 @@ export default function SupportTicketsPage() {
                     )}
                   </div>
                 </div>
-                <span
-                  className={`${statusColor(ticket.status)} text-white text-xs px-2 py-1 rounded whitespace-nowrap`}
-                >
-                  {ticket.status.replace(/_/g, " ").toUpperCase()}
+                <span className={getTicketStatusClass(ticket.status)}>
+                  {getStatusLabel(ticket.status)}
                 </span>
               </div>
             </Link>

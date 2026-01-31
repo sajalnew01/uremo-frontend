@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import PageHeader from "@/components/ui/PageHeader";
 
 export default function SupportPage() {
   const { data: settings } = useSiteSettings();
@@ -33,18 +34,12 @@ export default function SupportPage() {
       transition={{ duration: 0.4 }}
       className="u-container max-w-2xl"
     >
-      <div className="mb-12">
-        <Link
-          href="/dashboard"
-          className="text-sm text-[#9CA3AF] hover:text-white transition"
-        >
-          ← Back to Dashboard
-        </Link>
-        <h1 className="text-4xl font-bold mt-4 mb-2">Support</h1>
-        <p className="text-slate-300">
-          For issues, contact support or reply inside any order chat.
-        </p>
-      </div>
+      <PageHeader
+        title="Support"
+        description="Get help with your orders, account, or any issues"
+        actionLabel="View My Tickets"
+        actionHref="/support/tickets"
+      />
 
       {/* Support Tickets Card */}
       <motion.div

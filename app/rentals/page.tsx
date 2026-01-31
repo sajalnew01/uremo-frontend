@@ -6,11 +6,9 @@ import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import EmptyState from "@/components/ui/EmptyState";
-// PATCH_39: Status label normalization
-import {
-  getStatusLabel,
-  getStatusColor as getStatusColorUtil,
-} from "@/lib/statusLabels";
+import PageHeader from "@/components/ui/PageHeader";
+// PATCH_52: Centralized status system
+import { getStatusLabel, getStatusColor } from "@/lib/statusConfig";
 
 interface Rental {
   _id: string;
@@ -85,24 +83,10 @@ export default function MyRentalsPage() {
     }
   };
 
-  // PATCH_39: Use centralized status utilities
-  const getStatusColorLocal = (status: string) => {
-    // Rentals have specific visual treatment
-    const base = "px-2 py-1 rounded-full text-xs font-medium ";
-    switch (status) {
-      case "active":
-        return base + "text-emerald-300 bg-emerald-500/20";
-      case "pending":
-        return base + "text-yellow-300 bg-yellow-500/20";
-      case "expired":
-        return base + "text-red-300 bg-red-500/20";
-      case "cancelled":
-        return base + "text-slate-400 bg-slate-500/20";
-      case "renewed":
-        return base + "text-purple-300 bg-purple-500/20";
-      default:
-        return base + "text-slate-300 bg-slate-500/20";
-    }
+  // PATCH_52: Use centralized status from statusConfig
+  const getStatusBadge = (status: string) => {
+    const base = "px-2 py-1 rounded-full text-xs font-medium border ";
+    return base + getStatusColor(status);
   };
 
   const formatDate = (dateStr: string | null) => {
@@ -137,31 +121,21 @@ export default function MyRentalsPage() {
       transition={{ duration: 0.4 }}
       className="u-container max-w-5xl"
     >
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">My Rentals</h1>
-          <p className="text-slate-400 text-sm mt-1">
-            Manage your active subscriptions and rental services
-          </p>
-        </div>
-        <Link
-          href="/dashboard"
-          className="text-sm text-slate-400 hover:text-white"
-        >
-          ← Back to Dashboard
-        </Link>
-      </div>
+      <PageHeader
+        title="My Rentals"
+        description="Manage your active subscriptions and rental services"
+        actionLabel="Explore Services"
+        actionHref="/explore-services"
+      />
 
       {rentals.length === 0 ? (
         <div className="card">
           <EmptyState
             icon="🔄"
-            title="No active rentals yet"
-            description="Rent premium services on a subscription basis. Perfect for ongoing access to wallets, accounts, and other recurring services."
-            ctaText="Browse Rental Services"
+            title="No active rentals"
+            description="Rent premium services on a subscription basis for ongoing access."
+            ctaText="Explore Services"
             ctaHref="/explore-services"
-            secondaryCtaText="View Dashboard"
-            secondaryCtaHref="/dashboard"
           />
         </div>
       ) : (
@@ -195,8 +169,7 @@ export default function MyRentalsPage() {
                       {rental.duration} {rental.rentalType} • ${rental.price}
                     </p>
                     <div className="flex items-center gap-2 mt-2">
-                      <span className={getStatusColorLocal(rental.status)}>
-                        {/* PATCH_39: Use centralized status label */}
+                      <span className={getStatusBadge(rental.status)}>
                         {getStatusLabel(rental.status)}
                       </span>
                       {rental.isActive &&

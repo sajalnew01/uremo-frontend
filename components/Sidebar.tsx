@@ -119,27 +119,34 @@ export default function Sidebar() {
 
   if (!isAuthenticated) return null;
 
+  // PATCH_52: Simplified user navigation
   const links = [
     { name: "Explore Services", href: "/explore-services" },
-    { name: "Workspace (Jobs)", href: "/workspace" },
+    { name: "Workspace", href: "/workspace" },
     { name: "Deals", href: "/deals" },
     { name: "Orders", href: "/orders" },
     { name: "Wallet", href: "/wallet" },
+    { name: "Affiliate", href: "/affiliate" },
+    { name: "Rentals", href: "/rentals" },
+    { name: "Notifications", href: "/notifications" },
     { name: "Support", href: "/support" },
   ];
 
+  // PATCH_52: Cleaned up admin navigation
   const adminLinks = [
-    { name: "Admin", href: "/admin" },
-    { name: "CMS Settings", href: "/admin/settings" },
-    { name: "JarvisX", href: "/admin/jarvisx" },
-    { name: "Work Positions", href: "/admin/work-positions" },
-    { name: "Inbox", href: "/admin/messages" },
-    { name: "Applications", href: "/admin/applications" },
-    { name: "Email Campaigns", href: "/admin/email" },
+    { name: "Dashboard", href: "/admin" },
     { name: "Services", href: "/admin/services" },
     { name: "Orders", href: "/admin/orders" },
-    { name: "Cancelled Orders", href: "/admin/cancelled-orders" },
-    { name: "Payments", href: "/admin/payments" },
+    { name: "Workspace", href: "/admin/workspace" },
+    { name: "Proofs", href: "/admin/proofs" },
+    { name: "Rentals", href: "/admin/rentals" },
+    { name: "Tickets", href: "/admin/tickets" },
+    { name: "Blogs", href: "/admin/blogs" },
+    { name: "Affiliate", href: "/admin/affiliates" },
+    { name: "Analytics", href: "/admin/analytics" },
+    { name: "Wallet", href: "/admin/wallet" },
+    { name: "Payment Methods", href: "/admin/payment-methods" },
+    { name: "Settings", href: "/admin/settings" },
   ];
 
   const linkClass = (href: string) => {

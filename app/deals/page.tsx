@@ -5,6 +5,7 @@ import Link from "next/link";
 import { apiRequest } from "@/lib/api";
 import { withCacheBust } from "@/lib/cacheBust";
 import EmptyState from "@/components/ui/EmptyState";
+import PageHeader from "@/components/ui/PageHeader";
 
 type Service = {
   _id: string;
@@ -62,12 +63,12 @@ export default function DealsPage() {
 
   return (
     <div className="u-container max-w-6xl">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Deals</h1>
-        <p className="mt-2 text-sm text-[#9CA3AF]">
-          Bank & crypto services eligible for deal completion.
-        </p>
-      </div>
+      <PageHeader
+        title="Deals"
+        description="Bank & crypto services eligible for deal completion"
+        actionLabel="Explore Services"
+        actionHref="/explore-services"
+      />
 
       {loading && (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -90,9 +91,9 @@ export default function DealsPage() {
 
       {!loading && !error && services.length === 0 && (
         <EmptyState
-          icon="🏷️"
-          title="No deal services yet"
-          description="When bank/crypto deal services are available, they’ll appear here."
+          icon="🎷️"
+          title="No deals available yet"
+          description="Check back later for exclusive deals on services."
           ctaText="Explore Services"
           ctaHref="/explore-services"
         />

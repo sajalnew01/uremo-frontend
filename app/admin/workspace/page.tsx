@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
+import PageHeader from "@/components/ui/PageHeader";
 
 /**
  * PATCH_44: Admin Workspace Hub
@@ -119,24 +120,10 @@ export default function AdminWorkspacePage() {
 
   return (
     <div className="u-container max-w-6xl">
-      {/* Header */}
-      <div className="mb-8">
-        <Link
-          href="/admin"
-          className="text-sm text-slate-400 hover:text-white mb-2 inline-block"
-        >
-          ← Back to Admin
-        </Link>
-        <div className="flex items-center gap-3">
-          <span className="text-4xl">⚡</span>
-          <div>
-            <h1 className="text-3xl font-bold">Workspace Management</h1>
-            <p className="text-slate-400 mt-1">
-              Manage workers, projects, screenings, and job roles
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="Workspace Management"
+        description="Manage workers, projects, screenings, and job roles"
+      />
 
       {/* PATCH_49: Enhanced Stats Overview with more metrics */}
       {!loading && stats && (

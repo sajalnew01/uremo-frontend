@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
+import PageHeader from "@/components/ui/PageHeader";
+import { getStatusColor, getStatusLabel } from "@/lib/statusConfig";
 
 interface Rental {
   _id: string;
@@ -156,15 +158,10 @@ export default function AdminRentalsPage() {
 
   return (
     <div className="u-container">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">Manage Rentals</h1>
-          <p className="text-slate-400 text-sm mt-1">{total} total rentals</p>
-        </div>
-        <Link href="/admin" className="text-sm text-slate-400 hover:text-white">
-          ← Back to Admin
-        </Link>
-      </div>
+      <PageHeader
+        title="Manage Rentals"
+        description={`${total} total rentals`}
+      />
 
       {/* Filters */}
       <div className="mb-6 flex gap-4">

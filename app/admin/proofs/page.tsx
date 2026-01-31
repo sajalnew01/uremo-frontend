@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
+import PageHeader from "@/components/ui/PageHeader";
+import { getStatusColor, getStatusLabel } from "@/lib/statusConfig";
 
 /**
  * PATCH_48: Admin Proofs Page
@@ -152,22 +154,10 @@ export default function AdminProofsPage() {
   return (
     <div className="u-container max-w-6xl">
       {/* Header */}
-      <div className="mb-6">
-        <Link
-          href="/admin"
-          className="text-sm text-slate-400 hover:text-white mb-2 inline-block"
-        >
-          ← Back to Admin
-        </Link>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">📋 Proof of Work Review</h1>
-            <p className="text-slate-400 text-sm">
-              Review and approve worker submissions
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="Proof of Work Review"
+        description="Review and approve worker submissions"
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import PageHeader from "@/components/ui/PageHeader";
 
 const adminModules = [
   // PATCH_48: Proof of Work Review (high priority)
@@ -179,18 +180,10 @@ export default function AdminDashboard() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
       {/* Header */}
-      <div className="mb-10">
-        <div className="flex items-center gap-3 mb-3">
-          <span className="text-4xl">⚡</span>
-          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
-            Admin Panel
-          </h1>
-        </div>
-        <p className="text-slate-400 text-lg max-w-2xl">
-          Manage your platform&apos;s services, orders, payments, and team
-          applications from one central dashboard.
-        </p>
-      </div>
+      <PageHeader
+        title="Admin Dashboard"
+        description="Manage your platform's services, orders, payments, and team applications"
+      />
 
       {/* Quick Stats - Optional enhancement */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">

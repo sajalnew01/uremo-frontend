@@ -5,6 +5,8 @@ import Link from "next/link";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import EmptyState from "@/components/ui/EmptyState";
+import PageHeader from "@/components/ui/PageHeader";
+import { getStatusColor, getStatusLabel } from "@/lib/statusConfig";
 
 /**
  * PATCH_48: My Proofs Page
@@ -58,17 +60,9 @@ export default function MyProofsPage() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-amber-500/20 text-amber-300";
-      case "approved":
-        return "bg-emerald-500/20 text-emerald-300";
-      case "rejected":
-        return "bg-red-500/20 text-red-300";
-      default:
-        return "bg-slate-500/20 text-slate-300";
-    }
+  // PATCH_52: Use centralized status from statusConfig
+  const getProofStatusClass = (status: string) => {
+    return `px-2 py-1 rounded text-xs font-medium border ${getStatusColor(status)}`;
   };
 
   const getStatusIcon = (status: string) => {
@@ -87,22 +81,10 @@ export default function MyProofsPage() {
   return (
     <div className="u-container max-w-4xl">
       {/* Header */}
-      <div className="mb-6">
-        <Link
-          href="/workspace"
-          className="text-sm text-slate-400 hover:text-white mb-2 inline-block"
-        >
-          ← Back to Workspace
-        </Link>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">My Proof Submissions</h1>
-            <p className="text-slate-400 text-sm">
-              Track the status of your work proofs
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="My Proof Submissions"
+        description="Track the status of your work proofs"
+      />
 
       {/* Filters */}
       <div className="flex gap-2 mb-6">
@@ -161,12 +143,8 @@ export default function MyProofsPage() {
                     <h3 className="font-semibold text-white">
                       {proof.projectId?.title || "Unknown Project"}
                     </h3>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs ${getStatusBadge(
-                        proof.status,
-                      )}`}
-                    >
-                      {proof.status.toUpperCase()}
+                    <span className={getProofStatusClass(proof.status)}>
+                      {getStatusLabel(proof.status)}
                     </span>
                   </div>
                   {proof.jobRoleId && (
