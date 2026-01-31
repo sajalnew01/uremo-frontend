@@ -60,9 +60,36 @@ export default function CampaignsPage() {
   const handleSendCampaign = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const MAX_TITLE = 500;
+    const MAX_MESSAGE = 5000;
+    const VALID_INTERESTS = [
+      "microjobs",
+      "forex",
+      "wallets",
+      "crypto",
+      "rentals",
+    ];
+
     if (!title.trim() || !message.trim()) {
       toast("Title and message are required", "error");
       return;
+    }
+
+    if (title.length > MAX_TITLE) {
+      toast(`Title exceeds ${MAX_TITLE} characters`, "error");
+      return;
+    }
+
+    if (message.length > MAX_MESSAGE) {
+      toast(`Message exceeds ${MAX_MESSAGE} characters`, "error");
+      return;
+    }
+
+    for (const tag of selectedTags) {
+      if (!VALID_INTERESTS.includes(tag)) {
+        toast(`Invalid interest: ${tag}`, "error");
+        return;
+      }
     }
 
     setLoading(true);
@@ -96,11 +123,11 @@ export default function CampaignsPage() {
           setTitle("");
           setMessage("");
           setSelectedTags([]);
-          // Reload events
           loadEvents();
         }
       } else {
-        toast("Failed to send campaign", "error");
+        const errorData = await response.json().catch(() => ({}));
+        toast(errorData.message || "Failed to send campaign", "error");
       }
     } catch (error) {
       console.error("Error sending campaign:", error);
@@ -215,7 +242,10 @@ export default function CampaignsPage() {
                 <div className="flex justify-between items-start gap-2 mb-1">
                   <div>
                     <p className="font-medium text-slate-200">{event.title}</p>
-                    <p className="text-sm text-slate-400 line-clamp-1">
+                    <p
+                      className="text-sm text-slate-400 line-clamp-2"
+                      title={event.message}
+                    >
                       {event.message}
                     </p>
                   </div>

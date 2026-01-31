@@ -71,6 +71,19 @@ export default function ProfilePage() {
   };
 
   const toggleEmailPreference = (key: string) => {
+    if (
+      ![
+        "productUpdates",
+        "jobAlerts",
+        "dealAlerts",
+        "rentalAlerts",
+        "marketing",
+      ].includes(key)
+    ) {
+      console.error(`Invalid preference key: ${key}`);
+      return;
+    }
+
     setEmailPreferences((prev) => ({
       ...prev,
       [key]: !prev[key],
@@ -78,6 +91,22 @@ export default function ProfilePage() {
   };
 
   const toggleInterest = (tag: string) => {
+    const VALID_INTERESTS = [
+      "microjobs",
+      "forex",
+      "wallets",
+      "crypto",
+      "rentals",
+    ];
+    if (!VALID_INTERESTS.includes(tag)) {
+      console.error(`Invalid interest tag: ${tag}`);
+      return;
+    }
+    if (interestTags.length >= 10 && !interestTags.includes(tag)) {
+      toast("Maximum 10 interests allowed", "error");
+      return;
+    }
+
     setInterestTags((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
     );
@@ -113,7 +142,8 @@ export default function ProfilePage() {
           toast("Preferences updated successfully", "success");
         }
       } else {
-        toast("Failed to update preferences", "error");
+        const errorData = await response.json().catch(() => ({}));
+        toast(errorData.message || "Failed to update preferences", "error");
       }
     } catch (error) {
       console.error("Error saving preferences:", error);
