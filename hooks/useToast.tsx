@@ -6,6 +6,7 @@ import {
   useContext,
   useMemo,
   useState,
+  useRef,
 } from "react";
 
 type ToastType = "info" | "success" | "error";
@@ -24,8 +25,14 @@ type ToastContextValue = {
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
+// PATCH_54: Max toasts to prevent infinite stacking
+const MAX_TOASTS = 5;
+const TOAST_DURATION = 4500;
+
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);
+  // PATCH_54: Track recent messages to prevent duplicates
+  const recentMessages = useRef<Map<string, number>>(new Map());
 
   const clampMessage = useCallback((value: unknown) => {
     const maxLen = 240;
@@ -52,22 +59,47 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   const toast = useCallback(
     (message: string, type: ToastType = "info") => {
-      const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-      setItems((prev) => [
-        ...prev,
-        { id, message: clampMessage(message), type },
-      ]);
+      const clampedMsg = clampMessage(message);
+      const msgKey = `${type}:${clampedMsg}`;
 
+      // PATCH_54: Prevent duplicate messages within 2 seconds
+      const now = Date.now();
+      const lastShown = recentMessages.current.get(msgKey);
+      if (lastShown && now - lastShown < 2000) {
+        return; // Skip duplicate
+      }
+      recentMessages.current.set(msgKey, now);
+
+      // Clean up old entries
+      if (recentMessages.current.size > 50) {
+        const cutoff = now - 10000;
+        recentMessages.current.forEach((time, key) => {
+          if (time < cutoff) recentMessages.current.delete(key);
+        });
+      }
+
+      const id = `${now}-${Math.random().toString(16).slice(2)}`;
+
+      setItems((prev) => {
+        // PATCH_54: Limit max toasts to prevent infinite stacking
+        const newItems = [...prev, { id, message: clampedMsg, type }];
+        if (newItems.length > MAX_TOASTS) {
+          return newItems.slice(-MAX_TOASTS);
+        }
+        return newItems;
+      });
+
+      // PATCH_54: Auto-dismiss with cleanup
       window.setTimeout(() => {
         remove(id);
-      }, 4500);
+      }, TOAST_DURATION);
     },
-    [remove, clampMessage]
+    [remove, clampMessage],
   );
 
   const value = useMemo(
     () => ({ toast, remove, items }),
-    [toast, remove, items]
+    [toast, remove, items],
   );
 
   return (

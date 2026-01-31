@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { apiRequest, setAuthSession } from "@/lib/api";
+import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 
 // PATCH_54: Eye icons for password visibility
@@ -70,34 +70,26 @@ const PASSWORD_RULES = [
   },
 ];
 
-// PATCH_23: Inner component that uses useSearchParams
-function SignupForm() {
+function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [token, setToken] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  // PATCH_54: Password visibility toggles
+  const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  // PATCH_54: Field-level errors
   const [errors, setErrors] = useState<{
-    name?: string;
-    email?: string;
     password?: string;
     confirmPassword?: string;
   }>({});
-  // PATCH_23: Referral code from URL
-  const [referralCode, setReferralCode] = useState("");
 
-  // PATCH_23: Get referral code from URL on mount
   useEffect(() => {
-    const ref = searchParams.get("ref");
-    if (ref) {
-      setReferralCode(ref.toUpperCase());
+    const tokenParam = searchParams.get("token");
+    if (tokenParam) {
+      setToken(tokenParam);
     }
   }, [searchParams]);
 
@@ -108,26 +100,8 @@ function SignupForm() {
   }));
   const isPasswordStrong = passwordStrength.every((r) => r.passed);
 
-  // PATCH_54: Validate email format
-  const validateEmail = (value: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(value.trim());
-  };
-
   const validateFields = (): boolean => {
     const newErrors: typeof errors = {};
-
-    if (!name.trim()) {
-      newErrors.name = "Name is required";
-    } else if (name.trim().length < 2) {
-      newErrors.name = "Name must be at least 2 characters";
-    }
-
-    if (!email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!validateEmail(email)) {
-      newErrors.email = "Please enter a valid email address";
-    }
 
     if (!password) {
       newErrors.password = "Password is required";
@@ -148,41 +122,35 @@ function SignupForm() {
   const submit = async () => {
     setErrors({});
 
+    if (!token) {
+      toast("Invalid or missing reset token", "error");
+      return;
+    }
+
     if (!validateFields()) {
       return;
     }
 
     setLoading(true);
     try {
-      const res = await apiRequest("/api/auth/signup", "POST", {
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
+      await apiRequest("/api/auth/reset-password", "POST", {
+        token,
         password,
-        // PATCH_23: Include referral code
-        referralCode: referralCode || undefined,
       });
 
-      setAuthSession({
-        token: res.token,
-        user: res.user || { role: "user", email },
-      });
-      toast("Account created successfully!", "success");
-      router.push("/dashboard");
+      setSuccess(true);
+      toast("Password reset successfully!", "success");
     } catch (err: any) {
-      // PATCH_54: Better error handling
-      const message = err.message || "Signup failed";
+      const message = err.message || "Failed to reset password";
       const code = err.payload?.code;
 
-      if (code === "EMAIL_EXISTS") {
-        setErrors({ email: "An account with this email already exists" });
-      } else if (code === "PHONE_EXISTS") {
-        toast("An account with this phone number already exists", "error");
+      if (code === "INVALID_TOKEN") {
+        toast(
+          "This reset link is invalid or has expired. Please request a new one.",
+          "error",
+        );
       } else if (code === "WEAK_PASSWORD") {
         setErrors({ password: "Password does not meet requirements" });
-      } else if (code === "INVALID_EMAIL") {
-        setErrors({ email: "Please enter a valid email address" });
-      } else if (code === "RATE_LIMITED") {
-        toast("Too many attempts. Please try again later.", "error");
       } else if (message.includes("timeout") || message.includes("network")) {
         toast(
           "Connection error. Please check your internet and try again.",
@@ -203,74 +171,56 @@ function SignupForm() {
     }
   };
 
+  if (!token) {
+    return (
+      <div className="w-full max-w-sm border border-slate-700 rounded-lg p-6 bg-slate-800 text-center">
+        <div className="mb-4 text-4xl">⚠️</div>
+        <h1 className="text-xl font-semibold mb-2 text-white">Invalid Link</h1>
+        <p className="text-slate-400 mb-4">
+          This password reset link is invalid or has expired.
+        </p>
+        <button
+          onClick={() => router.push("/forgot-password")}
+          className="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition-colors"
+        >
+          Request New Link
+        </button>
+      </div>
+    );
+  }
+
+  if (success) {
+    return (
+      <div className="w-full max-w-sm border border-slate-700 rounded-lg p-6 bg-slate-800 text-center">
+        <div className="mb-4 text-4xl">✅</div>
+        <h1 className="text-xl font-semibold mb-2 text-white">
+          Password Reset!
+        </h1>
+        <p className="text-slate-400 mb-4">
+          Your password has been reset successfully. You can now log in with
+          your new password.
+        </p>
+        <button
+          onClick={() => router.push("/login")}
+          className="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition-colors"
+        >
+          Go to Login
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-sm border border-slate-700 rounded-lg p-6 bg-slate-800">
-      <h1 className="text-xl font-semibold mb-4 text-white">Create account</h1>
-
-      {/* PATCH_23: Show referral indicator */}
-      {referralCode && (
-        <div className="mb-4 p-3 rounded-lg bg-purple-500/10 border border-purple-500/30">
-          <p className="text-sm text-purple-200">
-            🎉 Referral code applied:{" "}
-            <span className="font-mono font-bold">{referralCode}</span>
-          </p>
-        </div>
-      )}
-
-      <div className="mb-3">
-        <label className="block text-sm font-medium mb-1 text-slate-300">
-          Full Name
-        </label>
-        <input
-          type="text"
-          placeholder="Full Name"
-          className={`w-full border p-2 rounded bg-slate-700 text-white placeholder-slate-400 ${
-            errors.name ? "border-red-500" : "border-slate-600"
-          }`}
-          value={name}
-          onChange={(e) => {
-            setName(e.target.value);
-            if (errors.name)
-              setErrors((prev) => ({ ...prev, name: undefined }));
-          }}
-          onKeyDown={handleKeyDown}
-          disabled={loading}
-          autoComplete="name"
-        />
-        {errors.name && (
-          <p className="text-red-400 text-xs mt-1">{errors.name}</p>
-        )}
-      </div>
-
-      <div className="mb-3">
-        <label className="block text-sm font-medium mb-1 text-slate-300">
-          Email
-        </label>
-        <input
-          className={`w-full border p-2 rounded bg-slate-700 text-white placeholder-slate-400 ${
-            errors.email ? "border-red-500" : "border-slate-600"
-          }`}
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-            if (errors.email)
-              setErrors((prev) => ({ ...prev, email: undefined }));
-          }}
-          onKeyDown={handleKeyDown}
-          disabled={loading}
-          autoComplete="email"
-        />
-        {errors.email && (
-          <p className="text-red-400 text-xs mt-1">{errors.email}</p>
-        )}
-      </div>
+      <h1 className="text-xl font-semibold mb-2 text-white">Reset Password</h1>
+      <p className="text-slate-400 text-sm mb-4">
+        Enter your new password below.
+      </p>
 
       {/* PATCH_54: Password with visibility toggle */}
       <div className="mb-3">
         <label className="block text-sm font-medium mb-1 text-slate-300">
-          Password
+          New Password
         </label>
         <div className="relative">
           <input
@@ -278,7 +228,7 @@ function SignupForm() {
               errors.password ? "border-red-500" : "border-slate-600"
             }`}
             type={showPassword ? "text" : "password"}
-            placeholder="Password"
+            placeholder="New Password"
             value={password}
             onChange={(e) => {
               setPassword(e.target.value);
@@ -366,11 +316,11 @@ function SignupForm() {
         disabled={loading}
         className="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
-        {loading ? "Creating..." : "Sign up"}
+        {loading ? "Resetting..." : "Reset Password"}
       </button>
 
       <p className="text-sm mt-3 text-slate-400">
-        Already have an account?{" "}
+        Remember your password?{" "}
         <a href="/login" className="text-indigo-400 hover:underline">
           Login
         </a>
@@ -379,12 +329,11 @@ function SignupForm() {
   );
 }
 
-// PATCH_23: Wrapper with Suspense for useSearchParams
-export default function Signup() {
+export default function ResetPassword() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-900">
       <Suspense fallback={<div className="text-slate-400">Loading...</div>}>
-        <SignupForm />
+        <ResetPasswordForm />
       </Suspense>
     </div>
   );
