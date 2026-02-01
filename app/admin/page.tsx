@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 
-// PATCH_53: Admin Command Center - KPI banner + redirect to orders
+// PATCH_54: Admin Control Center Dashboard with KPI cards
 interface DashboardStats {
   pendingOrders: number;
   paymentPending: number;
@@ -14,7 +13,6 @@ interface DashboardStats {
 }
 
 export default function AdminDashboard() {
-  const router = useRouter();
   const [stats, setStats] = useState<DashboardStats>({
     pendingOrders: 0,
     paymentPending: 0,
@@ -75,28 +73,21 @@ export default function AdminDashboard() {
     };
 
     loadStats();
-
-    // Auto-redirect to orders tab after stats load
-    const timer = setTimeout(() => {
-      router.push("/admin/orders");
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, [router]);
+  }, []);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-      {/* PATCH_53: Top KPI Banner */}
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 lg:pl-8">
+      {/* PATCH_54: Admin Control Center Dashboard */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white mb-1">
-          Admin Command Center
+          Admin Control Center
         </h1>
         <p className="text-sm text-slate-400">
-          Quick overview of pending actions
+          Quick overview of pending actions across all departments
         </p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <Link
           href="/admin/orders?status=pending"
           className="p-5 rounded-2xl bg-gradient-to-br from-purple-500/10 to-purple-500/5 border border-purple-500/20 hover:border-purple-500/40 transition group"
@@ -178,10 +169,97 @@ export default function AdminDashboard() {
         </Link>
       </div>
 
-      {/* Loading indicator */}
-      <div className="text-center py-8">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-        <p className="mt-4 text-slate-400">Loading Orders...</p>
+      {/* PATCH_54: Quick Navigation Sections */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Operations */}
+        <div className="p-5 rounded-2xl bg-white/5 border border-white/10">
+          <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">
+            Operations
+          </h3>
+          <div className="space-y-2">
+            <Link
+              href="/admin/orders"
+              className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition text-slate-300 hover:text-white"
+            >
+              <span>📦 Orders</span>
+              <span className="text-xs text-slate-500">→</span>
+            </Link>
+            <Link
+              href="/admin/proofs"
+              className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition text-slate-300 hover:text-white"
+            >
+              <span>✅ Proofs</span>
+              <span className="text-xs text-slate-500">→</span>
+            </Link>
+            <Link
+              href="/admin/tickets"
+              className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition text-slate-300 hover:text-white"
+            >
+              <span>🎫 Tickets</span>
+              <span className="text-xs text-slate-500">→</span>
+            </Link>
+          </div>
+        </div>
+
+        {/* Finance */}
+        <div className="p-5 rounded-2xl bg-white/5 border border-white/10">
+          <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">
+            Finance
+          </h3>
+          <div className="space-y-2">
+            <Link
+              href="/admin/wallet"
+              className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition text-slate-300 hover:text-white"
+            >
+              <span>💳 Wallets</span>
+              <span className="text-xs text-slate-500">→</span>
+            </Link>
+            <Link
+              href="/admin/payments"
+              className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition text-slate-300 hover:text-white"
+            >
+              <span>💰 Payments</span>
+              <span className="text-xs text-slate-500">→</span>
+            </Link>
+            <Link
+              href="/admin/affiliates"
+              className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition text-slate-300 hover:text-white"
+            >
+              <span>👥 Affiliates</span>
+              <span className="text-xs text-slate-500">→</span>
+            </Link>
+          </div>
+        </div>
+
+        {/* System */}
+        <div className="p-5 rounded-2xl bg-white/5 border border-white/10">
+          <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">
+            System
+          </h3>
+          <div className="space-y-2">
+            <Link
+              href="/admin/analytics"
+              className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition text-slate-300 hover:text-white"
+            >
+              <span>📊 Analytics</span>
+              <span className="text-xs text-slate-500">→</span>
+            </Link>
+            <Link
+              href="/admin/campaigns"
+              className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition text-slate-300 hover:text-white"
+            >
+              <span>📢 Campaigns</span>
+              <span className="text-xs text-slate-500">→</span>
+            </Link>
+            <Link
+              href="/admin/settings"
+              className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition text-slate-300 hover:text-white"
+            >
+              <span>⚙️ Settings</span>
+              <span className="text-xs text-slate-500">→</span>
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );
