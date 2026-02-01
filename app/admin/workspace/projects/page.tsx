@@ -70,6 +70,9 @@ function ProjectsContent() {
   const [assignModal, setAssignModal] = useState<Project | null>(null);
   const [selectedWorker, setSelectedWorker] = useState<string>("");
 
+  // PATCH_57: Filter workers by category when assigning
+  const [assignableWorkers, setAssignableWorkers] = useState<Worker[]>([]);
+
   // PATCH_48: Credit earnings modal state
   const [creditModal, setCreditModal] = useState<Project | null>(null);
   const [creditAmount, setCreditAmount] = useState<number>(0);
@@ -99,17 +102,50 @@ function ProjectsContent() {
 
   const loadWorkers = async () => {
     try {
+      // PATCH_57: Load workers who are ready to work (ready_to_work or assigned status)
       const res = await apiRequest<any>(
-        "/api/admin/workspace/workers?status=active&limit=100",
+        "/api/admin/workspace/workers?limit=200",
         "GET",
         null,
         true,
       );
-      setWorkers(res.workers || []);
+      // Filter to only workers who can receive tasks
+      const allWorkers = res.workers || [];
+      const readyWorkers = allWorkers.filter(
+        (w: any) =>
+          w.workerStatus === "ready_to_work" || w.workerStatus === "assigned",
+      );
+      setWorkers(readyWorkers);
     } catch (e) {
       console.error("Failed to load workers:", e);
     }
   };
+
+  // PATCH_57: When assign modal opens, filter workers by project category
+  useEffect(() => {
+    if (assignModal) {
+      const projectCategory = assignModal.category
+        ?.toLowerCase()
+        .replace(/[_-]/g, " ");
+      // Filter workers whose job category matches project category
+      // Also show all workers if no exact match (fallback)
+      const filtered = workers.filter((w: any) => {
+        const workerCategory = (w.category || w.jobId?.category || "")
+          .toLowerCase()
+          .replace(/[_-]/g, " ");
+        // Match if categories are similar or if project category is generic
+        return (
+          workerCategory.includes(projectCategory) ||
+          projectCategory.includes(workerCategory) ||
+          projectCategory === "microjobs" ||
+          projectCategory === "other"
+        );
+      });
+      setAssignableWorkers(filtered.length > 0 ? filtered : workers);
+    } else {
+      setAssignableWorkers([]);
+    }
+  }, [assignModal, workers]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -470,32 +506,43 @@ function ProjectsContent() {
         </div>
       )}
 
-      {/* Assign Modal */}
+      {/* Assign Modal - PATCH_57: Category-aware worker selection */}
       {assignModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-slate-900 rounded-2xl p-6 w-full max-w-md border border-white/10">
             <h2 className="text-xl font-bold mb-2">Assign Project</h2>
-            <p className="text-sm text-slate-400 mb-4">
+            <p className="text-sm text-slate-400 mb-2">
               Assign &quot;{assignModal.title}&quot; to a worker
+            </p>
+            <p className="text-xs text-blue-400 mb-4">
+              📁 Project Category: {assignModal.category}
             </p>
 
             <div className="mb-4">
               <label className="block text-sm text-slate-400 mb-1">
-                Select Worker
+                Select Worker ({assignableWorkers.length} available)
               </label>
-              <select
-                value={selectedWorker}
-                onChange={(e) => setSelectedWorker(e.target.value)}
-                className="input w-full"
-              >
-                <option value="">Choose a worker...</option>
-                {workers.map((w) => (
-                  <option key={w._id} value={w._id}>
-                    {w.userId?.firstName} {w.userId?.lastName} -{" "}
-                    {w.jobId?.title}
-                  </option>
-                ))}
-              </select>
+              {assignableWorkers.length === 0 ? (
+                <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm">
+                  ⚠️ No workers with &quot;ready_to_work&quot; status found.
+                  Workers need to complete their screening first.
+                </div>
+              ) : (
+                <select
+                  value={selectedWorker}
+                  onChange={(e) => setSelectedWorker(e.target.value)}
+                  className="input w-full"
+                >
+                  <option value="">Choose a worker...</option>
+                  {assignableWorkers.map((w: any) => (
+                    <option key={w._id} value={w._id}>
+                      {w.user?.name ||
+                        `${w.userId?.firstName || ""} ${w.userId?.lastName || ""}`}{" "}
+                      - {w.category || w.jobId?.title || "Unknown"}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div className="flex gap-3">
@@ -511,7 +558,7 @@ function ProjectsContent() {
               </button>
               <button
                 onClick={handleAssign}
-                disabled={!selectedWorker}
+                disabled={!selectedWorker || assignableWorkers.length === 0}
                 className="btn-primary flex-1 disabled:opacity-50"
               >
                 Assign
