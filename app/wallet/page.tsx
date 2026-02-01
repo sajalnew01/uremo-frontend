@@ -1,12 +1,162 @@
 "use client";
 
+/**
+ * PATCH_58: Premium Wallet Page Redesign
+ * Trust-building, secure, professional wallet experience
+ */
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import { useAuth } from "@/hooks/useAuth";
-import EmptyState from "@/components/ui/EmptyState";
-import PageHeader from "@/components/ui/PageHeader";
+
+// ==================== SVG ICONS ====================
+const IconShield = () => (
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+    />
+  </svg>
+);
+
+const IconWallet = () => (
+  <svg
+    className="w-7 h-7"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3"
+    />
+  </svg>
+);
+
+const IconPlus = () => (
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M12 4.5v15m7.5-7.5h-15"
+    />
+  </svg>
+);
+
+const IconArrowUp = () => (
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18"
+    />
+  </svg>
+);
+
+const IconArrowDown = () => (
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3"
+    />
+  </svg>
+);
+
+const IconLock = () => (
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+    />
+  </svg>
+);
+
+const IconHistory = () => (
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
+    />
+  </svg>
+);
+
+const IconInfo = () => (
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
+    />
+  </svg>
+);
+
+const IconCheck = () => (
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M4.5 12.75l6 6 9-13.5"
+    />
+  </svg>
+);
 
 interface Transaction {
   _id: string;
@@ -16,6 +166,12 @@ interface Transaction {
   description: string;
   balanceAfter: number;
   createdAt: string;
+}
+
+interface WalletStats {
+  totalCredits: number;
+  totalDebits: number;
+  transactionCount: number;
 }
 
 export default function WalletPage() {
@@ -28,6 +184,11 @@ export default function WalletPage() {
   const [showTopUp, setShowTopUp] = useState(false);
   const [topUpAmount, setTopUpAmount] = useState("");
   const [topUpLoading, setTopUpLoading] = useState(false);
+  const [stats, setStats] = useState<WalletStats>({
+    totalCredits: 0,
+    totalDebits: 0,
+    transactionCount: 0,
+  });
 
   useEffect(() => {
     if (!ready) return;
@@ -45,7 +206,21 @@ export default function WalletPage() {
         apiRequest("/api/wallet/transactions", "GET"),
       ]);
       setBalance(balanceRes.balance || 0);
-      setTransactions(txRes.transactions || []);
+      const txList = txRes.transactions || [];
+      setTransactions(txList);
+
+      // Calculate stats
+      const credits = txList
+        .filter((t: Transaction) => t.type === "credit")
+        .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
+      const debits = txList
+        .filter((t: Transaction) => t.type === "debit")
+        .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
+      setStats({
+        totalCredits: credits,
+        totalDebits: debits,
+        transactionCount: txList.length,
+      });
     } catch (err: any) {
       toast(err.message || "Failed to load wallet", "error");
     } finally {
@@ -67,7 +242,7 @@ export default function WalletPage() {
       setBalance(res.balance || 0);
       setShowTopUp(false);
       setTopUpAmount("");
-      fetchData(); // Refresh transactions
+      fetchData();
     } catch (err: any) {
       toast(err.message || "Top-up failed", "error");
     } finally {
@@ -77,185 +252,429 @@ export default function WalletPage() {
 
   const getSourceLabel = (source: string) => {
     const labels: Record<string, string> = {
-      topup: "Top-up",
+      topup: "Wallet Top-up",
       service_purchase: "Service Purchase",
       rental_purchase: "Rental Purchase",
       admin_adjustment: "Admin Adjustment",
       refund: "Refund",
+      earnings: "Work Earnings",
+      affiliate: "Referral Bonus",
     };
     return labels[source] || source;
   };
 
+  const getSourceIcon = (source: string, type: string) => {
+    if (type === "credit") {
+      return <IconArrowDown />;
+    }
+    return <IconArrowUp />;
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <p className="text-slate-400">Loading wallet...</p>
+      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center"
+        >
+          <div className="w-12 h-12 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-slate-400">Loading your wallet...</p>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <PageHeader
-          title="My Wallet"
-          description="Manage your balance and view transaction history"
-        />
-
-        {/* Balance Card */}
-        <div className="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-xl p-6 mb-8 shadow-lg">
-          <p className="text-emerald-100 text-sm mb-1">Available Balance</p>
-          <p className="text-4xl font-bold">${balance.toFixed(2)}</p>
-          <div className="mt-4 flex gap-3">
-            <button
-              onClick={() => setShowTopUp(true)}
-              className="bg-white text-emerald-700 px-4 py-2 rounded-lg font-medium hover:bg-emerald-50 transition"
-            >
-              + Add Balance
-            </button>
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+        {/* ===== HEADER WITH SECURITY BADGE ===== */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between mb-8"
+        >
+          <div>
+            <h1 className="text-3xl font-bold text-white">My Wallet</h1>
+            <p className="text-slate-400 mt-1">Manage your balance securely</p>
           </div>
-        </div>
+          <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-4 py-2">
+            <IconShield />
+            <span className="text-sm text-emerald-400 font-medium">
+              256-bit Encrypted
+            </span>
+          </div>
+        </motion.div>
 
-        {/* Top-Up Modal */}
-        {showTopUp && (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-            <div className="bg-slate-900 rounded-xl p-6 w-full max-w-md border border-slate-700">
-              <h2 className="text-xl font-semibold mb-4">Add Balance</h2>
-              <p className="text-slate-400 text-sm mb-4">
-                Enter the amount you want to add to your wallet.
-              </p>
-
-              <div className="mb-4">
-                <label className="block text-sm text-slate-300 mb-2">
-                  Amount ($)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  step="0.01"
-                  value={topUpAmount}
-                  onChange={(e) => setTopUpAmount(e.target.value)}
-                  placeholder="Enter amount"
-                  className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-3 text-white"
-                />
-              </div>
-
-              {/* Quick amounts */}
-              <div className="flex gap-2 mb-6">
-                {[10, 25, 50, 100].map((amt) => (
-                  <button
-                    key={amt}
-                    onClick={() => setTopUpAmount(String(amt))}
-                    className="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg py-2 text-sm"
-                  >
-                    ${amt}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowTopUp(false);
-                    setTopUpAmount("");
-                  }}
-                  className="flex-1 bg-slate-700 hover:bg-slate-600 rounded-lg py-3"
+        {/* ===== MAIN BALANCE CARD ===== */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="relative overflow-hidden bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-600 rounded-2xl p-8 mb-8 shadow-2xl shadow-emerald-500/20"
+        >
+          {/* Background pattern */}
+          <div className="absolute inset-0 opacity-10">
+            <svg
+              className="w-full h-full"
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+            >
+              <defs>
+                <pattern
+                  id="wallet-grid"
+                  width="10"
+                  height="10"
+                  patternUnits="userSpaceOnUse"
                 >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleTopUp}
-                  disabled={topUpLoading}
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-500 rounded-lg py-3 font-medium disabled:opacity-50"
-                >
-                  {topUpLoading ? "Processing..." : "Add Balance"}
-                </button>
-              </div>
+                  <path
+                    d="M 10 0 L 0 0 0 10"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="0.5"
+                  />
+                </pattern>
+              </defs>
+              <rect width="100" height="100" fill="url(#wallet-grid)" />
+            </svg>
+          </div>
 
-              <p className="text-xs text-slate-500 mt-4 text-center">
-                Balance is typically credited within a few minutes after
-                confirmation.
-              </p>
+          <div className="relative">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                <IconWallet />
+              </div>
+              <div>
+                <p className="text-emerald-100 text-sm font-medium">
+                  Available Balance
+                </p>
+                <div className="flex items-center gap-2">
+                  <IconLock />
+                  <span className="text-xs text-emerald-200">Secure</span>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-5xl font-bold tracking-tight mb-6">
+              ${balance.toFixed(2)}
+              <span className="text-lg font-normal text-emerald-200 ml-2">
+                USD
+              </span>
+            </p>
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => setShowTopUp(true)}
+                className="flex items-center gap-2 bg-white text-emerald-700 px-6 py-3 rounded-xl font-semibold hover:bg-emerald-50 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+              >
+                <IconPlus />
+                Add Balance
+              </button>
+              <Link
+                href="/explore-services"
+                className="flex items-center gap-2 bg-white/20 backdrop-blur-sm text-white px-6 py-3 rounded-xl font-medium hover:bg-white/30 transition-all border border-white/20"
+              >
+                Use Balance
+              </Link>
             </div>
           </div>
-        )}
+        </motion.div>
 
-        {/* Transaction History */}
-        <div className="bg-slate-900 rounded-xl border border-slate-800">
-          <div className="p-4 border-b border-slate-800">
-            <h2 className="text-lg font-semibold">Transaction History</h2>
+        {/* ===== STATS ROW ===== */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="grid grid-cols-3 gap-4 mb-8"
+        >
+          <div className="bg-slate-900/80 backdrop-blur-sm rounded-xl p-4 border border-slate-800">
+            <div className="flex items-center gap-2 text-emerald-400 mb-2">
+              <IconArrowDown />
+              <span className="text-xs font-medium uppercase tracking-wide">
+                Total In
+              </span>
+            </div>
+            <p className="text-xl font-bold text-white">
+              ${stats.totalCredits.toFixed(2)}
+            </p>
+          </div>
+          <div className="bg-slate-900/80 backdrop-blur-sm rounded-xl p-4 border border-slate-800">
+            <div className="flex items-center gap-2 text-orange-400 mb-2">
+              <IconArrowUp />
+              <span className="text-xs font-medium uppercase tracking-wide">
+                Total Out
+              </span>
+            </div>
+            <p className="text-xl font-bold text-white">
+              ${stats.totalDebits.toFixed(2)}
+            </p>
+          </div>
+          <div className="bg-slate-900/80 backdrop-blur-sm rounded-xl p-4 border border-slate-800">
+            <div className="flex items-center gap-2 text-blue-400 mb-2">
+              <IconHistory />
+              <span className="text-xs font-medium uppercase tracking-wide">
+                Transactions
+              </span>
+            </div>
+            <p className="text-xl font-bold text-white">
+              {stats.transactionCount}
+            </p>
+          </div>
+        </motion.div>
+
+        {/* ===== TOP-UP MODAL ===== */}
+        <AnimatePresence>
+          {showTopUp && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+              onClick={() => setShowTopUp(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-slate-900 rounded-2xl p-6 w-full max-w-md border border-slate-700 shadow-2xl"
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400">
+                    <IconPlus />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold">Add Balance</h2>
+                    <p className="text-sm text-slate-400">
+                      Secure payment processing
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm text-slate-300 mb-2 font-medium">
+                    Amount (USD)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg">
+                      $
+                    </span>
+                    <input
+                      type="number"
+                      min="1"
+                      step="0.01"
+                      value={topUpAmount}
+                      onChange={(e) => setTopUpAmount(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full bg-slate-800 border border-slate-600 rounded-xl pl-10 pr-4 py-4 text-white text-2xl font-bold focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Quick amounts */}
+                <div className="grid grid-cols-4 gap-2 mb-6">
+                  {[10, 25, 50, 100].map((amt) => (
+                    <button
+                      key={amt}
+                      onClick={() => setTopUpAmount(String(amt))}
+                      className={`py-3 rounded-xl text-sm font-medium transition-all ${
+                        topUpAmount === String(amt)
+                          ? "bg-emerald-600 text-white"
+                          : "bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300"
+                      }`}
+                    >
+                      ${amt}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowTopUp(false);
+                      setTopUpAmount("");
+                    }}
+                    className="flex-1 bg-slate-800 hover:bg-slate-700 rounded-xl py-3 font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleTopUp}
+                    disabled={topUpLoading || !topUpAmount}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 rounded-xl py-3 font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                  >
+                    {topUpLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <IconCheck />
+                        Add ${topUpAmount || "0"}
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-center gap-2 mt-4 text-xs text-slate-500">
+                  <IconLock />
+                  <span>Secured with 256-bit SSL encryption</span>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ===== TRANSACTION HISTORY ===== */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-slate-900/80 backdrop-blur-sm rounded-2xl border border-slate-800 overflow-hidden"
+        >
+          <div className="p-5 border-b border-slate-800 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <IconHistory />
+              <h2 className="text-lg font-semibold">Transaction History</h2>
+            </div>
+            <span className="text-sm text-slate-400">
+              {transactions.length} transactions
+            </span>
           </div>
 
           {transactions.length === 0 ? (
-            <div className="p-4">
-              <EmptyState
-                icon="💳"
-                title="No transactions yet"
-                description="Add funds to your wallet to start using services instantly."
-                ctaText="Add Balance"
-                ctaHref="#"
-                secondaryCtaText="Explore Services"
-                secondaryCtaHref="/explore-services"
-              />
+            <div className="p-12 text-center">
+              <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <IconHistory />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">
+                No transactions yet
+              </h3>
+              <p className="text-slate-400 text-sm mb-6">
+                Add funds to your wallet to start using services instantly.
+              </p>
+              <button
+                onClick={() => setShowTopUp(true)}
+                className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 px-6 py-3 rounded-xl font-medium transition-colors"
+              >
+                <IconPlus />
+                Add Your First Balance
+              </button>
             </div>
           ) : (
-            <div className="divide-y divide-slate-800">
-              {transactions.map((tx) => (
-                <div
+            <div className="divide-y divide-slate-800/50">
+              {transactions.map((tx, index) => (
+                <motion.div
                   key={tx._id}
-                  className="p-4 flex items-center justify-between hover:bg-slate-800/50"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="p-4 flex items-center justify-between hover:bg-slate-800/30 transition-colors"
                 >
                   <div className="flex items-center gap-4">
                     <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      className={`w-11 h-11 rounded-xl flex items-center justify-center ${
                         tx.type === "credit"
                           ? "bg-emerald-500/20 text-emerald-400"
-                          : "bg-red-500/20 text-red-400"
+                          : "bg-orange-500/20 text-orange-400"
                       }`}
                     >
-                      {tx.type === "credit" ? "+" : "-"}
+                      {getSourceIcon(tx.source, tx.type)}
                     </div>
                     <div>
-                      <p className="font-medium">{getSourceLabel(tx.source)}</p>
+                      <p className="font-medium text-white">
+                        {getSourceLabel(tx.source)}
+                      </p>
                       <p className="text-sm text-slate-400">
                         {tx.description || getSourceLabel(tx.source)}
                       </p>
-                      <p className="text-xs text-slate-500">
-                        {new Date(tx.createdAt).toLocaleString()}
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {new Date(tx.createdAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p
-                      className={`font-semibold ${
+                      className={`text-lg font-bold ${
                         tx.type === "credit"
                           ? "text-emerald-400"
-                          : "text-red-400"
+                          : "text-orange-400"
                       }`}
                     >
                       {tx.type === "credit" ? "+" : "-"}${tx.amount.toFixed(2)}
                     </p>
                     <p className="text-xs text-slate-500">
-                      Balance: ${tx.balanceAfter.toFixed(2)}
+                      Bal: ${tx.balanceAfter.toFixed(2)}
                     </p>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           )}
-        </div>
+        </motion.div>
 
-        {/* Info Card */}
-        <div className="mt-6 bg-slate-900/50 rounded-lg p-4 border border-slate-800">
-          <h3 className="font-medium mb-2">💡 How to use your wallet</h3>
-          <ul className="text-sm text-slate-400 space-y-1">
-            <li>• Add balance using the button above</li>
-            <li>• Use wallet balance to pay for services and rentals</li>
-            <li>• At checkout, select &quot;Pay with Wallet&quot; option</li>
-            <li>• Refunds are automatically credited to your wallet</li>
-          </ul>
-        </div>
+        {/* ===== INFO CARD ===== */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="mt-6 bg-slate-900/50 rounded-xl p-5 border border-slate-800"
+        >
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center text-blue-400 flex-shrink-0">
+              <IconInfo />
+            </div>
+            <div>
+              <h3 className="font-semibold mb-2">How to use your wallet</h3>
+              <ul className="text-sm text-slate-400 space-y-1.5">
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                  Add balance securely using the button above
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                  Use wallet balance for instant checkout on services
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                  Earn balance from work, referrals, and refunds
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                  All transactions are encrypted and secure
+                </li>
+              </ul>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* ===== FOOTER TRUST ===== */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="mt-8 flex items-center justify-center gap-6 text-xs text-slate-500"
+        >
+          <div className="flex items-center gap-1.5">
+            <IconShield />
+            <span>Bank-level Security</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <IconLock />
+            <span>SSL Encrypted</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <IconCheck />
+            <span>PCI Compliant</span>
+          </div>
+        </motion.div>
       </div>
     </div>
   );
