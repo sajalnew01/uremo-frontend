@@ -5,16 +5,30 @@ import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import FilePreview from "@/components/FilePreview";
 
+/**
+ * PATCH_55: Fixed interface to match backend ApplyWork model
+ * - position: can be object (populated) or undefined
+ * - positionTitle: string stored separately
+ * - resumeUrl: optional with fallback UI
+ */
 interface Application {
   _id: string;
-  user: { email: string; name?: string };
-  position?: string;
+  user: { _id?: string; email: string; name?: string } | null;
+  position?: {
+    _id: string;
+    title: string;
+    category?: string;
+    active?: boolean;
+  } | null;
+  positionTitle?: string;
   category?: string;
   message?: string;
-  resumeUrl: string;
+  resumeUrl?: string;
   resumeOriginalName?: string;
   resumeMimeType?: string;
+  resumeResourceType?: string;
   status: "pending" | "approved" | "rejected";
+  workerStatus?: string;
   createdAt: string;
 }
 
@@ -121,8 +135,15 @@ export default function AdminApplicationsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
-        <h1 className="text-2xl font-bold">Admin — Applications</h1>
-        <span className="text-sm text-[#9CA3AF]">{total} total</span>
+        <div>
+          <h1 className="text-2xl font-bold">Job Applications</h1>
+          <p className="text-sm text-[#9CA3AF] mt-1">
+            Review and manage worker applications
+          </p>
+        </div>
+        <span className="text-sm text-[#9CA3AF] bg-white/5 px-3 py-1 rounded-lg">
+          {total} total
+        </span>
       </div>
 
       {/* Filters */}
@@ -198,80 +219,98 @@ export default function AdminApplicationsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left bg-[#0B1220] border-b border-white/10">
-                  <th className="p-4 text-xs text-[#9CA3AF]">User</th>
-                  <th className="p-4 text-xs text-[#9CA3AF]">Position</th>
+                  <th className="p-4 text-xs text-[#9CA3AF]">Applicant</th>
+                  <th className="p-4 text-xs text-[#9CA3AF]">Job Role</th>
                   <th className="p-4 text-xs text-[#9CA3AF]">Category</th>
-                  <th className="p-4 text-xs text-[#9CA3AF]">Date</th>
+                  <th className="p-4 text-xs text-[#9CA3AF]">Applied</th>
                   <th className="p-4 text-xs text-[#9CA3AF]">Resume</th>
                   <th className="p-4 text-xs text-[#9CA3AF]">Status</th>
                   <th className="p-4 text-xs text-[#9CA3AF]">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {applications.map((app, idx) => (
-                  <tr
-                    key={app._id}
-                    className={`border-b border-white/10 hover:bg-white/5 ${
-                      idx % 2 === 0 ? "bg-white/[0.02]" : ""
-                    }`}
-                  >
-                    <td className="p-4">
-                      <div>
-                        <p className="font-medium">{app.user?.name || "N/A"}</p>
-                        <p className="text-xs text-[#9CA3AF]">
-                          {app.user?.email || "Unknown"}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="p-4 text-[#9CA3AF]">
-                      {app.position || "—"}
-                    </td>
-                    <td className="p-4 text-[#9CA3AF]">
-                      {app.category?.replace(/_/g, " ") || "—"}
-                    </td>
-                    <td className="p-4 text-[#9CA3AF]">
-                      {new Date(app.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="p-4">
-                      <FilePreview
-                        url={app.resumeUrl}
-                        label="View"
-                        type={
-                          app.resumeMimeType?.includes("pdf") ? "raw" : "image"
-                        }
-                      />
-                    </td>
-                    <td className="p-4">
-                      <span
-                        className={`${statusColor(app.status)} text-white text-xs px-2 py-1 rounded`}
-                      >
-                        {app.status.toUpperCase()}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex gap-2">
-                        {app.status !== "approved" && (
-                          <button
-                            onClick={() => updateStatus(app._id, "approved")}
-                            disabled={updating === app._id}
-                            className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50"
-                          >
-                            {updating === app._id ? "..." : "✓"}
-                          </button>
+                {applications.map((app, idx) => {
+                  // PATCH_55: Properly extract job role title from position object or positionTitle
+                  const jobRole =
+                    app.position?.title || app.positionTitle || "—";
+                  const hasResume = !!app.resumeUrl;
+
+                  return (
+                    <tr
+                      key={app._id}
+                      className={`border-b border-white/10 hover:bg-white/5 ${
+                        idx % 2 === 0 ? "bg-white/[0.02]" : ""
+                      }`}
+                    >
+                      <td className="p-4">
+                        <div>
+                          <p className="font-medium text-white">
+                            {app.user?.name || "N/A"}
+                          </p>
+                          <p className="text-xs text-[#9CA3AF]">
+                            {app.user?.email || "Unknown email"}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="p-4 text-[#9CA3AF]">{jobRole}</td>
+                      <td className="p-4 text-[#9CA3AF]">
+                        {app.category?.replace(/_/g, " ") || "—"}
+                      </td>
+                      <td className="p-4 text-[#9CA3AF]">
+                        {new Date(app.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="p-4">
+                        {hasResume ? (
+                          <FilePreview
+                            url={app.resumeUrl}
+                            label="View Resume"
+                            type={
+                              app.resumeMimeType?.includes("pdf") ||
+                              app.resumeResourceType === "raw"
+                                ? "raw"
+                                : "image"
+                            }
+                          />
+                        ) : (
+                          <span className="text-xs text-amber-400 bg-amber-500/10 px-2 py-1 rounded">
+                            No resume uploaded
+                          </span>
                         )}
-                        {app.status !== "rejected" && (
-                          <button
-                            onClick={() => updateStatus(app._id, "rejected")}
-                            disabled={updating === app._id}
-                            className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 disabled:opacity-50"
-                          >
-                            {updating === app._id ? "..." : "✕"}
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="p-4">
+                        <span
+                          className={`${statusColor(app.status)} text-white text-xs px-2 py-1 rounded`}
+                        >
+                          {app.status.toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex gap-2">
+                          {app.status !== "approved" && (
+                            <button
+                              onClick={() => updateStatus(app._id, "approved")}
+                              disabled={updating === app._id}
+                              className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50"
+                              title="Approve Application"
+                            >
+                              {updating === app._id ? "..." : "✓ Approve"}
+                            </button>
+                          )}
+                          {app.status !== "rejected" && (
+                            <button
+                              onClick={() => updateStatus(app._id, "rejected")}
+                              disabled={updating === app._id}
+                              className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 disabled:opacity-50"
+                              title="Reject Application"
+                            >
+                              {updating === app._id ? "..." : "✕ Reject"}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

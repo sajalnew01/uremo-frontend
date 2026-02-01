@@ -8,8 +8,14 @@ import PageHeader from "@/components/ui/PageHeader";
 import { getStatusColor, getStatusLabel } from "@/lib/statusConfig";
 
 /**
- * PATCH_48: Admin Proofs Page
- * Review and approve/reject worker proof submissions
+ * PATCH_48/55: Admin Project Proofs Page
+ * Review and approve/reject worker PROJECT proof submissions
+ *
+ * SEMANTIC CLARIFICATION (PATCH_55):
+ * - This page is for PROJECT PROOF VERIFICATION only
+ * - NOT for screening tests or training materials
+ * - Proofs are created after workers submit completed project work
+ * - Admin approves/rejects the work quality
  */
 
 type Proof = {
@@ -153,10 +159,10 @@ export default function AdminProofsPage() {
 
   return (
     <div className="u-container max-w-6xl">
-      {/* Header */}
+      {/* Header - PATCH_55: Clear semantics - this is PROJECT proofs, not screening tests */}
       <PageHeader
-        title="Proof of Work Review"
-        description="Review and approve worker submissions"
+        title="Project Proofs Review"
+        description="Approve or reject completed project work submissions from workers"
       />
 
       {/* Stats */}
@@ -319,7 +325,7 @@ export default function AdminProofsPage() {
                 </p>
               )}
 
-              {/* Actions */}
+              {/* Actions - PATCH_55: Clear semantics for approving/rejecting project work */}
               {proof.status === "pending" && (
                 <div className="flex gap-3 pt-4 border-t border-white/10">
                   <button
@@ -327,7 +333,7 @@ export default function AdminProofsPage() {
                     disabled={processing}
                     className="btn-primary disabled:opacity-50"
                   >
-                    ✅ Approve & Credit ${proof.projectId?.payRate || 0}
+                    ✅ Approve Work & Credit ${proof.projectId?.payRate || 0}
                   </button>
                   <button
                     onClick={() => {
@@ -337,7 +343,7 @@ export default function AdminProofsPage() {
                     disabled={processing}
                     className="btn-secondary text-red-400 hover:text-red-300 disabled:opacity-50"
                   >
-                    ❌ Reject
+                    ❌ Reject Work
                   </button>
                 </div>
               )}
@@ -346,13 +352,14 @@ export default function AdminProofsPage() {
         </div>
       )}
 
-      {/* Reject Modal */}
+      {/* Reject Modal - PATCH_55: Clear semantics */}
       {showRejectModal && selectedProof && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-slate-900 rounded-2xl p-6 w-full max-w-md border border-white/10">
-            <h2 className="text-xl font-bold mb-2">❌ Reject Proof</h2>
+            <h2 className="text-xl font-bold mb-2">❌ Reject Project Work</h2>
             <p className="text-sm text-slate-400 mb-4">
-              Reject proof for &quot;{selectedProof.projectId?.title}&quot;
+              Reject work submission for &quot;{selectedProof.projectId?.title}
+              &quot;
             </p>
 
             <div className="mb-4">
