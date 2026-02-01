@@ -70,7 +70,7 @@ export default function ProfilePage() {
     }
   };
 
-  const toggleEmailPreference = (key: string) => {
+  const toggleEmailPreference = (key: keyof typeof emailPreferences) => {
     if (
       ![
         "productUpdates",
@@ -219,22 +219,22 @@ export default function ProfilePage() {
               Notification Types
             </p>
             <div className="space-y-2">
-              {[
-                { key: "productUpdates", label: "Product Updates" },
-                { key: "jobAlerts", label: "Job Alerts" },
-                { key: "dealAlerts", label: "Deal Alerts" },
-                { key: "rentalAlerts", label: "Rental Alerts" },
-                { key: "marketing", label: "Marketing Emails" },
-              ].map(({ key, label }) => (
+              {(
+                [
+                  { key: "productUpdates", label: "Product Updates" },
+                  { key: "jobAlerts", label: "Job Alerts" },
+                  { key: "dealAlerts", label: "Deal Alerts" },
+                  { key: "rentalAlerts", label: "Rental Alerts" },
+                  { key: "marketing", label: "Marketing Emails" },
+                ] as const
+              ).map(({ key, label }) => (
                 <label
                   key={key}
                   className="flex items-center gap-3 cursor-pointer"
                 >
                   <input
                     type="checkbox"
-                    checked={
-                      emailPreferences[key as keyof typeof emailPreferences]
-                    }
+                    checked={emailPreferences[key]}
                     onChange={() => toggleEmailPreference(key)}
                     className="w-4 h-4 rounded border-slate-500 bg-slate-700"
                   />

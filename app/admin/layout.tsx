@@ -14,6 +14,7 @@ const ADMIN_TABS = [
   { key: "workspace", label: "Workspace", href: "/admin/workspace" },
   { key: "finance", label: "Finance", href: "/admin/wallet" },
   { key: "content", label: "Content", href: "/admin/services" },
+  { key: "campaigns", label: "Campaigns", href: "/admin/campaigns" },
   { key: "settings", label: "Settings", href: "/admin/settings" },
 ];
 
@@ -67,6 +68,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       pathname?.startsWith("/admin/faqs")
     )
       return "content";
+    if (pathname?.startsWith("/admin/campaigns")) return "campaigns";
     if (
       pathname?.startsWith("/admin/settings") ||
       pathname?.startsWith("/admin/jarvisx")
