@@ -1,7 +1,12 @@
 "use client";
 
+/**
+ * PATCH_56: Apply to Work - Premium Job Discovery Experience
+ * Two-column layout with job list on left, details on right
+ * Modern, clean, conversion-focused design
+ */
+
 import { useEffect, useMemo, useState } from "react";
-import Card from "@/components/Card";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import {
@@ -10,9 +15,80 @@ import {
 } from "@/hooks/useSiteSettings";
 import FaqAccordion from "@/components/ui/FaqAccordion";
 
+// PATCH_56: Premium Icons
+function BriefcaseIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+      <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" />
+    </svg>
+  );
+}
+
+function CheckCircleIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+      <polyline points="22,4 12,14.01 9,11.01" />
+    </svg>
+  );
+}
+
+function ClipboardIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2" />
+      <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+    </svg>
+  );
+}
+
+function FilterIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
+    </svg>
+  );
+}
+
 interface Application {
   _id: string;
   status: "pending" | "approved" | "rejected";
+  positionTitle?: string;
+  category?: string;
+  createdAt?: string;
 }
 
 type WorkPosition = {
@@ -22,6 +98,7 @@ type WorkPosition = {
   description?: string;
   requirements?: string;
   active?: boolean;
+  screeningRequired?: boolean;
 };
 
 export default function ApplyToWorkPage() {
@@ -198,255 +275,504 @@ export default function ApplyToWorkPage() {
 
   if (existing) {
     const statusColor = {
-      pending: "bg-yellow-600",
-      approved: "bg-green-600",
-      rejected: "bg-red-600",
+      pending: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+      approved: "bg-green-500/20 text-green-400 border-green-500/30",
+      rejected: "bg-red-500/20 text-red-400 border-red-500/30",
+    };
+
+    const statusText = {
+      pending: "Under Review",
+      approved: "Approved",
+      rejected: "Not Approved",
     };
 
     return (
-      <div className="space-y-6 max-w-2xl">
-        <h1 className="text-2xl font-bold">{ui.title}</h1>
+      <div className="min-h-screen p-4 sm:p-6 lg:p-8">
+        <div className="max-w-2xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 mb-4">
+              <ClipboardIcon className="w-8 h-8 text-emerald-400" />
+            </div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
+              {ui.title}
+            </h1>
+            <p className="text-slate-400 mt-2">Application Status</p>
+          </div>
 
-        <Card title={ui.existingTitle}>
-          <div className="space-y-3">
-            <p className="text-sm text-[#9CA3AF]">{ui.existingBody}</p>
-
-            <div>
-              <span
-                className={`${
-                  statusColor[existing.status as keyof typeof statusColor]
-                } text-white text-sm px-3 py-1 rounded`}
-              >
-                Status: {existing.status.toUpperCase()}
-              </span>
+          {/* Existing Application Card */}
+          <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent backdrop-blur-sm overflow-hidden">
+            <div className="p-6 border-b border-white/5">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-white">
+                  {ui.existingTitle}
+                </h2>
+                <span
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium border ${statusColor[existing.status as keyof typeof statusColor]}`}
+                >
+                  {statusText[existing.status as keyof typeof statusText]}
+                </span>
+              </div>
             </div>
 
-            {existing.status === "pending" && (
-              <p className="text-xs text-[#9CA3AF]">{ui.existingPendingText}</p>
-            )}
+            <div className="p-6 space-y-4">
+              <p className="text-slate-300">{ui.existingBody}</p>
 
-            {existing.status === "approved" && (
-              <p className="text-xs text-green-400">
-                {ui.existingApprovedText}
-              </p>
-            )}
+              {existing.positionTitle && (
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-white/5 border border-white/10">
+                  <BriefcaseIcon className="w-5 h-5 text-slate-400" />
+                  <div>
+                    <p className="text-xs text-slate-500 uppercase tracking-wide">
+                      Position Applied
+                    </p>
+                    <p className="font-medium text-white">
+                      {existing.positionTitle}
+                    </p>
+                  </div>
+                </div>
+              )}
 
-            {existing.status === "rejected" && (
-              <p className="text-xs text-red-400">{ui.existingRejectedText}</p>
-            )}
+              {existing.status === "pending" && (
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
+                  <span className="text-xl">⏳</span>
+                  <p className="text-sm text-yellow-200">
+                    {ui.existingPendingText}
+                  </p>
+                </div>
+              )}
+
+              {existing.status === "approved" && (
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-green-500/10 border border-green-500/20">
+                  <CheckCircleIcon className="w-5 h-5 text-green-400 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-green-200">
+                      {ui.existingApprovedText}
+                    </p>
+                    <a
+                      href="/dashboard"
+                      className="inline-block mt-3 text-sm font-medium text-green-400 hover:text-green-300 transition"
+                    >
+                      Go to Dashboard →
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {existing.status === "rejected" && (
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20">
+                  <span className="text-xl">❌</span>
+                  <p className="text-sm text-red-200">
+                    {ui.existingRejectedText}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
-        </Card>
+        </div>
       </div>
     );
   }
 
+  // PATCH_56: Selected position for right panel
+  const selectedPosition = positionId ? positionsById.get(positionId) : null;
+
   return (
-    <div className="space-y-6 max-w-2xl">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">{ui.title}</h1>
-        <p className="text-[#9CA3AF]">{ui.subtitle}</p>
+    <div className="min-h-screen">
+      {/* Hero Header */}
+      <div className="relative overflow-hidden border-b border-white/5">
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-teal-500/5" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-emerald-500/10 blur-[120px] rounded-full" />
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/30">
+                  <BriefcaseIcon className="w-6 h-6 text-emerald-400" />
+                </div>
+                <span className="px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  {positions.length} Open Position
+                  {positions.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+                {ui.title}
+              </h1>
+              <p className="text-slate-400 mt-2 max-w-xl">{ui.subtitle}</p>
+            </div>
+
+            {/* Category Filter */}
+            {categories.length > 1 && (
+              <div className="flex items-center gap-2">
+                <FilterIcon className="w-4 h-4 text-slate-500" />
+                <select
+                  className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50 transition"
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                >
+                  {categories.map((c) => (
+                    <option key={c} value={c} className="bg-slate-900">
+                      {c === "all" ? ui.allCategoriesText : c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* PATCH_47: Service context banner when coming from a service page */}
+      {/* PATCH_47: Service context banner */}
       {fromService && (
-        <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 p-4">
-          <div className="flex items-start gap-3">
-            <span className="text-2xl">💼</span>
-            <div>
-              <p className="font-medium text-blue-300">Applying from Service</p>
-              {serviceTitle && (
-                <p className="text-sm text-slate-300 mt-1">
-                  You're applying to work on: <strong>{serviceTitle}</strong>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+          <div className="rounded-xl border border-blue-500/20 bg-gradient-to-r from-blue-500/10 to-transparent p-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">💼</span>
+              <div>
+                <p className="font-medium text-blue-300">
+                  Applying from Service
                 </p>
-              )}
-              <p className="text-xs text-slate-400 mt-2">
-                Complete the application below to start earning by working on
-                this service.
-              </p>
+                {serviceTitle && (
+                  <p className="text-sm text-slate-400">
+                    You're applying to work on:{" "}
+                    <span className="text-white font-medium">
+                      {serviceTitle}
+                    </span>
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Application Form */}
-      <Card title={ui.formTitle}>
-        {/* Position picker (preferred) */}
+      {/* Main Content - Two Column Layout */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {positionsLoading ? (
-          <div className="mb-4">
-            <label className="text-sm text-[#9CA3AF] block mb-1">
-              {ui.positionsLabel}
-            </label>
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-[#9CA3AF]">
-              {ui.loadingPositionsText}
+          /* Skeleton Loading State */
+          <div className="grid lg:grid-cols-5 gap-6">
+            <div className="lg:col-span-2 space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="rounded-xl border border-white/10 bg-white/5 p-4 animate-pulse"
+                >
+                  <div className="h-5 bg-white/10 rounded w-3/4 mb-3" />
+                  <div className="h-3 bg-white/10 rounded w-1/2 mb-2" />
+                  <div className="h-3 bg-white/10 rounded w-full" />
+                </div>
+              ))}
+            </div>
+            <div className="lg:col-span-3 rounded-xl border border-white/10 bg-white/5 p-8 animate-pulse">
+              <div className="h-6 bg-white/10 rounded w-1/2 mb-4" />
+              <div className="h-4 bg-white/10 rounded w-3/4" />
             </div>
           </div>
-        ) : hasPositions ? (
-          <div className="mb-6 space-y-4">
-            <div>
-              <label className="text-sm text-[#9CA3AF] block mb-1">
-                {ui.filterByCategoryLabel}
-              </label>
-              <select
-                className="u-select w-full"
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-              >
-                {categories.map((c) => (
-                  <option key={c} value={c}>
-                    {c === "all" ? ui.allCategoriesText : c}
-                  </option>
-                ))}
-              </select>
+        ) : !hasPositions ? (
+          /* Empty State */
+          <div className="text-center py-16">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-slate-800/50 border border-white/10 mb-6">
+              <BriefcaseIcon className="w-10 h-10 text-slate-500" />
             </div>
+            <h3 className="text-xl font-semibold text-white mb-2">
+              No Open Positions
+            </h3>
+            <p className="text-slate-400 max-w-md mx-auto">
+              {ui.noPositionsFoundText}
+            </p>
+            <a
+              href="/explore-services"
+              className="inline-block mt-6 text-emerald-400 hover:text-emerald-300 font-medium transition"
+            >
+              Browse Services Instead →
+            </a>
+          </div>
+        ) : (
+          /* Two Column Layout */
+          <div className="grid lg:grid-cols-5 gap-6">
+            {/* Left Column - Position List */}
+            <div className="lg:col-span-2 space-y-3">
+              <p className="text-sm text-slate-500 mb-2 px-1">
+                {filteredPositions.length} position
+                {filteredPositions.length !== 1 ? "s" : ""} available
+              </p>
 
-            <div>
-              <label className="text-sm text-[#9CA3AF] block mb-2">
-                {ui.selectPositionLabel}
-              </label>
-              <div className="space-y-3">
-                {filteredPositions.length === 0 ? (
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-[#9CA3AF]">
-                    {ui.noPositionsFoundText}
-                  </div>
-                ) : (
-                  filteredPositions.map((p) => {
-                    const selected = positionId === p._id;
-                    const reqLines = String(p.requirements || "")
-                      .split(/\r?\n/)
-                      .map((s) => s.trim())
-                      .filter(Boolean)
-                      .slice(0, 6);
-                    return (
-                      <button
-                        key={p._id}
-                        type="button"
-                        onClick={() => {
-                          setPositionId(p._id);
-                          setShowForm(false);
-                        }}
-                        className={`w-full text-left rounded-xl border p-4 transition ${
-                          selected
-                            ? "border-emerald-500/30 bg-emerald-500/10"
-                            : "border-white/10 bg-white/5 hover:bg-white/10"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-semibold text-white">
+              {filteredPositions.length === 0 ? (
+                <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-center">
+                  <p className="text-slate-400">{ui.noPositionsFoundText}</p>
+                </div>
+              ) : (
+                filteredPositions.map((p) => {
+                  const isSelected = positionId === p._id;
+                  return (
+                    <button
+                      key={p._id}
+                      type="button"
+                      onClick={() => {
+                        setPositionId(p._id);
+                        setShowForm(false);
+                      }}
+                      className={`w-full text-left rounded-xl border p-4 transition-all duration-200 ${
+                        isSelected
+                          ? "border-emerald-500/50 bg-emerald-500/10 shadow-lg shadow-emerald-500/10"
+                          : "border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-semibold text-white truncate">
                               {p.title}
                             </p>
-                            <p className="text-xs text-[#9CA3AF] mt-1">
-                              {p.category}
-                            </p>
-                          </div>
-                          <div
-                            className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                              selected
-                                ? "border-emerald-400 bg-emerald-400/20"
-                                : "border-white/20"
-                            }`}
-                          >
-                            {selected ? (
-                              <span className="text-emerald-200 text-xs">
-                                ✓
+                            {p.screeningRequired && (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                                Screening Required
                               </span>
-                            ) : null}
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1">
+                            {p.category}
+                          </p>
+                          {p.description && (
+                            <p className="text-sm text-slate-400 mt-2 line-clamp-2">
+                              {p.description}
+                            </p>
+                          )}
+                        </div>
+                        <div
+                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                            isSelected
+                              ? "border-emerald-400 bg-emerald-400"
+                              : "border-slate-600"
+                          }`}
+                        >
+                          {isSelected && (
+                            <svg
+                              className="w-3 h-3 text-slate-900"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth="3"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Right Column - Position Details & Application Form */}
+            <div className="lg:col-span-3">
+              {!selectedPosition ? (
+                /* No Position Selected */
+                <div className="rounded-2xl border border-dashed border-white/20 bg-gradient-to-br from-white/5 to-transparent p-8 text-center h-full flex flex-col items-center justify-center min-h-[400px]">
+                  <div className="w-16 h-16 rounded-2xl bg-slate-800/50 border border-white/10 flex items-center justify-center mb-4">
+                    <BriefcaseIcon className="w-8 h-8 text-slate-500" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">
+                    Select a Position
+                  </h3>
+                  <p className="text-slate-400 max-w-sm">
+                    Choose a position from the list to view details and submit
+                    your application.
+                  </p>
+                </div>
+              ) : (
+                /* Position Details */
+                <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent overflow-hidden">
+                  {/* Position Header */}
+                  <div className="p-6 border-b border-white/5 bg-gradient-to-r from-emerald-500/5 to-transparent">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap mb-2">
+                          {selectedPosition.screeningRequired && (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                              Screening Required
+                            </span>
+                          )}
+                          <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                            Open Position
+                          </span>
+                        </div>
+                        <h2 className="text-2xl font-bold text-white">
+                          {selectedPosition.title}
+                        </h2>
+                        <p className="text-slate-400 mt-1">
+                          {selectedPosition.category}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Position Body */}
+                  <div className="p-6 space-y-6">
+                    {selectedPosition.description && (
+                      <div>
+                        <h3 className="text-sm font-medium text-slate-400 uppercase tracking-wide mb-2">
+                          Description
+                        </h3>
+                        <p className="text-slate-200">
+                          {selectedPosition.description}
+                        </p>
+                      </div>
+                    )}
+
+                    {selectedPosition.requirements && (
+                      <div>
+                        <h3 className="text-sm font-medium text-slate-400 uppercase tracking-wide mb-3">
+                          Requirements
+                        </h3>
+                        <ul className="space-y-2">
+                          {String(selectedPosition.requirements)
+                            .split(/\r?\n/)
+                            .map((line, i) => {
+                              const trimmed = line.trim();
+                              if (!trimmed) return null;
+                              return (
+                                <li
+                                  key={i}
+                                  className="flex items-start gap-2 text-slate-300"
+                                >
+                                  <CheckCircleIcon className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                                  <span>{trimmed}</span>
+                                </li>
+                              );
+                            })}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Application Form */}
+                    {!showForm ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowForm(true)}
+                        className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold hover:from-emerald-400 hover:to-teal-400 transition-all duration-200 shadow-lg shadow-emerald-500/20"
+                      >
+                        Apply for this Position
+                      </button>
+                    ) : (
+                      <div className="space-y-4 pt-4 border-t border-white/10">
+                        <h3 className="text-lg font-semibold text-white">
+                          Submit Your Application
+                        </h3>
+
+                        {/* Message */}
+                        <div>
+                          <label className="text-sm text-slate-400 block mb-2">
+                            {ui.messageLabel}
+                          </label>
+                          <textarea
+                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500/50 transition resize-none"
+                            rows={4}
+                            placeholder={ui.messagePlaceholder}
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                          />
+                        </div>
+
+                        {/* Resume Upload */}
+                        <div>
+                          <label className="text-sm text-slate-400 block mb-2">
+                            {ui.resumeLabel}
+                          </label>
+                          <div
+                            className="rounded-xl border-2 border-dashed border-white/20 bg-white/5 p-6 text-center hover:border-emerald-500/50 transition cursor-pointer"
+                            onClick={() =>
+                              document.getElementById("resume-upload")?.click()
+                            }
+                          >
+                            <input
+                              id="resume-upload"
+                              type="file"
+                              accept=".pdf,.doc,.docx"
+                              onChange={(e) =>
+                                setResume(e.target.files?.[0] || null)
+                              }
+                              className="hidden"
+                            />
+                            {resume ? (
+                              <div className="flex items-center justify-center gap-2 text-emerald-400">
+                                <CheckCircleIcon className="w-5 h-5" />
+                                <span className="font-medium">
+                                  {resume.name}
+                                </span>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="w-12 h-12 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center mx-auto mb-3">
+                                  <ClipboardIcon className="w-6 h-6 text-slate-400" />
+                                </div>
+                                <p className="text-slate-300 font-medium">
+                                  Click to upload resume
+                                </p>
+                                <p className="text-xs text-slate-500 mt-1">
+                                  {ui.resumeHelperText}
+                                </p>
+                              </>
+                            )}
                           </div>
                         </div>
 
-                        {p.description ? (
-                          <p className="mt-2 text-sm text-slate-200">
-                            {p.description}
-                          </p>
-                        ) : null}
-
-                        {reqLines.length ? (
-                          <ul className="mt-3 space-y-1 text-xs text-[#9CA3AF]">
-                            {reqLines.map((line) => (
-                              <li key={line}>• {line}</li>
-                            ))}
-                          </ul>
-                        ) : null}
-                      </button>
-                    );
-                  })
-                )}
-              </div>
+                        {/* Submit Button */}
+                        <button
+                          onClick={submit}
+                          disabled={loading}
+                          className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold hover:from-emerald-400 hover:to-teal-400 transition-all duration-200 shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {loading ? (
+                            <span className="flex items-center justify-center gap-2">
+                              <svg
+                                className="animate-spin w-5 h-5"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                />
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                                />
+                              </svg>
+                              {ui.submittingText}
+                            </span>
+                          ) : (
+                            ui.submitText
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
-
-            <button
-              type="button"
-              className="btn-primary w-full"
-              onClick={() => {
-                if (!positionId) {
-                  toast(ui.selectPositionRequiredText, "error");
-                  return;
-                }
-                setShowForm(true);
-              }}
-            >
-              {ui.submitText}
-            </button>
-          </div>
-        ) : (
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-[#9CA3AF]">
-            {ui.noPositionsFoundText}
           </div>
         )}
+      </div>
 
-        {hasPositions && showForm ? (
-          <div className="mt-6">
-            {/* Message */}
-            <div className="mb-4">
-              <label className="text-sm text-[#9CA3AF] block mb-1">
-                {ui.messageLabel}
-              </label>
-              <textarea
-                className="w-full p-2 bg-transparent border border-[#1F2937] rounded"
-                rows={4}
-                placeholder={ui.messagePlaceholder}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-              />
-            </div>
+      {/* Trust Note & FAQ */}
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 space-y-6">
+        <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-center">
+          <p className="text-sm text-slate-400">{ui.trustNoteText}</p>
+        </div>
 
-            {/* Resume */}
-            <div className="mb-6">
-              <label className="text-sm text-[#9CA3AF] block mb-1">
-                {ui.resumeLabel}
-              </label>
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <input
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  onChange={(e) => setResume(e.target.files?.[0] || null)}
-                  className="text-sm text-slate-200"
-                />
-                <p className="mt-2 text-xs text-[#9CA3AF]">
-                  {ui.resumeHelperText}
-                </p>
-              </div>
-            </div>
-
-            {/* Submit */}
-            <button
-              onClick={submit}
-              disabled={loading}
-              className="btn-primary disabled:opacity-50 w-full"
-            >
-              {loading ? ui.submittingText : ui.submitText}
-            </button>
-          </div>
-        ) : null}
-      </Card>
-
-      {/* Trust Note */}
-      <Card>
-        <p className="text-xs text-[#9CA3AF]">{ui.trustNoteText}</p>
-      </Card>
-
-      <FaqAccordion title={ui.faqTitle} items={applyFaq} />
+        <FaqAccordion title={ui.faqTitle} items={applyFaq} />
+      </div>
     </div>
   );
 }
