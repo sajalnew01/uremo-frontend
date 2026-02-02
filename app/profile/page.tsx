@@ -13,62 +13,162 @@ import Link from "next/link";
 
 // ==================== SVG ICONS ====================
 const IconUser = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+  <svg
+    className="w-6 h-6"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+    />
   </svg>
 );
 
 const IconMail = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
+    />
   </svg>
 );
 
 const IconShield = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+    />
   </svg>
 );
 
 const IconBell = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
+    />
   </svg>
 );
 
 const IconHeart = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+    />
   </svg>
 );
 
 const IconCopy = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"
+    />
   </svg>
 );
 
 const IconCheck = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M4.5 12.75l6 6 9-13.5"
+    />
   </svg>
 );
 
 const IconCalendar = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"
+    />
   </svg>
 );
 
 const IconBadge = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z"
+    />
   </svg>
 );
 
 const IconSparkle = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"
+    />
   </svg>
 );
 
@@ -240,7 +340,9 @@ export default function ProfilePage() {
             <IconUser />
           </div>
           <h2 className="text-xl font-bold mb-2">Not Logged In</h2>
-          <p className="text-slate-400 mb-6">Please log in to view your profile.</p>
+          <p className="text-slate-400 mb-6">
+            Please log in to view your profile.
+          </p>
           <Link
             href="/login"
             className="inline-block bg-indigo-600 hover:bg-indigo-500 px-6 py-3 rounded-xl font-medium transition-colors"
@@ -257,7 +359,6 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-        
         {/* ===== HEADER ===== */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -265,7 +366,9 @@ export default function ProfilePage() {
           className="mb-8"
         >
           <h1 className="text-3xl font-bold text-white">Profile Settings</h1>
-          <p className="text-slate-400 mt-1">Manage your account and preferences</p>
+          <p className="text-slate-400 mt-1">
+            Manage your account and preferences
+          </p>
         </motion.div>
 
         {/* ===== PROFILE CARD ===== */}
@@ -277,22 +380,31 @@ export default function ProfilePage() {
         >
           {/* Background pattern */}
           <div className="absolute inset-0 opacity-10">
-            <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <svg
+              className="w-full h-full"
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+            >
               <defs>
-                <pattern id="profile-grid" width="10" height="10" patternUnits="userSpaceOnUse">
-                  <circle cx="5" cy="5" r="1" fill="white"/>
+                <pattern
+                  id="profile-grid"
+                  width="10"
+                  height="10"
+                  patternUnits="userSpaceOnUse"
+                >
+                  <circle cx="5" cy="5" r="1" fill="white" />
                 </pattern>
               </defs>
               <rect width="100" height="100" fill="url(#profile-grid)" />
             </svg>
           </div>
-          
+
           <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-6">
             {/* Avatar */}
             <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center text-3xl font-bold border-2 border-white/30">
               {name.charAt(0).toUpperCase()}
             </div>
-            
+
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-1">
                 <h2 className="text-2xl font-bold">{name}</h2>
@@ -305,11 +417,17 @@ export default function ProfilePage() {
               {createdAt && (
                 <div className="flex items-center gap-2 mt-2 text-indigo-200 text-sm">
                   <IconCalendar />
-                  <span>Member since {createdAt.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</span>
+                  <span>
+                    Member since{" "}
+                    {createdAt.toLocaleDateString("en-US", {
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </span>
                 </div>
               )}
             </div>
-            
+
             {/* Profile Completion */}
             <div className="sm:text-right">
               <p className="text-xs text-indigo-200 mb-1">Profile Completion</p>
@@ -341,14 +459,16 @@ export default function ProfilePage() {
             </div>
             <h3 className="text-lg font-semibold">Account Information</h3>
           </div>
-          
+
           <div className="space-y-4">
             {/* Email */}
             <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-xl">
               <div className="flex items-center gap-3">
                 <IconMail />
                 <div>
-                  <p className="text-xs text-slate-400 uppercase tracking-wide">Email Address</p>
+                  <p className="text-xs text-slate-400 uppercase tracking-wide">
+                    Email Address
+                  </p>
                   <p className="font-medium">{email}</p>
                 </div>
               </div>
@@ -364,13 +484,15 @@ export default function ProfilePage() {
                 <span className="text-sm">{copied ? "Copied!" : "Copy"}</span>
               </button>
             </div>
-            
+
             {/* Role */}
             <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-xl">
               <div className="flex items-center gap-3">
                 <IconShield />
                 <div>
-                  <p className="text-xs text-slate-400 uppercase tracking-wide">Account Type</p>
+                  <p className="text-xs text-slate-400 uppercase tracking-wide">
+                    Account Type
+                  </p>
                   <p className="font-medium capitalize">{role}</p>
                 </div>
               </div>
@@ -395,17 +517,39 @@ export default function ProfilePage() {
             </div>
             <div>
               <h3 className="text-lg font-semibold">Email Preferences</h3>
-              <p className="text-sm text-slate-400">Choose what notifications you receive</p>
+              <p className="text-sm text-slate-400">
+                Choose what notifications you receive
+              </p>
             </div>
           </div>
-          
+
           <div className="space-y-3">
             {[
-              { key: "productUpdates" as const, label: "Product Updates", desc: "New features and improvements" },
-              { key: "jobAlerts" as const, label: "Job Alerts", desc: "New work opportunities matching your skills" },
-              { key: "dealAlerts" as const, label: "Deal Alerts", desc: "Special offers and discounts" },
-              { key: "rentalAlerts" as const, label: "Rental Alerts", desc: "New rental listings and updates" },
-              { key: "marketing" as const, label: "Marketing Emails", desc: "Promotional content and newsletters" },
+              {
+                key: "productUpdates" as const,
+                label: "Product Updates",
+                desc: "New features and improvements",
+              },
+              {
+                key: "jobAlerts" as const,
+                label: "Job Alerts",
+                desc: "New work opportunities matching your skills",
+              },
+              {
+                key: "dealAlerts" as const,
+                label: "Deal Alerts",
+                desc: "Special offers and discounts",
+              },
+              {
+                key: "rentalAlerts" as const,
+                label: "Rental Alerts",
+                desc: "New rental listings and updates",
+              },
+              {
+                key: "marketing" as const,
+                label: "Marketing Emails",
+                desc: "Promotional content and newsletters",
+              },
             ].map(({ key, label, desc }) => (
               <label
                 key={key}
@@ -442,10 +586,12 @@ export default function ProfilePage() {
             </div>
             <div>
               <h3 className="text-lg font-semibold">Your Interests</h3>
-              <p className="text-sm text-slate-400">Select topics to get personalized recommendations</p>
+              <p className="text-sm text-slate-400">
+                Select topics to get personalized recommendations
+              </p>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {INTEREST_OPTIONS.map((interest) => (
               <button
@@ -459,13 +605,11 @@ export default function ProfilePage() {
               >
                 <span className="text-xl">{interest.icon}</span>
                 <span className="font-medium text-sm">{interest.label}</span>
-                {interestTags.includes(interest.id) && (
-                  <IconCheck />
-                )}
+                {interestTags.includes(interest.id) && <IconCheck />}
               </button>
             ))}
           </div>
-          
+
           <p className="mt-4 text-xs text-slate-500 text-center">
             {interestTags.length}/10 interests selected
           </p>
@@ -516,140 +660,6 @@ export default function ProfilePage() {
           </div>
         </motion.div>
       </div>
-    </div>
-  );
-};
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (!ready) {
-    return <div className="u-container text-sm text-[#9CA3AF]">Loading…</div>;
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="u-container">
-        <Card title="Profile">
-          <p className="text-sm text-[#9CA3AF]">You're not logged in.</p>
-        </Card>
-      </div>
-    );
-  }
-
-  return (
-    <div className="u-container space-y-6">
-      <PageHeader
-        title="Profile"
-        description="Manage your account settings and information"
-      />
-
-      <Card>
-        <div className="space-y-4">
-          <div>
-            <p className="text-xs tracking-widest text-slate-300">EMAIL</p>
-            <div className="mt-1 flex items-center gap-2 flex-wrap">
-              <p className="text-slate-100 font-medium break-all">
-                {email || "—"}
-              </p>
-              {email && (
-                <button
-                  type="button"
-                  onClick={copyEmail}
-                  className="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-slate-200 hover:bg-white/10"
-                >
-                  Copy email
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <p className="text-xs tracking-widest text-slate-300">ROLE</p>
-            <p className="mt-1 text-slate-100 font-medium capitalize">{role}</p>
-          </div>
-
-          <div>
-            <p className="text-xs tracking-widest text-slate-300">CREATED</p>
-            <p className="mt-1 text-slate-100 font-medium">
-              {createdAt ? createdAt.toLocaleString() : "—"}
-            </p>
-            <p className="mt-1 text-xs text-[#9CA3AF]">
-              Created date appears if your session includes it.
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      {/* PATCH_53: Email Preferences */}
-      <Card title="Email Preferences">
-        <div className="space-y-4">
-          <div>
-            <p className="text-sm font-medium text-slate-200 mb-3">
-              Notification Types
-            </p>
-            <div className="space-y-2">
-              {(
-                [
-                  { key: "productUpdates", label: "Product Updates" },
-                  { key: "jobAlerts", label: "Job Alerts" },
-                  { key: "dealAlerts", label: "Deal Alerts" },
-                  { key: "rentalAlerts", label: "Rental Alerts" },
-                  { key: "marketing", label: "Marketing Emails" },
-                ] as const
-              ).map(({ key, label }) => (
-                <label
-                  key={key}
-                  className="flex items-center gap-3 cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={emailPreferences[key]}
-                    onChange={() => toggleEmailPreference(key)}
-                    className="w-4 h-4 rounded border-slate-500 bg-slate-700"
-                  />
-                  <span className="text-sm text-slate-300">{label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-slate-700">
-            <p className="text-sm font-medium text-slate-200 mb-3">
-              Your Interests
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {INTEREST_OPTIONS.map((tag) => (
-                <button
-                  key={tag}
-                  onClick={() => toggleInterest(tag)}
-                  className={`px-3 py-1 rounded-full text-sm transition-colors ${
-                    interestTags.includes(tag)
-                      ? "bg-indigo-600 text-white"
-                      : "bg-slate-700 text-slate-300 hover:bg-slate-600"
-                  }`}
-                >
-                  {tag}
-                </button>
-              ))}
-            </div>
-            <p className="mt-2 text-xs text-slate-400">
-              Select topics you're interested in to receive relevant updates
-            </p>
-          </div>
-
-          <div className="pt-4">
-            <button
-              onClick={savePreferences}
-              disabled={loading}
-              className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 text-sm font-medium"
-            >
-              {loading ? "Saving..." : "Save Preferences"}
-            </button>
-          </div>
-        </div>
-      </Card>
     </div>
   );
 }
