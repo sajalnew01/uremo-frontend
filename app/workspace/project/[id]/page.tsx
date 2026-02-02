@@ -439,6 +439,37 @@ export default function ProjectDetailPage() {
               </button>
             </div>
           )}
+
+          <div className="mt-6 pt-6 border-t border-white/10">
+            <h3 className="font-medium mb-2">✅ Submit Project for Review</h3>
+            <p className="text-slate-400 text-sm mb-4">
+              When you're done, submit completion notes. Admin will review and
+              credit your earnings.
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm text-slate-400 block mb-1">
+                  Completion Notes <span className="text-red-400">*</span>
+                </label>
+                <textarea
+                  value={completionNotes}
+                  onChange={(e) => setCompletionNotes(e.target.value)}
+                  placeholder="Completion notes (what you did, links, deliverables, any notes for the reviewer...)"
+                  rows={4}
+                  className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+
+              <button
+                onClick={submitProject}
+                disabled={submitting || !completionNotes.trim()}
+                className="btn-primary disabled:opacity-50"
+              >
+                {submitting ? "Submitting..." : "Submit Project for Review"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

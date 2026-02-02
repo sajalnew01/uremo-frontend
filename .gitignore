@@ -33,6 +33,11 @@ yarn-error.log*
 # local diagnostics
 .nextstart*.log
 
+# local build logs (generated during troubleshooting)
+build-output.txt
+build-errors.txt
+build-error-output.txt
+
 # env files (can opt-in for committing if needed)
 .env*
 
