@@ -576,6 +576,7 @@ export default function AdminWorkersPage() {
                     alert("Please enter a task description");
                     return;
                   }
+
                   setTaskAssigning(true);
                   try {
                     await apiRequest(
