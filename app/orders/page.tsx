@@ -209,7 +209,7 @@ export default function OrdersPage() {
       <PageHeader
         title="My Orders"
         description="Track and manage all your service orders"
-        actionLabel="Explore Services"
+        actionLabel="Find Work & Services"
         actionHref="/explore-services"
       />
 
@@ -279,8 +279,8 @@ export default function OrdersPage() {
         <EmptyState
           icon="📦"
           title="You haven't placed any orders yet"
-          description="Browse our marketplace and find the perfect service to get started."
-          ctaText="Explore Services"
+          description="Browse the marketplace to find the right service for you."
+          ctaText="Find Work & Services"
           ctaHref="/explore-services"
         />
       )}

@@ -517,7 +517,7 @@ export const DEFAULT_PUBLIC_SITE_SETTINGS: PublicSiteSettings = {
     trustBlockText:
       "UREMO delivers manual operations with human verification and transparent order tracking.",
     list: {
-      title: "Explore Services",
+      title: "Find Work & Services",
       highlightPills: ["Manual processing", "Order chat", "Status tracking"],
       searchPlaceholder: "Search services (title, category, description)…",
       allCategoriesText: "All categories",

@@ -410,8 +410,8 @@ export default function Dashboard() {
     {
       href: "/explore-services",
       icon: <IconSparkles />,
-      title: "Explore Services",
-      subtitle: "Browse opportunities",
+      title: "Find Work & Services",
+      subtitle: "Buy or earn opportunities",
       gradient: "from-purple-500/20 to-purple-600/10",
       borderColor: "hover:border-purple-500/50",
       iconBg: "bg-purple-500/20 text-purple-400",
@@ -833,14 +833,14 @@ export default function Dashboard() {
               </div>
               <h3 className="font-medium text-white mb-2">No orders yet</h3>
               <p className="text-sm text-slate-400 mb-4">
-                Start exploring services to place your first order
+                Find work or services to place your first order
               </p>
               <Link
                 href="/explore-services"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-400 text-white rounded-lg text-sm font-medium transition-colors"
               >
                 <IconSparkles />
-                Explore Services
+                Find Work & Services
               </Link>
             </div>
           )}

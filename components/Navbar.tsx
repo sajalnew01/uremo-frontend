@@ -45,7 +45,11 @@ export default function Navbar() {
   }, [mobileMenuOpen]);
 
   const userLinks = [
-    { href: "/explore-services", label: "Explore Services", icon: "🧭" },
+    {
+      href: "/explore-services",
+      label: "Find Work & Services",
+      icon: "🧭",
+    },
     { href: "/workspace", label: "Workspace (Jobs)", icon: "💼" },
     { href: "/deals", label: "Deals", icon: "🏷️" },
     { href: "/orders", label: "Orders", icon: "📦" },

@@ -35,6 +35,10 @@ type Service = {
   payRate?: number;
   imageUrl?: string;
   images?: string[];
+  deliveryType?: "instant" | "manual" | "assisted";
+  requirements?: string;
+  successRate?: number;
+  rating?: number;
   allowedActions?: {
     buy?: boolean;
     apply?: boolean;
@@ -58,7 +62,11 @@ type Service = {
 type FiltersState = {
   category: string;
   subcategory: string;
+  platform: string;
   country: string;
+  verification: "" | "verified" | "standard";
+  deliveryType: "" | "instant" | "manual" | "assisted";
+  minRating: number;
   search: string;
   minPrice: number;
   maxPrice: number;
@@ -182,31 +190,31 @@ function CheckCircleIcon({ className }: { className?: string }) {
 // Intent Tab Configuration
 const INTENT_CONFIG = {
   buy: {
-    label: "Buy",
+    label: "Buy Services",
     icon: ShoppingBagIcon,
     color: "blue",
     gradient: "from-blue-500 to-indigo-600",
     bgGlow: "bg-blue-500/20",
-    description: "Purchase accounts & services instantly",
-    action: "Buy Now",
+    description: "Purchase verified services with confidence",
+    action: "Start Now",
   },
   earn: {
-    label: "Earn",
+    label: "Earn Money",
     icon: BriefcaseIcon,
     color: "emerald",
     gradient: "from-emerald-500 to-teal-600",
     bgGlow: "bg-emerald-500/20",
-    description: "Apply for jobs & start earning",
-    action: "Apply Now",
+    description: "Apply for work and start earning",
+    action: "Apply & Earn",
   },
   rent: {
-    label: "Rent",
+    label: "Rent Access",
     icon: KeyIcon,
     color: "purple",
     gradient: "from-purple-500 to-pink-600",
     bgGlow: "bg-purple-500/20",
-    description: "Rent verified accounts monthly",
-    action: "Rent Now",
+    description: "Rent premium access with flexible plans",
+    action: "Rent Access",
   },
   deal: {
     label: "Deals",
@@ -214,8 +222,8 @@ const INTENT_CONFIG = {
     color: "orange",
     gradient: "from-orange-500 to-amber-600",
     bgGlow: "bg-orange-500/20",
-    description: "Exclusive bulk & special offers",
-    action: "Get Deal",
+    description: "Start profit deals and bulk offers",
+    action: "Start Profit Deal",
   },
 };
 
@@ -225,9 +233,8 @@ export default function UnifiedMarketplacePage() {
   const { data: settings } = useSiteSettings();
   const { isAuthenticated } = useAuth();
 
-  // URL-based intent selection
-  const initialIntent = (searchParams.get("intent") as Intent) || "buy";
-  const [activeIntent, setActiveIntent] = useState<Intent>(initialIntent);
+  // URL-based intent selection with local preference fallback
+  const [activeIntent, setActiveIntent] = useState<Intent>("buy");
 
   // State
   const [services, setServices] = useState<Service[]>([]);
@@ -247,7 +254,11 @@ export default function UnifiedMarketplacePage() {
   const [filters, setFilters] = useState<FiltersState>({
     category: "",
     subcategory: "",
+    platform: "",
     country: "",
+    verification: "",
+    deliveryType: "",
+    minRating: 0,
     search: "",
     minPrice: 0,
     maxPrice: 0,
@@ -256,14 +267,30 @@ export default function UnifiedMarketplacePage() {
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [previewService, setPreviewService] = useState<Service | null>(null);
 
   const servicesCopy =
     settings?.services?.list || DEFAULT_PUBLIC_SITE_SETTINGS.services.list;
+
+  useEffect(() => {
+    const urlIntent = searchParams.get("intent") as Intent | null;
+    const storedIntent =
+      typeof window !== "undefined"
+        ? (localStorage.getItem("uremo_explore_intent") as Intent | null)
+        : null;
+    const nextIntent = urlIntent || storedIntent || "buy";
+    if (nextIntent !== activeIntent) {
+      setActiveIntent(nextIntent);
+    }
+  }, [searchParams]);
 
   // Handle intent change
   const handleIntentChange = (intent: Intent) => {
     setActiveIntent(intent);
     setPage(1);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("uremo_explore_intent", intent);
+    }
     // Update URL without full reload
     const url = new URL(window.location.href);
     url.searchParams.set("intent", intent);
@@ -282,7 +309,14 @@ export default function UnifiedMarketplacePage() {
 
       if (filters.category) params.set("category", filters.category);
       if (filters.subcategory) params.set("subcategory", filters.subcategory);
+      if (filters.platform) params.set("platform", filters.platform);
       if (filters.country) params.set("country", filters.country);
+      if (filters.verification)
+        params.set("verification", filters.verification);
+      if (filters.deliveryType)
+        params.set("deliveryType", filters.deliveryType);
+      if (filters.minRating > 0)
+        params.set("minRating", String(filters.minRating));
       if (filters.search) params.set("search", filters.search);
       if (filters.minPrice > 0)
         params.set("minPrice", String(filters.minPrice));
@@ -328,43 +362,165 @@ export default function UnifiedMarketplacePage() {
     };
   }, [loadMarketplace]);
 
-  // Client-side search filter
+  // Client-side filters (search + advanced filters)
   const displayServices = useMemo(() => {
-    if (!filters.search.trim()) return services;
     const q = filters.search.trim().toLowerCase();
+
     return services.filter((s) => {
       const hay =
         `${s.title || ""} ${s.category || ""} ${s.shortDescription || ""} ${s.description || ""}`.toLowerCase();
-      return hay.includes(q);
+
+      if (q && !hay.includes(q)) return false;
+      if (filters.category && s.category !== filters.category) return false;
+      if (filters.subcategory && s.subcategory !== filters.subcategory)
+        return false;
+      if (filters.platform && s.platform !== filters.platform) return false;
+      if (filters.country && !(s.countries || []).includes(filters.country))
+        return false;
+
+      const isVerified = /verified|verification/i.test(
+        `${s.title || ""} ${s.category || ""} ${s.subcategory || ""}`,
+      );
+      if (filters.verification === "verified" && !isVerified) return false;
+      if (filters.verification === "standard" && isVerified) return false;
+
+      if (filters.deliveryType && s.deliveryType !== filters.deliveryType)
+        return false;
+
+      if (filters.minRating > 0) {
+        const rating = typeof s.rating === "number" ? s.rating : 0;
+        if (rating < filters.minRating) return false;
+      }
+
+      return true;
     });
-  }, [services, filters.search]);
+  }, [services, filters]);
+
+  const derivedPlatforms = useMemo(() => {
+    const set = new Set<string>(filterOptions.platforms || []);
+    services.forEach((s) => {
+      if (s.platform) set.add(s.platform);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [filterOptions.platforms, services]);
+
+  const derivedDeliveryTypes = useMemo(() => {
+    const set = new Set<string>();
+    services.forEach((s) => {
+      if (s.deliveryType) set.add(s.deliveryType);
+    });
+    return Array.from(set);
+  }, [services]);
+
+  const recommendedServices = useMemo(() => {
+    const recentIds: string[] =
+      typeof window !== "undefined"
+        ? JSON.parse(localStorage.getItem("uremo_recent_services") || "[]")
+        : [];
+
+    const byRecent = services.filter((s) => recentIds.includes(s._id));
+    const byCountry = filters.country
+      ? services.filter((s) => (s.countries || []).includes(filters.country))
+      : [];
+    const popular = services.slice(0, 8);
+
+    const combined = [...byRecent, ...byCountry, ...popular];
+    const unique: Service[] = [];
+    const seen = new Set<string>();
+
+    for (const item of combined) {
+      if (!seen.has(item._id)) {
+        seen.add(item._id);
+        unique.push(item);
+      }
+      if (unique.length >= 6) break;
+    }
+
+    return unique;
+  }, [services, filters.country]);
+
+  const trackRecentService = useCallback((serviceId: string) => {
+    if (typeof window === "undefined") return;
+    const current = JSON.parse(
+      localStorage.getItem("uremo_recent_services") || "[]",
+    ) as string[];
+    const next = [serviceId, ...current.filter((id) => id !== serviceId)].slice(
+      0,
+      10,
+    );
+    localStorage.setItem("uremo_recent_services", JSON.stringify(next));
+  }, []);
 
   const config = INTENT_CONFIG[activeIntent];
   const IconComponent = config.icon;
 
   return (
-    <div className="u-container py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
-              Discover Services
+    <div className="u-container py-8 px-4 md:px-6">
+      {/* Premium Hero Section */}
+      <section className="mb-12 relative">
+        {/* Background Gradient Glow */}
+        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 rounded-3xl blur-3xl" />
+
+        <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-3xl">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="px-3 py-1 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 text-blue-200 text-xs font-medium uppercase tracking-wider">
+                Premium Marketplace
+              </span>
+              <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-medium flex items-center gap-1.5">
+                <CheckCircleIcon className="w-3.5 h-3.5" />
+                Verified Platform
+              </span>
+            </div>
+
+            <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-4 bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
+              Discover Premium Services & Ways to Earn
             </h1>
-            <p className="text-slate-400 max-w-xl">
-              One marketplace for everything. Buy accounts, apply for jobs, rent
-              verified profiles, or grab exclusive deals.
+
+            <p className="text-slate-300 text-lg md:text-xl mb-6 leading-relaxed">
+              Buy verified services, earn money, rent premium access, or start
+              profit deals — all in one trusted platform.
             </p>
+
+            {/* Trust Strip - Enhanced */}
+            <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: "Active Users", value: "18,450+", icon: "👥" },
+                { label: "Paid Out", value: "$312,000+", icon: "💰" },
+                { label: "Trust Rating", value: "4.8★", icon: "⭐" },
+                { label: "Secure", value: "Verified", icon: "🔒" },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="group relative rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/60 to-slate-950/60 px-4 py-4 backdrop-blur-sm transition-all duration-300 hover:border-blue-500/30 hover:shadow-[0_0_24px_rgba(59,130,246,0.15)]"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="relative">
+                    <div className="text-2xl mb-1">{item.icon}</div>
+                    <div className="text-white font-bold text-xl mb-1">
+                      {item.value}
+                    </div>
+                    <div className="text-xs text-slate-400 uppercase tracking-wider">
+                      {item.label}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="hidden lg:block">
-            <TrustBadges variant="horizontal" />
+
+          <div className="hidden xl:block">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-2xl blur-2xl" />
+              <TrustBadges variant="horizontal" />
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Intent Tabs */}
-      <div className="mb-6">
-        <div className="flex flex-wrap gap-2 p-1.5 bg-slate-800/50 rounded-2xl border border-white/10 backdrop-blur">
+      {/* Intent Tabs - Enhanced */}
+      <div className="mb-10">
+        <div className="flex flex-wrap gap-3 p-2 bg-gradient-to-br from-slate-900/90 to-slate-950/90 rounded-3xl border border-white/10 backdrop-blur-xl shadow-2xl">
           {(Object.keys(INTENT_CONFIG) as Intent[]).map((intent) => {
             const cfg = INTENT_CONFIG[intent];
             const IntentIcon = cfg.icon;
@@ -376,106 +532,120 @@ export default function UnifiedMarketplacePage() {
                 key={intent}
                 onClick={() => handleIntentChange(intent)}
                 className={`
-                  relative flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition-all duration-300
+                  relative flex items-center gap-3 px-6 py-4 rounded-2xl font-semibold transition-all duration-300 flex-1 min-w-[180px] group
                   ${
                     isActive
-                      ? `bg-gradient-to-r ${cfg.gradient} text-white shadow-lg`
-                      : "text-slate-400 hover:text-white hover:bg-white/5"
+                      ? `bg-gradient-to-r ${cfg.gradient} text-white shadow-[0_0_24px_rgba(59,130,246,0.4)] scale-[1.02]`
+                      : "text-slate-400 hover:text-white hover:bg-white/5 hover:border-white/20"
                   }
                 `}
               >
-                <IntentIcon className="w-5 h-5" />
-                <span>{cfg.label}</span>
-                {count > 0 && (
-                  <span
-                    className={`
-                    ml-1 px-2 py-0.5 text-xs rounded-full
-                    ${isActive ? "bg-white/20 text-white" : "bg-slate-700 text-slate-300"}
-                  `}
-                  >
-                    {count}
-                  </span>
+                {/* Glow effect on active */}
+                {isActive && (
+                  <div
+                    className={`absolute inset-0 ${cfg.bgGlow} rounded-2xl blur-xl opacity-60`}
+                  />
                 )}
+
+                <div className="relative flex items-center gap-3 w-full">
+                  <div
+                    className={`p-2 rounded-xl ${isActive ? "bg-white/20" : "bg-slate-800/50 group-hover:bg-slate-700/50"} transition-colors`}
+                  >
+                    <IntentIcon className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <div className="font-semibold">{cfg.label}</div>
+                    {count > 0 && (
+                      <div
+                        className={`text-xs mt-0.5 ${isActive ? "text-white/80" : "text-slate-500"}`}
+                      >
+                        {count} available
+                      </div>
+                    )}
+                  </div>
+                  {isActive && (
+                    <CheckCircleIcon className="w-5 h-5 text-white/90" />
+                  )}
+                </div>
               </button>
             );
           })}
         </div>
 
-        {/* Intent Description */}
+        {/* Intent Description - Enhanced */}
         <div
-          className={`mt-4 p-4 rounded-xl border border-white/10 ${config.bgGlow} backdrop-blur`}
+          className={`mt-6 p-6 rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/60 to-slate-950/60 backdrop-blur-sm relative overflow-hidden`}
         >
-          <div className="flex items-center gap-3">
+          <div className={`absolute inset-0 ${config.bgGlow} opacity-20`} />
+          <div className="relative flex items-center gap-4">
             <div
-              className={`p-2 rounded-lg bg-gradient-to-br ${config.gradient}`}
+              className={`p-3 rounded-2xl bg-gradient-to-br ${config.gradient} shadow-lg`}
             >
-              <IconComponent className="w-5 h-5 text-white" />
+              <IconComponent className="w-7 h-7 text-white" />
             </div>
-            <div>
-              <h3 className="font-semibold text-white">
-                {config.label} Services
+            <div className="flex-1">
+              <h3 className="font-bold text-white text-lg mb-1">
+                {config.label}
               </h3>
-              <p className="text-sm text-slate-300">{config.description}</p>
+              <p className="text-sm text-slate-300 leading-relaxed">
+                {config.description}
+              </p>
+            </div>
+            <div className="hidden md:block px-4 py-2 rounded-xl bg-white/5 border border-white/10">
+              <div className="text-xs text-slate-400 uppercase tracking-wide mb-1">
+                Available Now
+              </div>
+              <div className="text-white font-bold text-xl">
+                {intentCounts[activeIntent] || 0}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Search & Filters Bar */}
-      <div className="mb-6 flex flex-col md:flex-row gap-3">
-        {/* Search */}
-        <div className="flex-1 relative">
-          <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-          <input
-            type="text"
-            value={filters.search}
-            onChange={(e) =>
-              setFilters((f) => ({ ...f, search: e.target.value }))
-            }
-            placeholder="Search services, platforms, categories..."
-            className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-800/50 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500/50 focus:outline-none transition"
-          />
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8">
+        {/* Sticky Filter Panel - Enhanced */}
+        <aside className="lg:sticky lg:top-24 h-fit">
+          <div className="flex items-center justify-between mb-4 lg:hidden">
+            <div className="flex items-center gap-2">
+              <FilterIcon className="w-4 h-4 text-slate-400" />
+              <span className="text-sm font-semibold text-slate-300">
+                Filters
+              </span>
+            </div>
+            <button
+              onClick={() => setShowFilters((v) => !v)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 bg-slate-900/60 text-slate-300 hover:text-white hover:border-blue-500/30 transition-all"
+            >
+              <span>{showFilters ? "Hide Filters" : "Show Filters"}</span>
+            </button>
+          </div>
 
-        {/* Filter Toggle */}
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`
-            flex items-center gap-2 px-5 py-3 rounded-xl border transition-all
-            ${
-              showFilters
-                ? "bg-blue-500/20 border-blue-500/50 text-blue-400"
-                : "bg-slate-800/50 border-white/10 text-slate-400 hover:text-white"
-            }
-          `}
-        >
-          <FilterIcon className="w-5 h-5" />
-          <span>Filters</span>
-        </button>
-
-        {/* Sort */}
-        <select
-          value={filters.sort}
-          onChange={(e) => setFilters((f) => ({ ...f, sort: e.target.value }))}
-          className="px-4 py-3 rounded-xl bg-slate-800/50 border border-white/10 text-white focus:border-blue-500/50 focus:outline-none transition appearance-none cursor-pointer"
-        >
-          <option value="relevance">Most Relevant</option>
-          <option value="newest">Newest First</option>
-          <option value="price_low">Price: Low to High</option>
-          <option value="price_high">Price: High to Low</option>
-          <option value="popular">Most Popular</option>
-        </select>
-      </div>
-
-      {/* Expanded Filters */}
-      {showFilters && (
-        <div className="mb-6 p-5 rounded-2xl bg-slate-800/30 border border-white/10 backdrop-blur">
-          <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {/* Category */}
+          <div
+            className={`rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/80 backdrop-blur-xl p-6 space-y-6 ${
+              showFilters ? "block" : "hidden"
+            } lg:block shadow-2xl`}
+          >
             <div>
-              <label className="block text-sm text-slate-400 mb-2">
-                Category
-              </label>
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-sm font-semibold text-white uppercase tracking-wider">
+                  Category
+                </label>
+                {filters.category && (
+                  <button
+                    onClick={() =>
+                      setFilters((f) => ({
+                        ...f,
+                        category: "",
+                        subcategory: "",
+                      }))
+                    }
+                    className="text-xs text-blue-400 hover:text-blue-300"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
               <select
                 value={filters.category}
                 onChange={(e) =>
@@ -485,7 +655,7 @@ export default function UnifiedMarketplacePage() {
                     subcategory: "",
                   }))
                 }
-                className="w-full px-4 py-2.5 rounded-lg bg-slate-900/50 border border-white/10 text-white focus:border-blue-500/50 focus:outline-none"
+                className="w-full px-4 py-3 rounded-xl bg-slate-950/80 border border-white/10 text-white focus:border-blue-500/50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
               >
                 <option value="">All Categories</option>
                 {filterOptions.categories.map((cat) => (
@@ -496,10 +666,9 @@ export default function UnifiedMarketplacePage() {
               </select>
             </div>
 
-            {/* Subcategory */}
             {filters.category && (
               <div>
-                <label className="block text-sm text-slate-400 mb-2">
+                <label className="block text-xs text-slate-400 mb-2 uppercase tracking-wide">
                   Subcategory
                 </label>
                 <select
@@ -507,7 +676,7 @@ export default function UnifiedMarketplacePage() {
                   onChange={(e) =>
                     setFilters((f) => ({ ...f, subcategory: e.target.value }))
                   }
-                  className="w-full px-4 py-2.5 rounded-lg bg-slate-900/50 border border-white/10 text-white focus:border-blue-500/50 focus:outline-none"
+                  className="w-full px-3 py-2.5 rounded-lg bg-slate-950/60 border border-white/10 text-white"
                 >
                   <option value="">All</option>
                   {filterOptions.categories
@@ -521,9 +690,28 @@ export default function UnifiedMarketplacePage() {
               </div>
             )}
 
-            {/* Country */}
             <div>
-              <label className="block text-sm text-slate-400 mb-2">
+              <label className="block text-xs text-slate-400 mb-2 uppercase tracking-wide">
+                Platform
+              </label>
+              <select
+                value={filters.platform}
+                onChange={(e) =>
+                  setFilters((f) => ({ ...f, platform: e.target.value }))
+                }
+                className="w-full px-3 py-2.5 rounded-lg bg-slate-950/60 border border-white/10 text-white"
+              >
+                <option value="">All Platforms</option>
+                {derivedPlatforms.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs text-slate-400 mb-2 uppercase tracking-wide">
                 Country
               </label>
               <select
@@ -531,7 +719,7 @@ export default function UnifiedMarketplacePage() {
                 onChange={(e) =>
                   setFilters((f) => ({ ...f, country: e.target.value }))
                 }
-                className="w-full px-4 py-2.5 rounded-lg bg-slate-900/50 border border-white/10 text-white focus:border-blue-500/50 focus:outline-none"
+                className="w-full px-3 py-2.5 rounded-lg bg-slate-950/60 border border-white/10 text-white"
               >
                 <option value="">All Countries</option>
                 {filterOptions.countries.map((c) => (
@@ -542,11 +730,75 @@ export default function UnifiedMarketplacePage() {
               </select>
             </div>
 
-            {/* Price Range */}
             <div>
-              <label className="block text-sm text-slate-400 mb-2">
-                Price: ${filters.minPrice || filterOptions.priceRange.min} - $
-                {filters.maxPrice || filterOptions.priceRange.max}
+              <label className="block text-xs text-slate-400 mb-2 uppercase tracking-wide">
+                Verification
+              </label>
+              <select
+                value={filters.verification}
+                onChange={(e) =>
+                  setFilters((f) => ({
+                    ...f,
+                    verification: e.target
+                      .value as FiltersState["verification"],
+                  }))
+                }
+                className="w-full px-3 py-2.5 rounded-lg bg-slate-950/60 border border-white/10 text-white"
+              >
+                <option value="">All</option>
+                <option value="verified">Verified</option>
+                <option value="standard">Standard</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs text-slate-400 mb-2 uppercase tracking-wide">
+                Delivery type
+              </label>
+              <select
+                value={filters.deliveryType}
+                onChange={(e) =>
+                  setFilters((f) => ({
+                    ...f,
+                    deliveryType: e.target
+                      .value as FiltersState["deliveryType"],
+                  }))
+                }
+                className="w-full px-3 py-2.5 rounded-lg bg-slate-950/60 border border-white/10 text-white"
+              >
+                <option value="">All</option>
+                {derivedDeliveryTypes.map((d) => (
+                  <option key={d} value={d}>
+                    {d.charAt(0).toUpperCase() + d.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs text-slate-400 mb-2 uppercase tracking-wide">
+                Rating
+              </label>
+              <select
+                value={filters.minRating}
+                onChange={(e) =>
+                  setFilters((f) => ({
+                    ...f,
+                    minRating: Number(e.target.value) || 0,
+                  }))
+                }
+                className="w-full px-3 py-2.5 rounded-lg bg-slate-950/60 border border-white/10 text-white"
+              >
+                <option value={0}>All</option>
+                <option value={4.5}>4.5+ stars</option>
+                <option value={4.0}>4.0+ stars</option>
+                <option value={3.5}>3.5+ stars</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs text-slate-400 mb-2 uppercase tracking-wide">
+                Price range
               </label>
               <div className="flex gap-2">
                 <input
@@ -559,7 +811,7 @@ export default function UnifiedMarketplacePage() {
                       minPrice: Number(e.target.value) || 0,
                     }))
                   }
-                  className="w-1/2 px-3 py-2.5 rounded-lg bg-slate-900/50 border border-white/10 text-white focus:border-blue-500/50 focus:outline-none"
+                  className="w-1/2 px-3 py-2.5 rounded-lg bg-slate-950/60 border border-white/10 text-white"
                 />
                 <input
                   type="number"
@@ -571,117 +823,536 @@ export default function UnifiedMarketplacePage() {
                       maxPrice: Number(e.target.value) || 0,
                     }))
                   }
-                  className="w-1/2 px-3 py-2.5 rounded-lg bg-slate-900/50 border border-white/10 text-white focus:border-blue-500/50 focus:outline-none"
+                  className="w-1/2 px-3 py-2.5 rounded-lg bg-slate-950/60 border border-white/10 text-white"
                 />
               </div>
             </div>
-          </div>
 
-          {/* Clear Filters */}
-          <div className="mt-4 flex justify-end">
             <button
               onClick={() =>
                 setFilters({
                   category: "",
                   subcategory: "",
+                  platform: "",
                   country: "",
+                  verification: "",
+                  deliveryType: "",
+                  minRating: 0,
                   search: "",
                   minPrice: 0,
                   maxPrice: 0,
                   sort: "relevance",
                 })
               }
-              className="text-sm text-slate-400 hover:text-white transition"
-            >
-              Clear All Filters
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Loading State */}
-      {loading && (
-        <div className="flex items-center justify-center py-20">
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-12 h-12 rounded-full border-4 border-blue-500/30 border-t-blue-500 animate-spin" />
-            <p className="text-slate-400">
-              Loading {config.label.toLowerCase()} services...
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Empty State */}
-      {!loading && displayServices.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div
-            className={`w-20 h-20 rounded-full ${config.bgGlow} flex items-center justify-center mb-6`}
-          >
-            <IconComponent className="w-10 h-10 text-slate-400" />
-          </div>
-          <h3 className="text-xl font-semibold text-white mb-2">
-            No {config.label} Services Found
-          </h3>
-          <p className="text-slate-400 max-w-md mb-6">
-            {filters.search || filters.category
-              ? "Try adjusting your filters or search query."
-              : `There are no ${config.label.toLowerCase()} services available right now. Check back soon!`}
-          </p>
-          {(filters.search || filters.category) && (
-            <button
-              onClick={() =>
-                setFilters({
-                  category: "",
-                  subcategory: "",
-                  country: "",
-                  search: "",
-                  minPrice: 0,
-                  maxPrice: 0,
-                  sort: "relevance",
-                })
-              }
-              className="px-6 py-3 rounded-xl bg-white/10 border border-white/20 text-white hover:bg-white/20 transition"
+              className="w-full text-sm text-slate-300 hover:text-white border border-white/10 rounded-lg py-2 transition"
             >
               Clear Filters
             </button>
+          </div>
+        </aside>
+
+        <div className="space-y-6">
+          {/* Search + Sort */}
+          <div className="flex flex-col md:flex-row gap-3">
+            <div className="flex-1 relative">
+              <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <input
+                type="text"
+                value={filters.search}
+                onChange={(e) =>
+                  setFilters((f) => ({ ...f, search: e.target.value }))
+                }
+                placeholder="Search services, platforms, categories..."
+                className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-800/50 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500/50 focus:outline-none transition"
+              />
+            </div>
+
+            <select
+              value={filters.sort}
+              onChange={(e) =>
+                setFilters((f) => ({ ...f, sort: e.target.value }))
+              }
+              className="px-4 py-3 rounded-xl bg-slate-800/50 border border-white/10 text-white focus:border-blue-500/50 focus:outline-none transition appearance-none cursor-pointer"
+            >
+              <option value="relevance">Most Relevant</option>
+              <option value="newest">Newest First</option>
+              <option value="price_low">Price: Low to High</option>
+              <option value="price_high">Price: High to Low</option>
+              <option value="popular">Most Popular</option>
+            </select>
+          </div>
+
+          {/* Recommended Row - Enhanced */}
+          {!loading && recommendedServices.length > 0 && (
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
+                    <span className="text-2xl">⭐</span>
+                    Recommended For You
+                  </h2>
+                  <p className="text-sm text-slate-400">
+                    Based on your location, activity, and popular choices
+                  </p>
+                </div>
+              </div>
+              <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {recommendedServices.map((service) => (
+                  <ServiceCard
+                    key={`rec-${service._id}`}
+                    service={service}
+                    intent={activeIntent}
+                    config={config}
+                    onPreview={() => {
+                      trackRecentService(service._id);
+                      setPreviewService(service);
+                    }}
+                    onPrimaryAction={() => trackRecentService(service._id)}
+                  />
+                ))}
+              </div>
+              <div className="mt-4 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+            </div>
+          )}
+
+          {/* Loading State */}
+          {loading && (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {Array.from({ length: 6 }).map((_, idx) => (
+                <div
+                  key={`sk-${idx}`}
+                  className="rounded-2xl border border-white/10 bg-slate-800/30 p-4 animate-pulse"
+                >
+                  <div className="h-40 bg-slate-700/50 rounded-xl mb-4" />
+                  <div className="h-4 bg-slate-700/50 rounded mb-2" />
+                  <div className="h-4 bg-slate-700/30 rounded w-2/3 mb-4" />
+                  <div className="h-10 bg-slate-700/40 rounded" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Empty State - Enhanced */}
+          {!loading && displayServices.length === 0 && (
+            <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/60 to-slate-950/60 backdrop-blur-sm p-12 text-center relative overflow-hidden">
+              {/* Background Pattern */}
+              <div className="absolute inset-0 opacity-5">
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    backgroundImage:
+                      "radial-gradient(circle at 2px 2px, white 1px, transparent 0)",
+                    backgroundSize: "32px 32px",
+                  }}
+                />
+              </div>
+
+              <div className="relative">
+                <div
+                  className={`mx-auto w-24 h-24 rounded-3xl bg-gradient-to-br ${config.gradient} flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(59,130,246,0.3)]`}
+                >
+                  <IconComponent className="w-12 h-12 text-white" />
+                </div>
+
+                <h3 className="text-2xl font-bold text-white mb-3">
+                  No Services Found
+                </h3>
+                <p className="text-slate-300 max-w-md mx-auto mb-8 leading-relaxed">
+                  We couldn't find any services matching your current filters.
+                  Try adjusting your criteria or explore other opportunities.
+                </p>
+
+                <div className="flex flex-wrap justify-center gap-3 mb-6">
+                  {(Object.keys(INTENT_CONFIG) as Intent[]).map((intent) => {
+                    const cfg = INTENT_CONFIG[intent];
+                    const IntentIcon = cfg.icon;
+                    return (
+                      <button
+                        key={`empty-${intent}`}
+                        onClick={() => handleIntentChange(intent)}
+                        className={`flex items-center gap-2 px-5 py-3 rounded-xl border transition-all ${
+                          intent === activeIntent
+                            ? `bg-gradient-to-r ${cfg.gradient} border-transparent text-white shadow-lg`
+                            : "border-white/20 text-slate-300 hover:text-white hover:border-white/40 hover:bg-white/5"
+                        }`}
+                      >
+                        <IntentIcon className="w-4 h-4" />
+                        <span className="font-medium">{cfg.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={() =>
+                    setFilters({
+                      category: "",
+                      subcategory: "",
+                      platform: "",
+                      country: "",
+                      verification: "",
+                      deliveryType: "",
+                      minRating: 0,
+                      search: "",
+                      minPrice: 0,
+                      maxPrice: 0,
+                      sort: "relevance",
+                    })
+                  }
+                  className="px-6 py-3 rounded-xl bg-white/10 border border-white/20 text-white hover:bg-white/15 transition-all font-medium"
+                >
+                  Clear All Filters
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Service Grid - Enhanced */}
+          {!loading && displayServices.length > 0 && (
+            <>
+              <div className="mb-4 flex items-center justify-between">
+                <div className="text-sm text-slate-400">
+                  Showing{" "}
+                  <span className="text-white font-semibold">
+                    {displayServices.length}
+                  </span>{" "}
+                  services
+                </div>
+                <div className="text-xs text-slate-500">
+                  Page {page} of {totalPages}
+                </div>
+              </div>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {displayServices.map((service, index) => (
+                  <div
+                    key={service._id}
+                    className="animate-fadeIn"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <ServiceCard
+                      service={service}
+                      intent={activeIntent}
+                      config={config}
+                      onPreview={() => {
+                        trackRecentService(service._id);
+                        setPreviewService(service);
+                      }}
+                      onPrimaryAction={() => trackRecentService(service._id)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Pagination - Enhanced */}
+          {!loading && totalPages > 1 && (
+            <div className="mt-8 flex justify-center items-center gap-3">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-5 py-3 rounded-xl bg-slate-800/60 border border-white/10 text-slate-300 hover:text-white hover:bg-slate-800 hover:border-blue-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all font-medium flex items-center gap-2"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+                Previous
+              </button>
+
+              <div className="flex items-center gap-2">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (page <= 3) {
+                    pageNum = i + 1;
+                  } else if (page >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = page - 2 + i;
+                  }
+
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setPage(pageNum)}
+                      className={`w-10 h-10 rounded-xl font-semibold transition-all ${
+                        page === pageNum
+                          ? `bg-gradient-to-r ${config.gradient} text-white shadow-lg scale-110`
+                          : "bg-slate-800/60 border border-white/10 text-slate-400 hover:text-white hover:border-blue-500/30"
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="px-5 py-3 rounded-xl bg-slate-800/60 border border-white/10 text-slate-300 hover:text-white hover:bg-slate-800 hover:border-blue-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all font-medium flex items-center gap-2"
+              >
+                Next
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
+            </div>
           )}
         </div>
-      )}
+      </div>
 
-      {/* Service Grid */}
-      {!loading && displayServices.length > 0 && (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {displayServices.map((service) => (
-            <ServiceCard
-              key={service._id}
-              service={service}
-              intent={activeIntent}
-              config={config}
-            />
-          ))}
-        </div>
-      )}
+      {/* Quick Preview Modal - Enhanced Premium Design */}
+      {previewService && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn"
+          onClick={() => setPreviewService(null)}
+        >
+          <div
+            className="w-full max-w-3xl rounded-3xl border border-white/20 bg-gradient-to-br from-slate-900/95 to-slate-950/95 backdrop-blur-2xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header with Image */}
+            <div className="relative h-64 bg-slate-950">
+              {previewService.imageUrl || previewService.images?.[0] ? (
+                <>
+                  <img
+                    src={previewService.imageUrl || previewService.images?.[0]}
+                    alt={previewService.title}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
+                </>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-950">
+                  <div
+                    className={`p-6 rounded-2xl ${config.bgGlow} border border-white/10`}
+                  >
+                    {config.icon({ className: "w-12 h-12 text-slate-400" })}
+                  </div>
+                </div>
+              )}
 
-      {/* Pagination */}
-      {!loading && totalPages > 1 && (
-        <div className="mt-8 flex justify-center gap-2">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="px-4 py-2 rounded-lg bg-slate-800/50 border border-white/10 text-slate-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            Previous
-          </button>
-          <span className="flex items-center px-4 text-slate-400">
-            Page {page} of {totalPages}
-          </span>
-          <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-            className="px-4 py-2 rounded-lg bg-slate-800/50 border border-white/10 text-slate-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            Next
-          </button>
+              {/* Close Button */}
+              <button
+                onClick={() => setPreviewService(null)}
+                className="absolute top-4 right-4 p-2 rounded-xl bg-black/60 backdrop-blur-md border border-white/20 text-white hover:bg-black/80 transition-colors"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+
+              {/* Title Overlay */}
+              <div className="absolute bottom-0 left-0 right-0 p-6">
+                <div className="flex items-start gap-3 mb-2">
+                  {/verified|verification/i.test(
+                    `${previewService.title} ${previewService.category}`,
+                  ) && (
+                    <span className="px-3 py-1 rounded-lg bg-emerald-500/20 backdrop-blur-md text-emerald-300 border border-emerald-400/40 text-xs font-semibold flex items-center gap-1.5">
+                      <CheckCircleIcon className="w-3.5 h-3.5" />
+                      Verified
+                    </span>
+                  )}
+                  <span className="px-3 py-1 rounded-lg bg-black/50 backdrop-blur-md text-white border border-white/30 text-xs font-semibold">
+                    {previewService.platform || "Global"}
+                  </span>
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-1">
+                  {previewService.title}
+                </h3>
+                <p className="text-sm text-slate-300">
+                  {previewService.category?.replace(/_/g, " ")} • {config.label}
+                </p>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 max-h-[60vh] overflow-y-auto space-y-6 custom-scrollbar">
+              {/* Stats Row */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-xl bg-slate-800/60 border border-white/10 px-4 py-3 text-center">
+                  <div className="text-xs text-slate-400 uppercase tracking-wide mb-1">
+                    Success Rate
+                  </div>
+                  <div className="text-white font-bold text-lg">
+                    {previewService.successRate
+                      ? `${previewService.successRate}%`
+                      : "—"}
+                  </div>
+                </div>
+                <div className="rounded-xl bg-slate-800/60 border border-white/10 px-4 py-3 text-center">
+                  <div className="text-xs text-slate-400 uppercase tracking-wide mb-1">
+                    Rating
+                  </div>
+                  <div className="text-white font-bold text-lg">
+                    {previewService.rating
+                      ? `${previewService.rating.toFixed(1)}★`
+                      : "New"}
+                  </div>
+                </div>
+                <div className="rounded-xl bg-slate-800/60 border border-white/10 px-4 py-3 text-center">
+                  <div className="text-xs text-slate-400 uppercase tracking-wide mb-1">
+                    Delivery
+                  </div>
+                  <div className="text-white font-bold text-sm">
+                    {previewService.deliveryType?.charAt(0).toUpperCase() +
+                      (previewService.deliveryType?.slice(1) || "") ||
+                      "Standard"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Description Section */}
+              <div className="rounded-2xl bg-slate-800/40 border border-white/10 p-5">
+                <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <div className="w-1 h-4 bg-blue-500 rounded-full" />
+                  Full Description
+                </h4>
+                <p className="text-slate-200 text-sm leading-relaxed">
+                  {previewService.description ||
+                    previewService.shortDescription ||
+                    "Comprehensive service details will be provided after order confirmation. Our team ensures quality delivery with full support throughout the process."}
+                </p>
+              </div>
+
+              {/* What You Get */}
+              <div className="rounded-2xl bg-slate-800/40 border border-white/10 p-5">
+                <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <div className="w-1 h-4 bg-emerald-500 rounded-full" />
+                  What You Get
+                </h4>
+                <ul className="space-y-2 text-slate-200 text-sm">
+                  <li className="flex items-start gap-2">
+                    <CheckCircleIcon className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                    <span>
+                      Professional service delivery with status tracking
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircleIcon className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                    <span>24/7 customer support via order chat</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircleIcon className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                    <span>Quality guarantee and refund protection</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircleIcon className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                    <span>
+                      {previewService.shortDescription ||
+                        "Detailed documentation and guidance"}
+                    </span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Requirements */}
+              <div className="rounded-2xl bg-slate-800/40 border border-white/10 p-5">
+                <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <div className="w-1 h-4 bg-amber-500 rounded-full" />
+                  Requirements
+                </h4>
+                <p className="text-slate-200 text-sm leading-relaxed">
+                  {previewService.requirements ||
+                    "No special requirements needed. You will be guided through any necessary steps during the order process. Our team will reach out if additional information is required."}
+                </p>
+              </div>
+
+              {/* Refund Policy */}
+              <div className="rounded-2xl bg-slate-800/40 border border-white/10 p-5">
+                <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <div className="w-1 h-4 bg-purple-500 rounded-full" />
+                  Refund & Replacement Policy
+                </h4>
+                <p className="text-slate-200 text-sm leading-relaxed">
+                  If service delivery fails or doesn't meet specifications, you
+                  may be eligible for a refund or replacement. Contact our
+                  support team with your order details within 7 days of
+                  delivery. We prioritize customer satisfaction and work to
+                  resolve all issues promptly.
+                </p>
+              </div>
+            </div>
+
+            {/* Footer CTA */}
+            <div className="p-6 border-t border-white/10 bg-slate-900/60 flex items-center justify-between gap-4">
+              <div>
+                <div className="text-xs text-slate-400 uppercase tracking-wide mb-1">
+                  {activeIntent === "earn"
+                    ? "Earn Up To"
+                    : activeIntent === "rent"
+                      ? "Starting From"
+                      : "Total Price"}
+                </div>
+                <div className="text-white font-bold text-3xl">
+                  {activeIntent === "earn" && previewService.payRate
+                    ? `$${previewService.payRate}/hr`
+                    : activeIntent === "rent" &&
+                        previewService.rentalPlans?.length
+                      ? `$${previewService.rentalPlans[0].price}/${previewService.rentalPlans[0].unit}`
+                      : `$${previewService.price}`}
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setPreviewService(null)}
+                  className="px-5 py-3 rounded-xl border border-white/20 text-slate-300 hover:text-white hover:border-white/40 font-medium transition-all"
+                >
+                  Close
+                </button>
+                <Link
+                  href={
+                    activeIntent === "earn"
+                      ? `/apply-to-work?serviceId=${previewService._id}`
+                      : activeIntent === "rent"
+                        ? `/rentals/${previewService._id}`
+                        : activeIntent === "deal"
+                          ? `/deals/${previewService._id}`
+                          : `/service/${previewService._id}`
+                  }
+                  className={`px-6 py-3 rounded-xl text-white font-bold bg-gradient-to-r ${config.gradient} shadow-[0_0_24px_rgba(59,130,246,0.5)] hover:shadow-[0_0_32px_rgba(59,130,246,0.7)] transition-all hover:scale-105`}
+                  onClick={() => {
+                    trackRecentService(previewService._id);
+                    setPreviewService(null);
+                  }}
+                >
+                  {config.action}
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -693,13 +1364,28 @@ function ServiceCard({
   service,
   intent,
   config,
+  onPreview,
+  onPrimaryAction,
 }: {
   service: Service;
   intent: Intent;
   config: typeof INTENT_CONFIG.buy;
+  onPreview?: () => void;
+  onPrimaryAction?: () => void;
 }) {
   const hasLinkedJob = Boolean(service.linkedJob);
   const hasScreening = service.linkedJob?.hasScreening;
+
+  const isVerified = /verified|verification/i.test(
+    `${service.title || ""} ${service.category || ""} ${service.subcategory || ""}`,
+  );
+  const successRate =
+    typeof service.successRate === "number" ? service.successRate : null;
+  const rating = typeof service.rating === "number" ? service.rating : null;
+  const deliveryLabel = service.deliveryType
+    ? service.deliveryType.charAt(0).toUpperCase() +
+      service.deliveryType.slice(1)
+    : "Standard";
 
   // Determine the action link based on intent
   const getActionLink = () => {
@@ -733,116 +1419,169 @@ function ServiceCard({
   };
 
   return (
-    <Link
-      href={getActionLink()}
-      className="group relative flex flex-col bg-slate-800/30 border border-white/10 rounded-2xl overflow-hidden hover:border-white/20 hover:shadow-xl transition-all duration-300"
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onPreview?.()}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") onPreview?.();
+      }}
+      className="group relative flex flex-col bg-gradient-to-br from-slate-900/80 to-slate-950/80 border border-white/10 rounded-3xl overflow-hidden transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_24px_60px_-12px_rgba(15,23,42,0.8)] hover:border-blue-500/30 cursor-pointer backdrop-blur-sm"
     >
-      {/* Hover Glow Effect */}
+      {/* Premium Glow Effect */}
       <div
-        className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${config.bgGlow} blur-xl`}
+        className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${config.bgGlow} blur-2xl -z-10`}
       />
 
-      {/* Image */}
-      <div className="relative aspect-[4/3] bg-slate-900/50 overflow-hidden">
+      {/* Shimmer Effect on Hover */}
+      <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+
+      {/* Image Container - Enhanced */}
+      <div className="relative aspect-[4/3] bg-slate-950/90 overflow-hidden">
         {service.imageUrl || service.images?.[0] ? (
-          <img
-            src={service.imageUrl || service.images?.[0]}
-            alt={service.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
+          <>
+            <img
+              src={service.imageUrl || service.images?.[0]}
+              alt={service.title}
+              loading="lazy"
+              decoding="async"
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+            />
+            {/* Gradient Overlay for Better Text Visibility */}
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
+          </>
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <div className={`p-4 rounded-full ${config.bgGlow}`}>
-              {config.icon({ className: "w-8 h-8 text-slate-500" })}
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-950">
+            <div
+              className={`p-5 rounded-2xl ${config.bgGlow} border border-white/10`}
+            >
+              {config.icon({ className: "w-10 h-10 text-slate-400" })}
             </div>
           </div>
         )}
 
-        {/* Category Badge */}
-        <div className="absolute top-3 left-3">
-          <span className="px-3 py-1 text-xs font-medium rounded-full bg-black/50 backdrop-blur text-white border border-white/20">
+        {/* Platform & Category Badges */}
+        <div className="absolute top-4 left-4 flex flex-col gap-2">
+          <span className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-black/60 backdrop-blur-md text-white border border-white/30 shadow-lg flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            {service.platform || "Platform"}
+          </span>
+          <span className="px-3 py-1.5 text-xs font-medium rounded-xl bg-white/15 backdrop-blur-md text-slate-100 border border-white/20">
             {service.category?.replace(/_/g, " ") || "Service"}
           </span>
         </div>
 
-        {/* Intent-specific badges */}
-        {intent === "earn" && hasScreening && (
-          <div className="absolute top-3 right-3">
-            <span className="px-2 py-1 text-xs font-medium rounded-full bg-emerald-500/20 backdrop-blur text-emerald-300 border border-emerald-500/30">
-              Screening
+        {/* Trust Badges - Right Side */}
+        <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
+          {isVerified && (
+            <span className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-emerald-500/20 backdrop-blur-md text-emerald-200 border border-emerald-400/40 shadow-lg flex items-center gap-1.5">
+              <CheckCircleIcon className="w-3.5 h-3.5" />
+              Verified
             </span>
-          </div>
-        )}
-
-        {intent === "rent" && service.rentalPlans?.length && (
-          <div className="absolute top-3 right-3">
-            <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-500/20 backdrop-blur text-purple-300 border border-purple-500/30">
-              {service.rentalPlans.length} Plans
+          )}
+          {successRate !== null && successRate >= 90 && (
+            <span className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-blue-500/20 backdrop-blur-md text-blue-200 border border-blue-400/40 flex items-center gap-1.5">
+              ⚡ High Success
             </span>
-          </div>
-        )}
+          )}
+          {service.deliveryType === "instant" && (
+            <span className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-amber-500/20 backdrop-blur-md text-amber-200 border border-amber-400/40 flex items-center gap-1.5">
+              🚀 Fast
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Content */}
-      <div className="relative flex-1 flex flex-col p-4">
-        <h3 className="font-semibold text-white line-clamp-2 mb-2 group-hover:text-slate-100">
+      {/* Content - Enhanced */}
+      <div className="relative flex-1 flex flex-col p-5">
+        <h3 className="font-bold text-white text-lg line-clamp-2 mb-2 group-hover:text-blue-100 transition-colors">
           {service.title}
         </h3>
 
+        <div className="text-xs text-slate-400 mb-4 flex items-center gap-2">
+          <span className="flex items-center gap-1">
+            <div className="w-1 h-1 rounded-full bg-blue-400" />
+            {service.platform || "Global"}
+          </span>
+          <span>•</span>
+          <span>{deliveryLabel} delivery</span>
+        </div>
+
+        {/* Stats Grid - Enhanced */}
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          <div className="rounded-xl bg-slate-800/70 backdrop-blur-sm border border-white/5 px-3 py-2.5 text-center group-hover:border-blue-500/20 transition-colors">
+            <div className="text-[10px] text-slate-500 uppercase tracking-wide mb-1">
+              Success
+            </div>
+            <div className="text-white font-bold text-sm">
+              {successRate !== null ? `${successRate}%` : "—"}
+            </div>
+          </div>
+          <div className="rounded-xl bg-slate-800/70 backdrop-blur-sm border border-white/5 px-3 py-2.5 text-center group-hover:border-blue-500/20 transition-colors">
+            <div className="text-[10px] text-slate-500 uppercase tracking-wide mb-1">
+              Rating
+            </div>
+            <div className="text-white font-bold text-sm">
+              {rating !== null ? `${rating.toFixed(1)}★` : "New"}
+            </div>
+          </div>
+          <div className="rounded-xl bg-slate-800/70 backdrop-blur-sm border border-white/5 px-3 py-2.5 text-center group-hover:border-blue-500/20 transition-colors">
+            <div className="text-[10px] text-slate-500 uppercase tracking-wide mb-1">
+              Type
+            </div>
+            <div className="text-white font-bold text-xs">{deliveryLabel}</div>
+          </div>
+        </div>
+
         {service.shortDescription && (
-          <p className="text-sm text-slate-400 line-clamp-2 mb-3 flex-1">
+          <p className="text-sm text-slate-300 line-clamp-2 mb-4 flex-1 leading-relaxed">
             {service.shortDescription}
           </p>
         )}
 
-        {/* Countries */}
-        {service.countries && service.countries.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-3">
-            {service.countries.slice(0, 3).map((c) => (
-              <span
-                key={c}
-                className="px-2 py-0.5 text-xs rounded-full bg-slate-700/50 text-slate-300"
-              >
-                {c}
-              </span>
-            ))}
-            {service.countries.length > 3 && (
-              <span className="px-2 py-0.5 text-xs rounded-full bg-slate-700/50 text-slate-400">
-                +{service.countries.length - 3}
-              </span>
-            )}
+        {/* Action Footer - Enhanced */}
+        <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between gap-3">
+          <div>
+            <div className="text-xs text-slate-400 mb-1">
+              {intent === "earn"
+                ? "Earn"
+                : intent === "rent"
+                  ? "From"
+                  : "Price"}
+            </div>
+            <span className="text-2xl font-bold text-white">
+              {getPriceDisplay()}
+            </span>
           </div>
-        )}
-
-        {/* Price & Action */}
-        <div className="flex items-center justify-between mt-auto pt-3 border-t border-white/10">
-          <span className="text-lg font-bold text-white">
-            {getPriceDisplay()}
-          </span>
-          <span
-            className={`
-            flex items-center gap-1 text-sm font-medium
-            bg-gradient-to-r ${config.gradient} bg-clip-text text-transparent
-            group-hover:scale-105 transition-transform
-          `}
+          <Link
+            href={getActionLink()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onPrimaryAction?.();
+            }}
+            className={`px-5 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r ${config.gradient} shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] transition-all duration-300 hover:scale-105 active:scale-95 whitespace-nowrap`}
           >
             {config.action}
-            <span className="text-slate-400 group-hover:translate-x-1 transition-transform">
-              →
-            </span>
-          </span>
+          </Link>
         </div>
       </div>
 
-      {/* Intent-specific footer badges */}
+      {/* Earning Opportunity Badge */}
       {intent === "earn" && hasLinkedJob && (
-        <div className="px-4 py-2 bg-emerald-500/10 border-t border-emerald-500/20">
-          <div className="flex items-center gap-2 text-xs text-emerald-400">
-            <CheckCircleIcon className="w-4 h-4" />
-            <span>Direct job application available</span>
+        <div className="px-5 py-3 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-t border-emerald-500/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs text-emerald-300 font-medium">
+              <CheckCircleIcon className="w-4 h-4" />
+              <span>Direct Application Available</span>
+            </div>
+            {hasScreening && (
+              <span className="px-2 py-1 rounded-md bg-emerald-500/20 text-emerald-300 text-xs font-medium">
+                Screening
+              </span>
+            )}
           </div>
         </div>
       )}
-    </Link>
+    </div>
   );
 }

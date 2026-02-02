@@ -124,7 +124,7 @@ export default function MyRentalsPage() {
       <PageHeader
         title="My Rentals"
         description="Manage your active subscriptions and rental services"
-        actionLabel="Explore Services"
+        actionLabel="Find Work & Services"
         actionHref="/explore-services"
       />
 
@@ -134,7 +134,7 @@ export default function MyRentalsPage() {
             icon="🔄"
             title="No active rentals"
             description="Rent premium services on a subscription basis for ongoing access."
-            ctaText="Explore Services"
+            ctaText="Find Work & Services"
             ctaHref="/explore-services"
           />
         </div>

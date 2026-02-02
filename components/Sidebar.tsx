@@ -148,7 +148,7 @@ export default function Sidebar() {
 
   // PATCH_52 + PATCH_53: Simplified user navigation with badge support
   const links = [
-    { name: "Explore Services", href: "/explore-services", badge: 0 },
+    { name: "Find Work & Services", href: "/explore-services", badge: 0 },
     { name: "Workspace", href: "/workspace", badge: 0 },
     { name: "Deals", href: "/deals", badge: 0 },
     { name: "Orders", href: "/orders", badge: 0 },
