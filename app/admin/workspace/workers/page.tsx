@@ -10,6 +10,7 @@ import { apiRequest } from "@/lib/api";
  * - Click worker name to view full profile
  * - Assign specialized tasks/gigs
  * - Allow workers to apply to other roles
+ * VERSION: 2.0 - Force Vercel redeploy
  */
 
 interface Worker {
