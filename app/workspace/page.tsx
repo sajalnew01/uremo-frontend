@@ -766,10 +766,12 @@ function ApplicationsTab({
       {applications.length === 0 && (
         <EmptyState
           icon="📋"
-          title="No Applications Yet"
-          description="Apply to a work position to start your journey as a worker."
-          ctaText="Browse Work Positions"
+          title="You haven't applied to any work yet"
+          description="Browse available work positions to find opportunities that match your skills. Start earning today!"
+          ctaText="Apply to Work"
           ctaHref="/apply-to-work"
+          secondaryCtaText="Learn More"
+          secondaryCtaHref="/how-it-works"
         />
       )}
     </div>
@@ -818,9 +820,11 @@ function ScreeningsTab({
         <EmptyState
           icon="📚"
           title="No Active Screenings"
-          description="You don't have any pending screenings. Apply to new positions to get started."
+          description="Complete your applications to unlock screening tests. Pass the screening to become an approved worker!"
           ctaText="Apply to New Position"
           ctaHref="/apply-to-work"
+          secondaryCtaText="View Applications"
+          secondaryCtaHref="/workspace"
         />
       )}
     </div>

@@ -278,10 +278,12 @@ export default function OrdersPage() {
       {!loading && orders.length === 0 && (
         <EmptyState
           icon="📦"
-          title="You haven't placed any orders yet"
-          description="Browse the marketplace to find the right service for you."
-          ctaText="Find Work & Services"
+          title="You haven't purchased any services yet"
+          description="Explore our marketplace to find professional services for your needs, or apply to work and start earning."
+          ctaText="Explore Services"
           ctaHref="/explore-services"
+          secondaryCtaText="Apply to Work"
+          secondaryCtaHref="/apply-to-work"
         />
       )}
     </div>

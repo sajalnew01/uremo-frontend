@@ -545,22 +545,31 @@ export default function WalletPage() {
 
           {transactions.length === 0 ? (
             <div className="p-12 text-center">
-              <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-emerald-500/20 to-teal-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/20">
                 <IconHistory />
               </div>
               <h3 className="text-lg font-semibold mb-2">
-                No transactions yet
+                Your wallet is empty
               </h3>
-              <p className="text-slate-400 text-sm mb-6">
-                Add funds to your wallet to start using services instantly.
+              <p className="text-slate-400 text-sm mb-6 max-w-sm mx-auto">
+                Add funds to your wallet to purchase services instantly, or earn
+                money by working on tasks.
               </p>
-              <button
-                onClick={() => setShowTopUp(true)}
-                className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 px-6 py-3 rounded-xl font-medium transition-colors"
-              >
-                <IconPlus />
-                Add Your First Balance
-              </button>
+              <div className="flex flex-wrap gap-3 justify-center">
+                <button
+                  onClick={() => setShowTopUp(true)}
+                  className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 px-6 py-3 rounded-xl font-medium transition-colors"
+                >
+                  <IconPlus />
+                  Add Balance
+                </button>
+                <Link
+                  href="/apply-to-work"
+                  className="inline-flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 px-6 py-3 rounded-xl font-medium transition-colors"
+                >
+                  Start Earning
+                </Link>
+              </div>
             </div>
           ) : (
             <div className="divide-y divide-slate-800/50">

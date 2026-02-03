@@ -4,8 +4,13 @@
  * PATCH_58: Premium Dashboard Redesign
  * Trust-building, high-conversion, personalized command center
  *
+ * PATCH_57: User Onboarding & First-Action Guidance
+ * Added collapsible guidance section for new users
+ *
  * Sections:
  * A) Welcome Header with profile
+ * A1) First-Login Nudge Banner (PATCH_57)
+ * A2) Guided Actions Section (PATCH_57)
  * B) Trust & Proof Strip
  * C) Quick Actions
  * D) Earnings & Wallet
@@ -20,6 +25,83 @@ import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/api";
 import OnboardingModal from "@/components/onboarding/OnboardingModal";
+
+// ==================== PATCH_57: ICONS ====================
+const IconChevronDown = () => (
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={2}
+  >
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+  </svg>
+);
+
+const IconX = () => (
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M6 18L18 6M6 6l12 12"
+    />
+  </svg>
+);
+
+const IconShoppingBag = () => (
+  <svg
+    className="w-7 h-7"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
+    />
+  </svg>
+);
+
+const IconBuildingOffice = () => (
+  <svg
+    className="w-7 h-7"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"
+    />
+  </svg>
+);
+
+const IconCurrencyDollar = () => (
+  <svg
+    className="w-7 h-7"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+    />
+  </svg>
+);
 
 // ==================== SVG ICONS ====================
 const IconBriefcase = () => (
@@ -312,6 +394,26 @@ export default function Dashboard() {
   });
   const [loading, setLoading] = useState(true);
 
+  // PATCH_57: Onboarding guidance state
+  const [guidanceCollapsed, setGuidanceCollapsed] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("uremo_guidance_collapsed") === "true";
+    }
+    return false;
+  });
+  const [nudgeDismissed, setNudgeDismissed] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("uremo_nudge_dismissed") === "true";
+    }
+    return false;
+  });
+
+  // PATCH_57: Check if user is new (created within last 7 days or has low activity)
+  const isNewUser =
+    stats.ordersCount === 0 &&
+    stats.completedOrders === 0 &&
+    stats.referralCount === 0;
+
   const showOnboarding = user && !(user as any).onboardingCompleted;
   const firstName =
     user?.name?.split(" ")[0] || user?.email?.split("@")[0] || "there";
@@ -395,6 +497,55 @@ export default function Dashboard() {
   }, []);
 
   const profileCompletion = getProfileCompletion();
+
+  // PATCH_57: Toggle guidance section collapse
+  const toggleGuidance = () => {
+    const newState = !guidanceCollapsed;
+    setGuidanceCollapsed(newState);
+    localStorage.setItem("uremo_guidance_collapsed", String(newState));
+  };
+
+  // PATCH_57: Dismiss nudge banner permanently
+  const dismissNudge = () => {
+    setNudgeDismissed(true);
+    localStorage.setItem("uremo_nudge_dismissed", "true");
+  };
+
+  // PATCH_57: Guided action cards for new users
+  const guidedActions = [
+    {
+      href: "/explore-services?intent=buy",
+      icon: <IconShoppingBag />,
+      title: "Buy a Service",
+      description: "Get professional help for your projects",
+      gradient: "from-blue-500 to-cyan-400",
+      bgGradient: "from-blue-500/20 to-cyan-500/10",
+    },
+    {
+      href: "/apply-to-work",
+      icon: <IconBriefcase />,
+      title: "Apply to Work",
+      description: "Start earning with your skills",
+      gradient: "from-emerald-500 to-teal-400",
+      bgGradient: "from-emerald-500/20 to-teal-500/10",
+    },
+    {
+      href: "/explore-services?intent=rent",
+      icon: <IconBuildingOffice />,
+      title: "Rent Access",
+      description: "Get temporary access to premium tools",
+      gradient: "from-purple-500 to-pink-400",
+      bgGradient: "from-purple-500/20 to-pink-500/10",
+    },
+    {
+      href: "/affiliate",
+      icon: <IconCurrencyDollar />,
+      title: "Earn via Referrals",
+      description: "Invite friends & earn 10% commission",
+      gradient: "from-amber-500 to-orange-400",
+      bgGradient: "from-amber-500/20 to-orange-500/10",
+    },
+  ];
 
   // Quick actions config
   const quickActions = [
@@ -530,6 +681,140 @@ export default function Dashboard() {
             </div>
           )}
         </motion.section>
+
+        {/* ==================== PATCH_57: A1) FIRST-LOGIN NUDGE BANNER ==================== */}
+        <AnimatePresence>
+          {isNewUser && !nudgeDismissed && !loading && (
+            <motion.section
+              initial={{ opacity: 0, y: -10, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: "auto" }}
+              exit={{ opacity: 0, y: -10, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="mb-6"
+            >
+              <div className="relative p-4 rounded-xl bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 border border-blue-500/20 overflow-hidden">
+                {/* Background glow */}
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5 blur-xl" />
+
+                <div className="relative flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="hidden sm:flex w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 items-center justify-center text-white text-lg">
+                      🎉
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">
+                        Welcome to UREMO! Start your journey today.
+                      </p>
+                      <p className="text-sm text-slate-400 mt-0.5">
+                        Choose an action below to get started — it only takes a
+                        minute.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={dismissNudge}
+                    className="flex-shrink-0 p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition"
+                    aria-label="Dismiss"
+                  >
+                    <IconX />
+                  </button>
+                </div>
+              </div>
+            </motion.section>
+          )}
+        </AnimatePresence>
+
+        {/* ==================== PATCH_57: A2) GUIDED ACTIONS SECTION ==================== */}
+        {isNewUser && !loading && (
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.05 }}
+            className="mb-8"
+          >
+            {/* Section Header with Collapse Toggle */}
+            <button
+              onClick={toggleGuidance}
+              className="w-full flex items-center justify-between mb-4 group"
+            >
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-semibold text-white">
+                  🚀 Get Started
+                </h2>
+                <span className="text-xs text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">
+                  New User Guide
+                </span>
+              </div>
+              <motion.div
+                animate={{ rotate: guidanceCollapsed ? -180 : 0 }}
+                transition={{ duration: 0.2 }}
+                className="text-slate-400 group-hover:text-white transition"
+              >
+                <IconChevronDown />
+              </motion.div>
+            </button>
+
+            {/* Collapsible Content */}
+            <AnimatePresence>
+              {!guidanceCollapsed && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="overflow-hidden"
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {guidedActions.map((action, i) => (
+                      <Link key={action.href} href={action.href}>
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.4, delay: 0.1 + i * 0.05 }}
+                          whileHover={{ y: -4, scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className={`relative p-5 rounded-2xl bg-gradient-to-br ${action.bgGradient} border border-white/10 hover:border-white/20 transition-all cursor-pointer group overflow-hidden`}
+                        >
+                          {/* Gradient overlay on hover */}
+                          <div
+                            className={`absolute inset-0 bg-gradient-to-br ${action.bgGradient} opacity-0 group-hover:opacity-100 transition-opacity`}
+                          />
+
+                          <div className="relative">
+                            {/* Icon with gradient */}
+                            <div
+                              className={`w-14 h-14 rounded-xl bg-gradient-to-br ${action.gradient} flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform shadow-lg`}
+                            >
+                              {action.icon}
+                            </div>
+
+                            <h3 className="font-semibold text-white text-lg mb-1">
+                              {action.title}
+                            </h3>
+                            <p className="text-sm text-slate-400 group-hover:text-slate-300 transition">
+                              {action.description}
+                            </p>
+
+                            {/* Arrow indicator */}
+                            <div className="absolute top-0 right-0 text-slate-500 group-hover:text-white group-hover:translate-x-1 transition-all">
+                              →
+                            </div>
+                          </div>
+                        </motion.div>
+                      </Link>
+                    ))}
+                  </div>
+
+                  {/* Helper text */}
+                  <p className="text-center text-xs text-slate-500 mt-4">
+                    Click any card to get started. You can collapse this section
+                    using the arrow above.
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.section>
+        )}
 
         {/* ==================== B) TRUST & PROOF STRIP ==================== */}
         <motion.section

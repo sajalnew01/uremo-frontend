@@ -183,9 +183,11 @@ export default function NotificationsPage() {
           <EmptyState
             icon="🔔"
             title="No notifications yet"
-            description="You'll see notifications for orders, tickets, wallet updates, and more here."
-            ctaText="Browse Services"
-            ctaHref="/avail-service"
+            description="When you receive orders, wallet updates, or important alerts, they'll appear here. Start using UREMO to get your first notification!"
+            ctaText="Explore Services"
+            ctaHref="/explore-services"
+            secondaryCtaText="Go to Dashboard"
+            secondaryCtaHref="/dashboard"
           />
         ) : (
           <div className="space-y-3">
