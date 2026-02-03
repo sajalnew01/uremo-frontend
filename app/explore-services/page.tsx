@@ -1367,7 +1367,7 @@ export default function UnifiedMarketplacePage() {
                         ? `/rentals/${previewService._id}`
                         : activeIntent === "deal"
                           ? `/deals/${previewService._id}`
-                          : `/service/${previewService._id}`
+                          : `/services/${previewService._id}`
                   }
                   className={`px-6 py-3 rounded-xl text-white font-bold bg-gradient-to-r ${config.gradient} shadow-[0_0_24px_rgba(59,130,246,0.5)] hover:shadow-[0_0_32px_rgba(59,130,246,0.7)] transition-all hover:scale-105`}
                   onClick={() => {
@@ -1426,7 +1426,7 @@ function ServiceCard({
       case "deal":
         return `/deals/${service._id}`;
       default:
-        return `/service/${service._id}`;
+        return `/services/${service._id}`;
     }
   };
 
