@@ -90,16 +90,14 @@ const ADMIN_NAV_GROUPS: NavGroup[] = [
     label: "Workforce",
     icon: "👷",
     items: [
-      { label: "Workers", href: "/admin/workspace/workers", icon: "👷" },
-      { label: "Projects", href: "/admin/workspace/projects", icon: "📋" },
-      { label: "Screenings", href: "/admin/workspace/screenings", icon: "📝" },
       {
-        label: "Applications",
-        href: "/admin/applications",
-        icon: "📄",
+        label: "Control Center",
+        href: "/admin/workforce",
+        icon: "🎛️",
         badge: "applications",
       },
-      { label: "Positions", href: "/admin/work-positions", icon: "💼" },
+      { label: "Projects", href: "/admin/workspace/projects", icon: "📋" },
+      { label: "Screenings", href: "/admin/workspace/screenings", icon: "📝" },
     ],
   },
   {
