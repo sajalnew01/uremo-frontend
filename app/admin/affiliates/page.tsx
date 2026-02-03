@@ -80,6 +80,11 @@ export default function AdminAffiliatesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
+  // PATCH_56: Page-level tabs
+  const [pageTab, setPageTab] = useState<
+    "overview" | "commissions" | "withdrawals"
+  >("overview");
+
   // Detail modal
   const [selectedAffiliate, setSelectedAffiliate] =
     useState<AffiliateDetail | null>(null);
@@ -183,200 +188,262 @@ export default function AdminAffiliatesPage() {
     <div className="u-container">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Affiliate Directory</h1>
+          <h1 className="text-3xl font-bold">Affiliate Program</h1>
           <p className="text-slate-400 text-sm mt-1">
-            Manage all affiliates and their earnings
+            Manage affiliates, commissions, and withdrawals
           </p>
         </div>
-        <div className="flex gap-3">
-          <Link
-            href="/admin/affiliate"
-            className="text-sm px-4 py-2 bg-purple-500/20 text-purple-300 rounded hover:bg-purple-500/30"
-          >
-            📤 Withdrawals
-          </Link>
-          <Link
-            href="/admin"
-            className="text-sm text-slate-400 hover:text-white"
-          >
-            ← Back to Admin
-          </Link>
-        </div>
+        <Link href="/admin" className="text-sm text-slate-400 hover:text-white">
+          ← Back to Admin
+        </Link>
       </div>
 
-      {/* Stats Cards */}
-      {stats && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-          <div className="card text-center">
-            <p className="text-xs text-slate-400">Total Affiliates</p>
-            <p className="text-2xl font-bold text-white">
-              {stats.totalAffiliates}
-            </p>
-          </div>
-          <div className="card text-center">
-            <p className="text-xs text-slate-400">Active Affiliates</p>
-            <p className="text-2xl font-bold text-emerald-300">
-              {stats.activeAffiliates}
-            </p>
-          </div>
-          <div className="card text-center">
-            <p className="text-xs text-slate-400">Total Earned</p>
-            <p className="text-2xl font-bold text-purple-300">
-              ${stats.totalEarned?.toFixed(2) || "0.00"}
-            </p>
-          </div>
-          <div className="card text-center">
-            <p className="text-xs text-slate-400">Pending Balance</p>
-            <p className="text-2xl font-bold text-yellow-300">
-              ${stats.totalBalance?.toFixed(2) || "0.00"}
-            </p>
-          </div>
-          <div className="card text-center">
-            <p className="text-xs text-slate-400">Total Referrals</p>
-            <p className="text-2xl font-bold text-blue-300">
-              {stats.totalReferrals}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Filters */}
-      <div className="mb-6 flex flex-wrap gap-4">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            placeholder="Search by name, email, or code..."
-            className="u-input w-64"
-          />
-          <button onClick={handleSearch} className="btn-secondary text-sm">
-            Search
-          </button>
-        </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => {
-            setStatusFilter(e.target.value);
-            setPage(1);
-          }}
-          className="u-select w-48"
-        >
-          <option value="">All Affiliates</option>
-          <option value="active">Active Only</option>
-          <option value="hasReferrals">Has Referrals</option>
-        </select>
+      {/* PATCH_56: Page-level Tab Bar */}
+      <div className="flex items-center gap-1 p-1 bg-white/5 rounded-xl border border-white/10 mb-6">
+        {[
+          { key: "overview", label: "Overview", icon: "👥" },
+          { key: "commissions", label: "Commissions", icon: "💰" },
+          { key: "withdrawals", label: "Withdrawals", icon: "📤" },
+        ].map((t) => {
+          const active = pageTab === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setPageTab(t.key as typeof pageTab)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                active
+                  ? "bg-purple-500/20 border border-purple-500/30 text-purple-300 shadow-lg shadow-purple-500/10"
+                  : "text-slate-400 hover:bg-white/5 hover:text-white border border-transparent"
+              }`}
+            >
+              <span>{t.icon}</span>
+              <span>{t.label}</span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Affiliates Table */}
-      {loading ? (
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="card animate-pulse">
-              <div className="h-6 w-48 bg-white/10 rounded" />
-              <div className="h-4 w-32 bg-white/10 rounded mt-2" />
+      {/* PATCH_56: Tab Content */}
+      {pageTab === "overview" && (
+        <>
+          {/* Stats Cards */}
+          {stats && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+              <div className="card text-center">
+                <p className="text-xs text-slate-400">Total Affiliates</p>
+                <p className="text-2xl font-bold text-white">
+                  {stats.totalAffiliates}
+                </p>
+              </div>
+              <div className="card text-center">
+                <p className="text-xs text-slate-400">Active Affiliates</p>
+                <p className="text-2xl font-bold text-emerald-300">
+                  {stats.activeAffiliates}
+                </p>
+              </div>
+              <div className="card text-center">
+                <p className="text-xs text-slate-400">Total Earned</p>
+                <p className="text-2xl font-bold text-purple-300">
+                  ${stats.totalEarned?.toFixed(2) || "0.00"}
+                </p>
+              </div>
+              <div className="card text-center">
+                <p className="text-xs text-slate-400">Pending Balance</p>
+                <p className="text-2xl font-bold text-yellow-300">
+                  ${stats.totalBalance?.toFixed(2) || "0.00"}
+                </p>
+              </div>
+              <div className="card text-center">
+                <p className="text-xs text-slate-400">Total Referrals</p>
+                <p className="text-2xl font-bold text-blue-300">
+                  {stats.totalReferrals}
+                </p>
+              </div>
             </div>
-          ))}
-        </div>
-      ) : affiliates.length === 0 ? (
-        <div className="card text-center py-12">
-          <p className="text-white">No affiliates found</p>
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-white/10 text-left">
-                <th className="py-3 px-4 text-slate-400 font-medium">
-                  Affiliate
-                </th>
-                <th className="py-3 px-4 text-slate-400 font-medium">
-                  Referral Code
-                </th>
-                <th className="py-3 px-4 text-slate-400 font-medium text-right">
-                  Total Earned
-                </th>
-                <th className="py-3 px-4 text-slate-400 font-medium text-right">
-                  Balance
-                </th>
-                <th className="py-3 px-4 text-slate-400 font-medium text-center">
-                  Referrals
-                </th>
-                <th className="py-3 px-4 text-slate-400 font-medium text-right">
-                  Withdrawn
-                </th>
-                <th className="py-3 px-4 text-slate-400 font-medium text-center">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {affiliates.map((aff) => (
-                <tr
-                  key={aff._id}
-                  className="border-b border-white/5 hover:bg-white/5"
-                >
-                  <td className="py-3 px-4">
-                    <p className="text-white font-medium">
-                      {aff.name || "Unknown"}
-                    </p>
-                    <p className="text-xs text-slate-500">{aff.email}</p>
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className="font-mono text-sm text-purple-300">
-                      {aff.referralCode}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-right text-emerald-300 font-semibold">
-                    ${(aff.totalAffiliateEarned || 0).toFixed(2)}
-                  </td>
-                  <td className="py-3 px-4 text-right text-blue-300">
-                    ${(aff.affiliateBalance || 0).toFixed(2)}
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    <span className="bg-white/10 px-2 py-1 rounded text-white">
-                      {aff.referralCount || 0}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-right text-slate-400">
-                    ${(aff.totalWithdrawn || 0).toFixed(2)}
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    <button
-                      onClick={() => viewAffiliateDetails(aff._id)}
-                      className="text-xs px-3 py-1 bg-purple-500/20 text-purple-300 rounded hover:bg-purple-500/30"
-                    >
-                      View
-                    </button>
-                  </td>
-                </tr>
+          )}
+
+          {/* Filters */}
+          <div className="mb-6 flex flex-wrap gap-4">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                placeholder="Search by name, email, or code..."
+                className="u-input w-64"
+              />
+              <button onClick={handleSearch} className="btn-secondary text-sm">
+                Search
+              </button>
+            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+              className="u-select w-48"
+            >
+              <option value="">All Affiliates</option>
+              <option value="active">Active Only</option>
+              <option value="hasReferrals">Has Referrals</option>
+            </select>
+          </div>
+
+          {/* Affiliates Table */}
+          {loading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="card animate-pulse">
+                  <div className="h-6 w-48 bg-white/10 rounded" />
+                  <div className="h-4 w-32 bg-white/10 rounded mt-2" />
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          ) : affiliates.length === 0 ? (
+            <div className="card text-center py-12">
+              <p className="text-white">No affiliates found</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-white/10 text-left">
+                    <th className="py-3 px-4 text-slate-400 font-medium">
+                      Affiliate
+                    </th>
+                    <th className="py-3 px-4 text-slate-400 font-medium">
+                      Referral Code
+                    </th>
+                    <th className="py-3 px-4 text-slate-400 font-medium text-right">
+                      Total Earned
+                    </th>
+                    <th className="py-3 px-4 text-slate-400 font-medium text-right">
+                      Balance
+                    </th>
+                    <th className="py-3 px-4 text-slate-400 font-medium text-center">
+                      Referrals
+                    </th>
+                    <th className="py-3 px-4 text-slate-400 font-medium text-right">
+                      Withdrawn
+                    </th>
+                    <th className="py-3 px-4 text-slate-400 font-medium text-center">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {affiliates.map((aff) => (
+                    <tr
+                      key={aff._id}
+                      className="border-b border-white/5 hover:bg-white/5"
+                    >
+                      <td className="py-3 px-4">
+                        <p className="text-white font-medium">
+                          {aff.name || "Unknown"}
+                        </p>
+                        <p className="text-xs text-slate-500">{aff.email}</p>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="font-mono text-sm text-purple-300">
+                          {aff.referralCode}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right text-emerald-300 font-semibold">
+                        ${(aff.totalAffiliateEarned || 0).toFixed(2)}
+                      </td>
+                      <td className="py-3 px-4 text-right text-blue-300">
+                        ${(aff.affiliateBalance || 0).toFixed(2)}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span className="bg-white/10 px-2 py-1 rounded text-white">
+                          {aff.referralCount || 0}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right text-slate-400">
+                        ${(aff.totalWithdrawn || 0).toFixed(2)}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <button
+                          onClick={() => viewAffiliateDetails(aff._id)}
+                          className="text-xs px-3 py-1 bg-purple-500/20 text-purple-300 rounded hover:bg-purple-500/30"
+                        >
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {total > 20 && (
+            <div className="flex justify-center gap-2 mt-6">
+              <button
+                onClick={() => setPage(Math.max(1, page - 1))}
+                disabled={page === 1}
+                className="text-sm px-4 py-2 bg-white/10 rounded disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-slate-400 px-4 py-2">
+                Page {page} of {Math.ceil(total / 20)}
+              </span>
+              <button
+                onClick={() => setPage(page + 1)}
+                disabled={page >= Math.ceil(total / 20)}
+                className="text-sm px-4 py-2 bg-white/10 rounded disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* PATCH_56: Commissions Tab */}
+      {pageTab === "commissions" && (
+        <div className="card">
+          <div className="text-center py-12">
+            <span className="text-4xl block mb-3">💰</span>
+            <h3 className="text-xl font-bold text-white mb-2">
+              All Commissions
+            </h3>
+            <p className="text-slate-400 text-sm mb-4">
+              View affiliate commissions by clicking on an affiliate in the
+              Overview tab
+            </p>
+            <button
+              onClick={() => setPageTab("overview")}
+              className="text-sm px-4 py-2 bg-purple-500/20 text-purple-300 rounded hover:bg-purple-500/30"
+            >
+              ← Go to Overview
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Pagination */}
-      {total > 20 && (
-        <div className="flex justify-center gap-2 mt-6">
-          <button
-            onClick={() => setPage(Math.max(1, page - 1))}
-            disabled={page === 1}
-            className="text-sm px-4 py-2 bg-white/10 rounded disabled:opacity-50"
-          >
-            Previous
-          </button>
-          <span className="text-sm text-slate-400 px-4 py-2">
-            Page {page} of {Math.ceil(total / 20)}
-          </span>
-          <button
-            onClick={() => setPage(page + 1)}
-            disabled={page >= Math.ceil(total / 20)}
-            className="text-sm px-4 py-2 bg-white/10 rounded disabled:opacity-50"
-          >
-            Next
-          </button>
+      {/* PATCH_56: Withdrawals Tab */}
+      {pageTab === "withdrawals" && (
+        <div className="card">
+          <div className="text-center py-12">
+            <span className="text-4xl block mb-3">📤</span>
+            <h3 className="text-xl font-bold text-white mb-2">
+              Withdrawal Requests
+            </h3>
+            <p className="text-slate-400 text-sm mb-4">
+              Manage pending withdrawal requests from affiliates
+            </p>
+            <Link
+              href="/admin/affiliate"
+              className="text-sm px-4 py-2 bg-purple-500/20 text-purple-300 rounded hover:bg-purple-500/30 inline-block"
+            >
+              Open Withdrawal Manager →
+            </Link>
+          </div>
         </div>
       )}
 

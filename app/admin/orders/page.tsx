@@ -152,15 +152,21 @@ function AdminOrdersContent() {
         description="Review payments and update order status"
       />
 
-      <div className="flex flex-wrap gap-2">
+      {/* PATCH_56: Professional Tab Bar */}
+      <div className="flex items-center gap-1 p-1 bg-white/5 rounded-xl border border-white/10 overflow-x-auto">
         {[
-          { key: "all", label: "All" },
-          { key: "payment_submitted", label: "⚠️ Payment Submitted" },
-          { key: "pending", label: "Pending" },
-          { key: "in_progress", label: "In Progress" },
-          { key: "waiting_user", label: "Waiting on User" },
-          { key: "completed", label: "Completed" },
-          { key: "cancelled", label: "Cancelled" },
+          { key: "all", label: "All", icon: "📋" },
+          {
+            key: "payment_submitted",
+            label: "Payment Submitted",
+            icon: "⚠️",
+            alert: true,
+          },
+          { key: "pending", label: "Pending", icon: "📦" },
+          { key: "in_progress", label: "In Progress", icon: "🔄" },
+          { key: "waiting_user", label: "Waiting User", icon: "⏳" },
+          { key: "completed", label: "Completed", icon: "✅" },
+          { key: "cancelled", label: "Cancelled", icon: "❌" },
         ].map((t) => {
           const active = status === t.key;
           return (
@@ -168,13 +174,16 @@ function AdminOrdersContent() {
               key={t.key}
               type="button"
               onClick={() => setStatus(t.key)}
-              className={`px-4 py-2 rounded-xl text-sm border transition ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
                 active
-                  ? "bg-white/10 border-white/20 text-white"
-                  : "bg-white/5 border-white/10 text-zinc-200 hover:bg-white/10"
+                  ? t.alert
+                    ? "bg-amber-500/20 border border-amber-500/30 text-amber-300 shadow-lg shadow-amber-500/10"
+                    : "bg-blue-500/20 border border-blue-500/30 text-blue-300 shadow-lg shadow-blue-500/10"
+                  : "text-slate-400 hover:bg-white/5 hover:text-white border border-transparent"
               }`}
             >
-              {t.label}
+              <span>{t.icon}</span>
+              <span>{t.label}</span>
             </button>
           );
         })}

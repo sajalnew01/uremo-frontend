@@ -5,14 +5,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 /**
- * PATCH_54B: Complete Admin Control Center Navigation
+ * PATCH_56: Simplified Admin Sidebar (Zero-Confusion Mode)
  *
- * Full navigation structure based on comprehensive backend analysis:
- * - Every admin route is mapped
- * - Grouped into logical categories for easy access
- * - Professional design with badges for pending items
- * - All features accessible: Orders, Tickets, Workspace, Jobs,
- *   Services, Rentals, Blogs, Wallets, Affiliates, Analytics, etc.
+ * Reduced from 8 groups to 6 logical categories:
+ * 1. Control Center - Dashboard landing
+ * 2. Operations - Orders, Proofs, Tickets (daily tasks)
+ * 3. Marketplace - Services, Rentals, Blogs (content)
+ * 4. Workforce - Workers, Applications (hiring)
+ * 5. Finance - Wallets, Affiliates, Payments
+ * 6. System - Analytics, JarvisX, Settings
  */
 
 type NavItem = {
@@ -26,90 +27,46 @@ type NavGroup = {
   id: string;
   label: string;
   icon: string;
-  description?: string;
   href?: string;
   items: NavItem[];
 };
 
-// Complete navigation structure based on ALL backend admin routes
+// PATCH_56: Simplified navigation - 6 groups max
 const ADMIN_NAV_GROUPS: NavGroup[] = [
   {
     id: "dashboard",
-    label: "Dashboard",
-    icon: "📊",
+    label: "Control Center",
+    icon: "⚡",
     href: "/admin",
     items: [],
   },
   {
-    id: "orders",
-    label: "Orders & Delivery",
+    id: "operations",
+    label: "Operations",
     icon: "📦",
-    description: "Manage all orders",
     items: [
       {
-        label: "All Orders",
+        label: "Orders",
         href: "/admin/orders",
         icon: "📦",
         badge: "orders",
       },
-      {
-        label: "Cancelled Orders",
-        href: "/admin/cancelled-orders",
-        icon: "❌",
-      },
-      { label: "Rejected Orders", href: "/admin/rejected-orders", icon: "🚫" },
-      {
-        label: "Support Messages",
-        href: "/admin/messages",
-        icon: "💬",
-        badge: "messages",
-      },
-    ],
-  },
-  {
-    id: "support",
-    label: "Support",
-    icon: "🎫",
-    description: "Help desk & tickets",
-    items: [
-      {
-        label: "Support Tickets",
-        href: "/admin/tickets",
-        icon: "🎫",
-        badge: "tickets",
-      },
-    ],
-  },
-  {
-    id: "workspace",
-    label: "Workspace",
-    icon: "👷",
-    description: "Workers & Projects",
-    items: [
-      { label: "Workspace Hub", href: "/admin/workspace", icon: "🏢" },
-      { label: "All Workers", href: "/admin/workspace/workers", icon: "👷" },
-      { label: "Projects", href: "/admin/workspace/projects", icon: "📋" },
-      { label: "Screenings", href: "/admin/workspace/screenings", icon: "📝" },
       {
         label: "Proof Reviews",
         href: "/admin/proofs",
         icon: "✅",
         badge: "proofs",
       },
-    ],
-  },
-  {
-    id: "workforce",
-    label: "Workforce",
-    icon: "💼",
-    description: "Jobs & Applications",
-    items: [
-      { label: "Work Positions", href: "/admin/work-positions", icon: "💼" },
       {
-        label: "Job Applications",
-        href: "/admin/applications",
-        icon: "📄",
-        badge: "applications",
+        label: "Support Tickets",
+        href: "/admin/tickets",
+        icon: "🎫",
+        badge: "tickets",
+      },
+      {
+        label: "Messages",
+        href: "/admin/messages",
+        icon: "💬",
       },
     ],
   },
@@ -117,40 +74,53 @@ const ADMIN_NAV_GROUPS: NavGroup[] = [
     id: "marketplace",
     label: "Marketplace",
     icon: "🏪",
-    description: "Services & Content",
     items: [
-      { label: "Services CMS", href: "/admin/services", icon: "🛠️" },
+      { label: "Services", href: "/admin/services", icon: "🛠️" },
       {
         label: "Service Requests",
         href: "/admin/service-requests",
         icon: "📩",
       },
       { label: "Rentals", href: "/admin/rentals", icon: "🔑" },
-      { label: "Blogs CMS", href: "/admin/blogs", icon: "📰" },
+      { label: "Blogs", href: "/admin/blogs", icon: "📰" },
+    ],
+  },
+  {
+    id: "workforce",
+    label: "Workforce",
+    icon: "👷",
+    items: [
+      { label: "Workers", href: "/admin/workspace/workers", icon: "👷" },
+      { label: "Projects", href: "/admin/workspace/projects", icon: "📋" },
+      { label: "Screenings", href: "/admin/workspace/screenings", icon: "📝" },
+      {
+        label: "Applications",
+        href: "/admin/applications",
+        icon: "📄",
+        badge: "applications",
+      },
+      { label: "Positions", href: "/admin/work-positions", icon: "💼" },
     ],
   },
   {
     id: "finance",
     label: "Finance",
     icon: "💰",
-    description: "Money & Affiliates",
     items: [
       { label: "User Wallets", href: "/admin/wallet", icon: "👛" },
-      { label: "Affiliate Program", href: "/admin/affiliates", icon: "🤝" },
-      { label: "Payment Methods", href: "/admin/payments", icon: "💳" },
-      { label: "Payment Config", href: "/admin/payment-methods", icon: "⚙️" },
+      { label: "Affiliates", href: "/admin/affiliates", icon: "🤝" },
+      { label: "Payments", href: "/admin/payments", icon: "💳" },
     ],
   },
   {
     id: "system",
     label: "System",
-    icon: "🔧",
-    description: "Settings & Tools",
+    icon: "⚙️",
     items: [
       { label: "Analytics", href: "/admin/analytics", icon: "📈" },
       { label: "JarvisX AI", href: "/admin/jarvisx", icon: "🤖" },
-      { label: "Email Campaigns", href: "/admin/campaigns", icon: "📧" },
-      { label: "Site Settings", href: "/admin/settings", icon: "⚙️" },
+      { label: "Campaigns", href: "/admin/campaigns", icon: "📧" },
+      { label: "Settings", href: "/admin/settings", icon: "⚙️" },
     ],
   },
 ];
@@ -347,16 +317,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-lg">{group.icon}</span>
-                    <div className="text-left">
-                      <span className="font-semibold text-sm">
-                        {group.label}
-                      </span>
-                      {group.description && (
-                        <span className="text-xs text-slate-500 block">
-                          {group.description}
-                        </span>
-                      )}
-                    </div>
+                    <span className="font-semibold text-sm">{group.label}</span>
                   </div>
                   <span
                     className={`text-xs transition-transform ${isExpanded ? "rotate-180" : ""}`}
