@@ -5,11 +5,12 @@ import Link from "next/link";
 import { apiRequest } from "@/lib/api";
 import { withCacheBust } from "@/lib/cacheBust";
 
-// PATCH_21: Blog category labels
+// PATCH_62: Blog category labels aligned with backend
 const CATEGORY_LABELS: Record<string, string> = {
-  microjobs: "Microjobs",
+  microjobs: "Microjobs & Gigs",
   forex_crypto: "Forex & Crypto",
-  banks_wallets: "Banks & Wallets",
+  banks_gateways_wallets: "Banks & Wallets",
+  rentals: "Account Rentals",
   guides: "Guides",
   general: "General",
 };

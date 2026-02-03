@@ -34,7 +34,8 @@ interface ServiceOption {
 const CATEGORY_OPTIONS = [
   { value: "microjobs", label: "Microjobs" },
   { value: "forex_crypto", label: "Forex & Crypto" },
-  { value: "banks_wallets", label: "Banks & Wallets" },
+  { value: "banks_gateways_wallets", label: "Banks & Wallets" },
+  { value: "rentals", label: "Account Rentals" },
   { value: "guides", label: "Guides" },
   { value: "general", label: "General" },
 ];

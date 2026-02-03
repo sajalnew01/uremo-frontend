@@ -20,18 +20,21 @@ interface Service {
   images?: string[];
 }
 
+// PATCH_62: Category labels aligned with backend service.category values
 const categoryLabels: Record<string, string> = {
-  microjobs: "Microjob Services",
+  microjobs: "Microjobs & Gigs",
   forex_crypto: "Forex & Crypto Services",
-  banks_wallets: "Bank & Wallet Services",
+  banks_gateways_wallets: "Banks & Wallets Services",
+  rentals: "Account Rental Services",
   general: "Popular Services",
-  gig_work: "Gig Work Services",
 };
 
+// PATCH_62: Category IDs now match backend exactly
 const categoryApiMap: Record<string, string> = {
-  microjobs: "gig_work",
+  microjobs: "microjobs",
   forex_crypto: "forex_crypto",
-  banks_wallets: "banks_wallets",
+  banks_gateways_wallets: "banks_gateways_wallets",
+  rentals: "rentals",
 };
 
 export default function RecommendedServices() {

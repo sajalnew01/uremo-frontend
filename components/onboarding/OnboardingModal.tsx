@@ -13,12 +13,13 @@ interface OnboardingModalProps {
   onComplete?: () => void;
 }
 
+// PATCH_62: Categories aligned with backend service.category values
 const categories = [
   {
     id: "microjobs",
     icon: "💼",
-    title: "Microjob Accounts",
-    desc: "Clickworker, Appen, Toloka & more",
+    title: "Microjobs & Gigs",
+    desc: "AI training, data entry, and freelance work",
     color: "from-blue-500/20 to-blue-600/10",
     borderColor: "border-blue-500/30",
     hoverBorder: "hover:border-blue-500",
@@ -26,20 +27,29 @@ const categories = [
   {
     id: "forex_crypto",
     icon: "📈",
-    title: "Forex / Crypto Trading",
-    desc: "Prop firms, trading accounts & signals",
+    title: "Forex & Crypto",
+    desc: "Trading accounts and exchange verification",
     color: "from-emerald-500/20 to-emerald-600/10",
     borderColor: "border-emerald-500/30",
     hoverBorder: "hover:border-emerald-500",
   },
   {
-    id: "banks_wallets",
+    id: "banks_gateways_wallets",
     icon: "🏦",
-    title: "Bank / Wallet Accounts",
-    desc: "Digital wallets, payment processors",
+    title: "Banks & Wallets",
+    desc: "Bank accounts, payment gateways, and e-wallets",
     color: "from-purple-500/20 to-purple-600/10",
     borderColor: "border-purple-500/30",
     hoverBorder: "hover:border-purple-500",
+  },
+  {
+    id: "rentals",
+    icon: "🔑",
+    title: "Account Rentals",
+    desc: "Rent verified accounts on flexible plans",
+    color: "from-amber-500/20 to-amber-600/10",
+    borderColor: "border-amber-500/30",
+    hoverBorder: "hover:border-amber-500",
   },
   {
     id: "general",
@@ -85,15 +95,8 @@ export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
       if (categoryId === "general") {
         router.push("/explore-services");
       } else {
-        // Map frontend category to backend category format
-        const categoryMap: Record<string, string> = {
-          microjobs: "gig_work",
-          forex_crypto: "forex_crypto",
-          banks_wallets: "banks_wallets",
-        };
-        router.push(
-          `/explore-services?category=${categoryMap[categoryId] || ""}`,
-        );
+        // PATCH_62: Category IDs now match backend exactly, no mapping needed
+        router.push(`/explore-services?category=${categoryId}`);
       }
 
       onComplete?.();

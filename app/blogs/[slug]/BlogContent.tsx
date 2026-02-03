@@ -9,7 +9,8 @@ import { withCacheBust } from "@/lib/cacheBust";
 const CATEGORY_LABELS: Record<string, string> = {
   microjobs: "Microjobs",
   forex_crypto: "Forex & Crypto",
-  banks_wallets: "Banks & Wallets",
+  banks_gateways_wallets: "Banks & Wallets",
+  rentals: "Account Rentals",
   guides: "Guides",
   general: "General",
 };
