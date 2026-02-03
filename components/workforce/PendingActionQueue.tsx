@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 
 /**
- * PATCH_60: Pending Action Queue
+ * PATCH_60/61: Pending Action Queue
  * Admin inbox showing all pending tasks in one view
+ * PATCH_61: Links to Worker 360° Control Page
  */
 
 export interface PendingApplication {
@@ -135,14 +137,23 @@ export default function PendingActionQueue({
                 className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-white truncate">
+                  <Link
+                    href={`/admin/workforce/${app._id}`}
+                    className="font-medium text-white truncate hover:text-cyan-400 transition-colors block"
+                  >
                     {app.userId?.firstName} {app.userId?.lastName}
-                  </p>
+                  </Link>
                   <p className="text-xs text-slate-400 truncate">
                     Applied for: {app.positionTitle || "Position"}
                   </p>
                 </div>
                 <div className="flex gap-2 shrink-0 ml-4">
+                  <Link
+                    href={`/admin/workforce/${app._id}`}
+                    className="px-3 py-1.5 text-xs font-medium bg-slate-600/50 hover:bg-slate-600 text-white rounded-lg"
+                  >
+                    View
+                  </Link>
                   <button
                     onClick={() => onAction("approve_application", app._id)}
                     disabled={actionLoading === app._id}
@@ -194,15 +205,24 @@ export default function PendingActionQueue({
                 className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-white truncate">
+                  <Link
+                    href={`/admin/workforce/${s._id}`}
+                    className="font-medium text-white truncate hover:text-cyan-400 transition-colors block"
+                  >
                     {s.workerId?.firstName} {s.workerId?.lastName}
-                  </p>
+                  </Link>
                   <p className="text-xs text-slate-400 truncate">
                     {s.positionTitle || "Position"} • Attempt{" "}
                     {s.attemptCount || 1}
                   </p>
                 </div>
                 <div className="flex gap-2 shrink-0 ml-4">
+                  <Link
+                    href={`/admin/workforce/${s._id}`}
+                    className="px-3 py-1.5 text-xs font-medium bg-slate-600/50 hover:bg-slate-600 text-white rounded-lg"
+                  >
+                    View
+                  </Link>
                   <button
                     onClick={() => onAction("pass_screening", s._id)}
                     disabled={actionLoading === s._id}

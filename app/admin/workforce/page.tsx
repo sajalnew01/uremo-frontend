@@ -750,8 +750,13 @@ export default function WorkforceControlCenterPage() {
                         key={worker.applicationId}
                         className="hover:bg-white/5"
                       >
-                        <td className="py-3 px-4 text-white">
-                          {worker.userId?.firstName} {worker.userId?.lastName}
+                        <td className="py-3 px-4">
+                          <Link
+                            href={`/admin/workforce/${worker.applicationId}`}
+                            className="text-white hover:text-cyan-400 transition-colors"
+                          >
+                            {worker.userId?.firstName} {worker.userId?.lastName}
+                          </Link>
                         </td>
                         <td className="py-3 px-4 text-slate-400">
                           {worker.userId?.email}
@@ -769,15 +774,12 @@ export default function WorkforceControlCenterPage() {
                           ${(worker.totalEarnings || 0).toFixed(2)}
                         </td>
                         <td className="py-3 px-4">
-                          <button
-                            onClick={() => {
-                              setSelectedWorker(worker);
-                              setShowTimelineModal(true);
-                            }}
-                            className="px-3 py-1 text-xs bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 rounded-lg transition-colors"
+                          <Link
+                            href={`/admin/workforce/${worker.applicationId}`}
+                            className="px-3 py-1 text-xs bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 rounded-lg transition-colors inline-block"
                           >
                             View Details
-                          </button>
+                          </Link>
                         </td>
                       </tr>
                     ))}

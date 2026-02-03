@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 
 /**
- * PATCH_60: Worker Pipeline Card
+ * PATCH_60/61: Worker Pipeline Card
  * Shows worker information with inline actions based on current status
+ * PATCH_61: Links to Worker 360° Control Page
  */
 
 export interface WorkerData {
@@ -304,18 +306,29 @@ export default function WorkerPipelineCard({
         {/* Header */}
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="min-w-0 flex-1">
-            <h4 className="font-medium text-sm text-white truncate">
+            <Link
+              href={`/admin/workforce/${worker.applicationId}`}
+              className="font-medium text-sm text-white truncate hover:text-cyan-400 transition-colors block"
+            >
               {workerName}
-            </h4>
+            </Link>
             <p className="text-xs text-slate-400 truncate">{workerEmail}</p>
           </div>
-          <span
-            className={`shrink-0 px-2 py-0.5 text-[10px] font-medium rounded-full border ${
-              STATUS_COLORS[workerStatus] || STATUS_COLORS.applied
-            }`}
-          >
-            {STATUS_LABELS[workerStatus] || workerStatus}
-          </span>
+          <div className="flex flex-col items-end gap-1">
+            <span
+              className={`shrink-0 px-2 py-0.5 text-[10px] font-medium rounded-full border ${
+                STATUS_COLORS[workerStatus] || STATUS_COLORS.applied
+              }`}
+            >
+              {STATUS_LABELS[workerStatus] || workerStatus}
+            </span>
+            <Link
+              href={`/admin/workforce/${worker.applicationId}`}
+              className="text-[10px] text-cyan-400 hover:text-cyan-300 transition-colors"
+            >
+              View Details →
+            </Link>
+          </div>
         </div>
 
         {/* Job & Time */}
