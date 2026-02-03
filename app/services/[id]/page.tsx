@@ -1,9 +1,10 @@
 "use client";
 
 // PATCH_33: Service Detail Page with TrustBadges
+// PATCH_55: Service Detail Decision Engine - Action selector, trust panel, flow timeline, sticky bar
 
 import { useEffect, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
@@ -13,6 +14,10 @@ import {
   useSiteSettings,
 } from "@/hooks/useSiteSettings";
 import TrustBadges from "@/components/TrustBadges";
+import ServiceActionSelector from "@/components/ServiceActionSelector";
+import ServiceTrustPanel from "@/components/ServiceTrustPanel";
+import ServiceFlowTimeline from "@/components/ServiceFlowTimeline";
+import StickyActionBar from "@/components/StickyActionBar";
 
 export default function ServiceDetailsPage() {
   const { id } = useParams();
@@ -338,6 +343,27 @@ export default function ServiceDetailsPage() {
         )}
       </div>
 
+      {/* PATCH_55: Service Action Decision Section (Above the Fold) */}
+      <div className="mb-8">
+        <ServiceActionSelector
+          price={service.price}
+          payRate={service.payRate}
+          allowedActions={allowed}
+          rentalPlans={service.rentalPlans}
+          isRental={service.isRental}
+          isActive={service.active !== false}
+          onBuy={buyService}
+          onApply={applyToWork}
+          onRent={(planIndex) => {
+            setSelectedRentalPlan(planIndex);
+            buyService();
+          }}
+          onDeal={createDealOrder}
+          selectedRentalPlan={selectedRentalPlan}
+          onSelectRentalPlan={setSelectedRentalPlan}
+        />
+      </div>
+
       <div className="mb-6 flex items-center justify-between gap-4 flex-wrap">
         <div>
           <Link
@@ -530,7 +556,13 @@ export default function ServiceDetailsPage() {
             </div>
           </div>
 
-          {/* PATCH_33: Trust Badges Section */}
+          {/* PATCH_55: What Happens Next? Flow Timeline */}
+          <ServiceFlowTimeline allowedActions={allowed} />
+
+          {/* PATCH_55: Trust & Safety Panel */}
+          <ServiceTrustPanel />
+
+          {/* PATCH_33: Trust Badges Section (kept for additional trust signals) */}
           <div className="card">
             <h2 className="text-lg font-semibold mb-4">Why Choose UREMO?</h2>
             <TrustBadges variant="vertical" />
@@ -723,6 +755,27 @@ export default function ServiceDetailsPage() {
           </div>
         </aside>
       </div>
+
+      {/* PATCH_55: Sticky Action Bar (Desktop + Mobile) */}
+      <StickyActionBar
+        serviceTitle={service.title}
+        price={service.price}
+        payRate={service.payRate}
+        allowedActions={allowed}
+        rentalPlans={service.rentalPlans}
+        selectedRentalPlan={selectedRentalPlan}
+        isActive={service.active !== false}
+        onBuy={buyService}
+        onApply={applyToWork}
+        onRent={buyService}
+        onDeal={createDealOrder}
+        onHelp={() => {
+          // Open JarvisX or support
+          if (typeof window !== "undefined") {
+            window.location.href = "/support";
+          }
+        }}
+      />
     </div>
   );
 }
