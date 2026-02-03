@@ -4,6 +4,7 @@
 // One page with 4 intent tabs: Buy, Earn, Rent, Deal
 // Dynamic filters generated from Service collection
 // Auto-synced with backend via /api/services/marketplace
+// PATCH_54: Enhanced UX with action badges, intent-specific CTAs, friendly category labels
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -16,6 +17,7 @@ import {
   useSiteSettings,
 } from "@/hooks/useSiteSettings";
 import TrustBadges from "@/components/TrustBadges";
+import { getCategoryLabel, getShortCategoryLabel } from "@/lib/categoryLabels";
 
 // Intent Types
 type Intent = "buy" | "earn" | "rent" | "deal";
@@ -187,7 +189,7 @@ function CheckCircleIcon({ className }: { className?: string }) {
   );
 }
 
-// Intent Tab Configuration
+// Intent Tab Configuration - PATCH_54: Enhanced with detailed descriptions
 const INTENT_CONFIG = {
   buy: {
     label: "Buy Services",
@@ -195,8 +197,12 @@ const INTENT_CONFIG = {
     color: "blue",
     gradient: "from-blue-500 to-indigo-600",
     bgGlow: "bg-blue-500/20",
-    description: "Purchase verified services with confidence",
-    action: "Start Now",
+    description: "Purchase verified digital assets and services instantly",
+    fullDescription:
+      "Browse and purchase verified accounts, digital services, and ready-to-use assets. All sellers are vetted, and purchases include buyer protection.",
+    action: "Buy Now",
+    emptyHint:
+      "No services available for purchase right now. Check out Earn opportunities or Rental options.",
   },
   earn: {
     label: "Earn Money",
@@ -204,8 +210,12 @@ const INTENT_CONFIG = {
     color: "emerald",
     gradient: "from-emerald-500 to-teal-600",
     bgGlow: "bg-emerald-500/20",
-    description: "Apply for work and start earning",
-    action: "Apply & Earn",
+    description: "Apply for work and start earning from your skills",
+    fullDescription:
+      "Find earning opportunities that match your skills. Apply to tasks, complete screening if required, and get paid for your work.",
+    action: "Apply Now",
+    emptyHint:
+      "No earning opportunities at the moment. Try browsing services to Buy or Rent instead.",
   },
   rent: {
     label: "Rent Access",
@@ -213,8 +223,12 @@ const INTENT_CONFIG = {
     color: "purple",
     gradient: "from-purple-500 to-pink-600",
     bgGlow: "bg-purple-500/20",
-    description: "Rent premium access with flexible plans",
-    action: "Rent Access",
+    description: "Rent premium account access with flexible plans",
+    fullDescription:
+      "Get temporary access to premium accounts and platforms. Choose your rental duration and start using immediately.",
+    action: "Rent Now",
+    emptyHint:
+      "No rental options available right now. Check out services to Buy or Earn opportunities.",
   },
   deal: {
     label: "Deals",
@@ -222,8 +236,12 @@ const INTENT_CONFIG = {
     color: "orange",
     gradient: "from-orange-500 to-amber-600",
     bgGlow: "bg-orange-500/20",
-    description: "Start profit deals and bulk offers",
-    action: "Start Profit Deal",
+    description: "Start profit deals and bulk partnership offers",
+    fullDescription:
+      "Join profit-sharing deals and bulk purchase opportunities. Work with verified sellers on larger transactions with special pricing.",
+    action: "Start Deal",
+    emptyHint:
+      "No active deals right now. Browse Buy options or Earn opportunities while you wait.",
   },
 };
 
@@ -572,7 +590,7 @@ export default function UnifiedMarketplacePage() {
           })}
         </div>
 
-        {/* Intent Description - Enhanced */}
+        {/* Intent Description - PATCH_54: Enhanced with full description */}
         <div
           className={`mt-6 p-6 rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/60 to-slate-950/60 backdrop-blur-sm relative overflow-hidden`}
         >
@@ -588,7 +606,7 @@ export default function UnifiedMarketplacePage() {
                 {config.label}
               </h3>
               <p className="text-sm text-slate-300 leading-relaxed">
-                {config.description}
+                {config.fullDescription || config.description}
               </p>
             </div>
             <div className="hidden md:block px-4 py-2 rounded-xl bg-white/5 border border-white/10">
@@ -932,7 +950,7 @@ export default function UnifiedMarketplacePage() {
             </div>
           )}
 
-          {/* Empty State - Enhanced */}
+          {/* Empty State - PATCH_54: Enhanced with intent-specific guidance */}
           {!loading && displayServices.length === 0 && (
             <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/60 to-slate-950/60 backdrop-blur-sm p-12 text-center relative overflow-hidden">
               {/* Background Pattern */}
@@ -955,17 +973,21 @@ export default function UnifiedMarketplacePage() {
                 </div>
 
                 <h3 className="text-2xl font-bold text-white mb-3">
-                  No Services Found
+                  No {config.label} Found
                 </h3>
-                <p className="text-slate-300 max-w-md mx-auto mb-8 leading-relaxed">
-                  We couldn't find any services matching your current filters.
-                  Try adjusting your criteria or explore other opportunities.
+                <p className="text-slate-300 max-w-md mx-auto mb-4 leading-relaxed">
+                  {config.emptyHint ||
+                    "We couldn't find any services matching your current filters."}
+                </p>
+                <p className="text-slate-400 text-sm max-w-md mx-auto mb-8">
+                  Try switching to another tab or adjusting your filters below.
                 </p>
 
                 <div className="flex flex-wrap justify-center gap-3 mb-6">
                   {(Object.keys(INTENT_CONFIG) as Intent[]).map((intent) => {
                     const cfg = INTENT_CONFIG[intent];
                     const IntentIcon = cfg.icon;
+                    const count = intentCounts[intent] || 0;
                     return (
                       <button
                         key={`empty-${intent}`}
@@ -978,6 +1000,11 @@ export default function UnifiedMarketplacePage() {
                       >
                         <IntentIcon className="w-4 h-4" />
                         <span className="font-medium">{cfg.label}</span>
+                        {count > 0 && intent !== activeIntent && (
+                          <span className="ml-1 px-2 py-0.5 text-xs bg-white/10 rounded-full">
+                            {count}
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -1460,14 +1487,14 @@ function ServiceCard({
           </div>
         )}
 
-        {/* Platform & Category Badges */}
+        {/* Platform & Category Badges - PATCH_54: Use friendly labels */}
         <div className="absolute top-4 left-4 flex flex-col gap-2">
           <span className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-black/60 backdrop-blur-md text-white border border-white/30 shadow-lg flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             {service.platform || "Platform"}
           </span>
           <span className="px-3 py-1.5 text-xs font-medium rounded-xl bg-white/15 backdrop-blur-md text-slate-100 border border-white/20">
-            {service.category?.replace(/_/g, " ") || "Service"}
+            {getShortCategoryLabel(service.category)}
           </span>
         </div>
 
@@ -1533,13 +1560,39 @@ function ServiceCard({
           </div>
         </div>
 
+        {/* PATCH_54: Action Badges - Show what's possible with this service */}
+        {service.allowedActions && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {service.allowedActions.buy && (
+              <span className="px-2 py-1 text-[10px] font-semibold rounded-lg bg-blue-500/15 text-blue-300 border border-blue-500/30">
+                Buy
+              </span>
+            )}
+            {service.allowedActions.apply && (
+              <span className="px-2 py-1 text-[10px] font-semibold rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                Apply
+              </span>
+            )}
+            {service.allowedActions.rent && (
+              <span className="px-2 py-1 text-[10px] font-semibold rounded-lg bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                Rent
+              </span>
+            )}
+            {service.allowedActions.deal && (
+              <span className="px-2 py-1 text-[10px] font-semibold rounded-lg bg-orange-500/15 text-orange-300 border border-orange-500/30">
+                Deal
+              </span>
+            )}
+          </div>
+        )}
+
         {service.shortDescription && (
           <p className="text-sm text-slate-300 line-clamp-2 mb-4 flex-1 leading-relaxed">
             {service.shortDescription}
           </p>
         )}
 
-        {/* Action Footer - Enhanced */}
+        {/* Action Footer - PATCH_54: Intent-specific CTA with price */}
         <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between gap-3">
           <div>
             <div className="text-xs text-slate-400 mb-1">
@@ -1561,7 +1614,14 @@ function ServiceCard({
             }}
             className={`px-5 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r ${config.gradient} shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] transition-all duration-300 hover:scale-105 active:scale-95 whitespace-nowrap`}
           >
-            {config.action}
+            {/* PATCH_54: Dynamic CTA text based on intent and price */}
+            {intent === "buy"
+              ? `Buy – $${service.price}`
+              : intent === "earn"
+                ? "Apply Now"
+                : intent === "rent" && service.rentalPlans?.length
+                  ? `Rent – $${service.rentalPlans[0].price}`
+                  : config.action}
           </Link>
         </div>
       </div>
