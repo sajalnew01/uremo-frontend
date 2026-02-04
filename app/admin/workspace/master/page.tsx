@@ -1,21 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 
 /**
- * PATCH_64: Master Workspace - Orchestration Layer
+ * PATCH_64 + PATCH_62: Master Workspace - Orchestration Layer
  *
  * CONTEXT: This page acts as a unified control center for Screenings and Projects.
  * It provides context switching, linkage traceability, and action controls.
  *
- * BACKEND ASSUMPTIONS:
+ * PATCH_62 FIXES:
+ * - P0-1: Real worker qualification check via /api/admin/workspace/workers/qualified-count
+ * - P0-2: Empty screenings (0 questions) marked as INVALID and blocked from promotion
+ * - P0-3: Lock/Unlock UI disabled with clear tooltip (backend not implemented)
+ * - P1-4: URL state persistence for mode switching (?mode=screening|project)
+ * - P1-5: Hide empty categories (0 screenings AND 0 projects)
+ *
+ * BACKEND ENDPOINTS:
  * - /api/admin/workspace/screenings - List all screenings
  * - /api/admin/workspace/projects - List all projects
- * - Screenings and Projects are linked via CATEGORY (implicit linkage)
- * - No explicit relational link exists in backend schema
+ * - /api/admin/workspace/workers/qualified-count - PATCH_62: Qualified workers per category
  *
  * PERMISSION MODEL:
  * - All actions are admin-gated (backend enforces via JWT)
@@ -80,12 +87,38 @@ const CATEGORIES = [
 ];
 
 export default function MasterWorkspacePage() {
-  // Context Mode
-  const [mode, setMode] = useState<"screening" | "project">("screening");
+  // PATCH_62: URL state for mode persistence
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const urlMode = searchParams.get("mode") as "screening" | "project" | null;
+  const [mode, setModeInternal] = useState<"screening" | "project">(
+    urlMode || "screening",
+  );
+
+  // PATCH_62: Update URL when mode changes
+  const setMode = useCallback(
+    (newMode: "screening" | "project") => {
+      setModeInternal(newMode);
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("mode", newMode);
+      router.push(`?${params.toString()}`, { scroll: false });
+    },
+    [router, searchParams],
+  );
+
+  // Sync mode with URL on navigation
+  useEffect(() => {
+    if (urlMode && urlMode !== mode) {
+      setModeInternal(urlMode);
+    }
+  }, [urlMode]);
 
   // Data
   const [screenings, setScreenings] = useState<Screening[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [qualifiedWorkerCounts, setQualifiedWorkerCounts] = useState<
+    Record<string, number>
+  >({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -106,12 +139,19 @@ export default function MasterWorkspacePage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [screeningsRes, projectsRes] = await Promise.all([
+      const [screeningsRes, projectsRes, qualifiedRes] = await Promise.all([
         apiRequest<any>("/api/admin/workspace/screenings", "GET", null, true),
         apiRequest<any>("/api/admin/workspace/projects", "GET", null, true),
+        apiRequest<any>(
+          "/api/admin/workspace/workers/qualified-count",
+          "GET",
+          null,
+          true,
+        ).catch(() => ({ qualifiedCounts: {} })),
       ]);
       setScreenings(screeningsRes.screenings || []);
       setProjects(projectsRes.projects || []);
+      setQualifiedWorkerCounts(qualifiedRes.qualifiedCounts || {});
 
       addActivity("Workspace data loaded", "success");
     } catch (e: any) {
@@ -214,24 +254,54 @@ export default function MasterWorkspacePage() {
     }
   };
 
-  // Validation: Can we promote a screening to project?
+  // PATCH_62: Check if screening is valid (has questions)
+  const isScreeningValid = (screening: Screening): boolean => {
+    return screening.questions && screening.questions.length > 0;
+  };
+
+  // PATCH_62: Validation with REAL qualified worker check and empty screening detection
   const canPromoteCategory = (
     category: string,
-  ): { valid: boolean; reason: string } => {
+  ): { valid: boolean; reason: string; details?: string } => {
     const data = linkageMap[category];
     if (!data) return { valid: false, reason: "Category not found" };
 
     const activeScreenings = data.screenings.filter((s) => s.active);
     if (activeScreenings.length === 0) {
-      return { valid: false, reason: "No active screening in this category" };
+      return {
+        valid: false,
+        reason: "No active screening",
+        details: "Create a screening first",
+      };
     }
 
-    const hasQualifiedWorkers = true; // STUB: Would check backend for workers who passed screening
-    if (!hasQualifiedWorkers) {
-      return { valid: false, reason: "No workers have passed screening yet" };
+    // PATCH_62 P0-2: Check if all active screenings have questions
+    const invalidScreenings = activeScreenings.filter(
+      (s) => !isScreeningValid(s),
+    );
+    if (invalidScreenings.length > 0) {
+      return {
+        valid: false,
+        reason: "Invalid screenings",
+        details: `${invalidScreenings.length} screening(s) have 0 questions`,
+      };
     }
 
-    return { valid: true, reason: "Ready to create projects" };
+    // PATCH_62 P0-1: REAL qualified worker check (not stubbed)
+    const qualifiedCount = qualifiedWorkerCounts[category] || 0;
+    if (qualifiedCount === 0) {
+      return {
+        valid: false,
+        reason: "No qualified workers",
+        details: "0 workers have passed screening for this category",
+      };
+    }
+
+    return {
+      valid: true,
+      reason: "Ready to create projects",
+      details: `${qualifiedCount} qualified worker(s) available`,
+    };
   };
 
   // Action: Navigate to create project for category
@@ -415,12 +485,24 @@ export default function MasterWorkspacePage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {CATEGORIES.map((cat) => {
+            {/* PATCH_62 P1-5: Filter out empty categories */}
+            {CATEGORIES.filter((cat) => {
+              const data = linkageMap[cat.key];
+              // Show category if it has any screenings OR projects
+              return (
+                data && (data.screenings.length > 0 || data.projects.length > 0)
+              );
+            }).map((cat) => {
               const data = linkageMap[cat.key];
               const executionState = getExecutionState(cat.key);
               const statusBadge = getStatusBadge(executionState);
               const promotion = canPromoteCategory(cat.key);
               const isSelected = selectedCategory === cat.key;
+              // PATCH_62: Count invalid screenings (no questions)
+              const invalidScreeningCount = data.screenings.filter(
+                (s) => !isScreeningValid(s),
+              ).length;
+              const qualifiedCount = qualifiedWorkerCounts[cat.key] || 0;
 
               return (
                 <motion.div
@@ -451,12 +533,30 @@ export default function MasterWorkspacePage() {
                               {data.screenings.length}
                             </span>{" "}
                             Screenings
+                            {/* PATCH_62: Show invalid screening warning */}
+                            {invalidScreeningCount > 0 && (
+                              <span
+                                className="ml-1 text-amber-400"
+                                title={`${invalidScreeningCount} screening(s) have 0 questions`}
+                              >
+                                ⚠️
+                              </span>
+                            )}
                           </span>
                           <span>
                             <span className="text-purple-400 font-medium">
                               {data.projects.length}
                             </span>{" "}
                             Projects
+                          </span>
+                          {/* PATCH_62: Show qualified worker count */}
+                          <span>
+                            <span
+                              className={`font-medium ${qualifiedCount > 0 ? "text-emerald-400" : "text-red-400"}`}
+                            >
+                              {qualifiedCount}
+                            </span>{" "}
+                            Qualified
                           </span>
                         </div>
                       </div>
@@ -480,23 +580,37 @@ export default function MasterWorkspacePage() {
                           View Screenings
                         </Link>
                       ) : (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handlePromoteToProject(cat.key);
-                          }}
-                          disabled={!promotion.valid}
-                          className={`text-sm px-3 py-1.5 rounded-lg transition-all ${
-                            promotion.valid
-                              ? "bg-purple-500 hover:bg-purple-600 text-white"
-                              : "bg-slate-700 text-slate-500 cursor-not-allowed"
-                          }`}
-                          title={promotion.reason}
-                        >
-                          {promotion.valid
-                            ? "➕ Create Project"
-                            : "⏸️ Not Ready"}
-                        </button>
+                        <div className="relative group">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePromoteToProject(cat.key);
+                            }}
+                            disabled={!promotion.valid}
+                            className={`text-sm px-3 py-1.5 rounded-lg transition-all ${
+                              promotion.valid
+                                ? "bg-purple-500 hover:bg-purple-600 text-white"
+                                : "bg-slate-700 text-slate-500 cursor-not-allowed"
+                            }`}
+                          >
+                            {promotion.valid
+                              ? "➕ Create Project"
+                              : "⏸️ Not Ready"}
+                          </button>
+                          {/* PATCH_62: Detailed tooltip for disabled state */}
+                          {!promotion.valid && (
+                            <div className="absolute right-0 top-full mt-2 w-48 p-2 bg-slate-800 border border-slate-600 rounded-lg text-xs text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+                              <div className="font-medium text-amber-400 mb-1">
+                                {promotion.reason}
+                              </div>
+                              {promotion.details && (
+                                <div className="text-slate-400">
+                                  {promotion.details}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -522,28 +636,56 @@ export default function MasterWorkspacePage() {
                               </p>
                             ) : (
                               <ul className="space-y-2">
-                                {data.screenings.map((s) => (
-                                  <li
-                                    key={s._id}
-                                    className="flex items-center justify-between bg-slate-800/50 rounded-lg p-2"
-                                  >
-                                    <Link
-                                      href={`/admin/workspace/screenings?id=${s._id}`}
-                                      className="text-sm text-white hover:text-cyan-400 truncate"
-                                    >
-                                      {s.title}
-                                    </Link>
-                                    <span
-                                      className={`text-xs px-2 py-0.5 rounded ${
-                                        s.active
-                                          ? "bg-emerald-500/20 text-emerald-400"
-                                          : "bg-slate-600/20 text-slate-400"
+                                {data.screenings.map((s) => {
+                                  const isValid = isScreeningValid(s);
+                                  return (
+                                    <li
+                                      key={s._id}
+                                      className={`flex items-center justify-between rounded-lg p-2 ${
+                                        isValid
+                                          ? "bg-slate-800/50"
+                                          : "bg-red-900/20 border border-red-500/30"
                                       }`}
                                     >
-                                      {s.active ? "Active" : "Inactive"}
-                                    </span>
-                                  </li>
-                                ))}
+                                      <Link
+                                        href={`/admin/workspace/screenings?id=${s._id}`}
+                                        className="text-sm text-white hover:text-cyan-400 truncate flex items-center gap-2"
+                                      >
+                                        {s.title}
+                                        {/* PATCH_62: Show warning for invalid screenings */}
+                                        {!isValid && (
+                                          <span
+                                            className="text-red-400 text-xs"
+                                            title="0 questions - invalid"
+                                          >
+                                            ⚠️ Invalid
+                                          </span>
+                                        )}
+                                      </Link>
+                                      <div className="flex items-center gap-2">
+                                        {/* PATCH_62: Show question count */}
+                                        <span className="text-xs text-slate-500">
+                                          {s.questions?.length || 0} Q
+                                        </span>
+                                        <span
+                                          className={`text-xs px-2 py-0.5 rounded ${
+                                            !isValid
+                                              ? "bg-red-500/20 text-red-400"
+                                              : s.active
+                                                ? "bg-emerald-500/20 text-emerald-400"
+                                                : "bg-slate-600/20 text-slate-400"
+                                          }`}
+                                        >
+                                          {!isValid
+                                            ? "Invalid"
+                                            : s.active
+                                              ? "Active"
+                                              : "Inactive"}
+                                        </span>
+                                      </div>
+                                    </li>
+                                  );
+                                })}
                               </ul>
                             )}
                           </div>
@@ -696,10 +838,10 @@ export default function MasterWorkspacePage() {
         )}
       </div>
 
-      {/* Documentation Notice */}
+      {/* Documentation Notice - PATCH_62 Updated */}
       <div className="mt-6 p-4 rounded-xl bg-slate-800/50 border border-slate-700">
         <h3 className="text-sm font-medium text-slate-400 mb-2">
-          📌 PATCH_64: Backend Assumptions
+          📌 PATCH_62: System Status
         </h3>
         <ul className="text-xs text-slate-500 space-y-1">
           <li>
@@ -708,20 +850,24 @@ export default function MasterWorkspacePage() {
             linkage)
           </li>
           <li>
-            • No explicit foreign key relationship exists between Screening and
-            Project models
+            • Qualified workers are fetched from{" "}
+            <span className="text-cyan-400">
+              /api/admin/workspace/workers/qualified-count
+            </span>
           </li>
           <li>
-            • Execution state is derived from screening.active and
-            project.status
+            • Screenings with 0 questions are marked{" "}
+            <span className="text-amber-400">invalid</span> and blocked from
+            promotion
           </li>
           <li>
-            • "Promote" action navigates to project creation with pre-filled
+            • "Create Project" is disabled if no qualified workers exist for the
             category
           </li>
           <li>
-            • Lock/Unlock functionality requires backend endpoint (currently
-            stubbed)
+            • <span className="text-red-400">Lock/Unlock</span> functionality is{" "}
+            <span className="text-red-400">NOT implemented</span> (backend
+            endpoint not available)
           </li>
         </ul>
       </div>
