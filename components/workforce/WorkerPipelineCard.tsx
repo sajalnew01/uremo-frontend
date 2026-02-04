@@ -103,6 +103,7 @@ export default function WorkerPipelineCard({
     worker.position?.title ||
     worker.jobId?.title ||
     "No Position";
+  const jobId = worker.position?._id || worker.jobId?._id || null;
   const workerStatus = worker.workerStatus || "applied";
 
   const getLastActionTime = () => {
@@ -331,11 +332,20 @@ export default function WorkerPipelineCard({
           </div>
         </div>
 
-        {/* Job & Time */}
+        {/* Job & Time - PATCH_61: Link to Job Role */}
         <div className="flex items-center justify-between text-xs mb-2">
-          <span className="text-slate-300 truncate max-w-[60%]">
-            {jobTitle}
-          </span>
+          {jobId ? (
+            <Link
+              href={`/admin/work-positions/${jobId}`}
+              className="text-slate-300 truncate max-w-[60%] hover:text-cyan-400 transition-colors"
+            >
+              {jobTitle} →
+            </Link>
+          ) : (
+            <span className="text-slate-300 truncate max-w-[60%]">
+              {jobTitle}
+            </span>
+          )}
           <span className="text-slate-500 shrink-0">{getLastActionTime()}</span>
         </div>
 

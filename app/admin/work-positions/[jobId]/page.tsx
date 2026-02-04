@@ -81,23 +81,47 @@ type JobStats = {
 const STATUS_COLORS: Record<string, string> = {
   applied: "bg-slate-500/20 text-slate-300",
   screening_unlocked: "bg-amber-500/20 text-amber-300",
+  training_viewed: "bg-blue-500/20 text-blue-300",
   test_submitted: "bg-purple-500/20 text-purple-300",
   failed: "bg-red-500/20 text-red-300",
   ready_to_work: "bg-emerald-500/20 text-emerald-300",
   assigned: "bg-blue-500/20 text-blue-300",
   working: "bg-cyan-500/20 text-cyan-300",
   suspended: "bg-red-500/20 text-red-300",
+  completed: "bg-green-500/20 text-green-300",
 };
 
 const STATUS_LABELS: Record<string, string> = {
   applied: "Applied",
   screening_unlocked: "Screening Unlocked",
+  training_viewed: "Training Viewed",
   test_submitted: "Test Submitted",
   failed: "Failed",
   ready_to_work: "Ready To Work",
   assigned: "Assigned",
   working: "Working",
   suspended: "Suspended",
+  completed: "Completed",
+};
+
+// PATCH_61: Lifecycle tabs for worker journey
+type LifecycleTab =
+  | "applicants"
+  | "screening"
+  | "ready"
+  | "active"
+  | "completed"
+  | "settings";
+
+// Helper to get worker display name
+const getWorkerName = (user: any): string => {
+  if (!user) return "Unknown User";
+  if (user.firstName && user.lastName)
+    return `${user.firstName} ${user.lastName}`;
+  if (user.firstName) return user.firstName;
+  if (user.name) return user.name;
+  if (user.email) return user.email.split("@")[0];
+  return "Unknown User";
 };
 
 export default function AdminJobRolePage() {
@@ -109,9 +133,7 @@ export default function AdminJobRolePage() {
   const [stats, setStats] = useState<JobStats | null>(null);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<
-    "applicants" | "screening" | "training" | "projects"
-  >("applicants");
+  const [activeTab, setActiveTab] = useState<LifecycleTab>("applicants");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [saving, setSaving] = useState(false);
 
@@ -482,346 +504,675 @@ export default function AdminJobRolePage() {
         </div>
       )}
 
-      {/* Tab Navigation */}
+      {/* PATCH_61: Lifecycle-Based Tab Navigation */}
       <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
         {[
-          { id: "applicants", label: "Applicants", icon: "👥" },
-          { id: "screening", label: "Screening Setup", icon: "📋" },
-          { id: "training", label: "Training Materials", icon: "📚" },
-          { id: "projects", label: "Projects", icon: "💼" },
+          {
+            id: "applicants",
+            label: "Applicants",
+            icon: "📝",
+            count: stats?.applied || 0,
+          },
+          {
+            id: "screening",
+            label: "Screening",
+            icon: "📋",
+            count:
+              (stats?.screeningUnlocked || 0) + (stats?.testSubmitted || 0),
+          },
+          {
+            id: "ready",
+            label: "Ready to Work",
+            icon: "✅",
+            count: stats?.readyToWork || 0,
+          },
+          {
+            id: "active",
+            label: "Active",
+            icon: "⚡",
+            count: (stats?.assigned || 0) + (stats?.working || 0),
+          },
+          { id: "completed", label: "Completed", icon: "🏆", count: 0 },
+          { id: "settings", label: "Settings", icon: "⚙️", count: null },
         ].map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition whitespace-nowrap ${
+            onClick={() => setActiveTab(tab.id as LifecycleTab)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition whitespace-nowrap flex items-center gap-2 ${
               activeTab === tab.id
                 ? "bg-white/10 text-white border border-white/20"
                 : "text-slate-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            <span className="mr-2">{tab.icon}</span>
+            <span>{tab.icon}</span>
             {tab.label}
+            {tab.count !== null && tab.count > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-white/10 text-xs">
+                {tab.count}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
-      {/* Applicants Tab */}
+      {/* Applicants Tab - PATCH_61: Enhanced with Worker 360 links */}
       {activeTab === "applicants" && (
         <div className="space-y-4">
-          {/* Filter */}
-          <div className="flex gap-2 flex-wrap">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
-            >
-              <option value="all">All Statuses</option>
-              <option value="applied">Applied</option>
-              <option value="screening_unlocked">Screening Unlocked</option>
-              <option value="test_submitted">Test Submitted</option>
-              <option value="failed">Failed</option>
-              <option value="ready_to_work">Ready To Work</option>
-              <option value="assigned">Assigned</option>
-              <option value="working">Working</option>
-              <option value="suspended">Suspended</option>
-            </select>
+          {/* Filter for pending applications */}
+          <div className="flex gap-2 flex-wrap items-center justify-between">
+            <div className="flex gap-2">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+              >
+                <option value="all">All Statuses</option>
+                <option value="applied">Pending Review</option>
+              </select>
+            </div>
+            <p className="text-sm text-slate-400">
+              {applicants.filter((a) => a.workerStatus === "applied").length}{" "}
+              pending approval
+            </p>
           </div>
 
           {/* Applicant List */}
-          {applicants.length === 0 ? (
+          {applicants.filter(
+            (a) => a.workerStatus === "applied" || statusFilter === "all",
+          ).length === 0 ? (
             <div className="card text-center py-8">
-              <p className="text-slate-400">No applicants found</p>
+              <div className="text-4xl mb-3">📝</div>
+              <p className="text-slate-400">No pending applicants</p>
+              <p className="text-sm text-slate-500 mt-1">
+                New applications will appear here
+              </p>
             </div>
           ) : (
-            applicants.map((app) => (
-              <div key={app._id} className="card">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
-                    <p className="font-semibold">
-                      {app.user?.name || "Unknown"}
-                    </p>
-                    <p className="text-sm text-slate-400">{app.user?.email}</p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs ${STATUS_COLORS[app.workerStatus] || "bg-slate-500/20 text-slate-300"}`}
+            applicants
+              .filter(
+                (a) => statusFilter === "all" || a.workerStatus === "applied",
+              )
+              .map((app) => (
+                <div
+                  key={app._id}
+                  className="card hover:border-white/20 transition-colors"
+                >
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      {/* Worker Avatar */}
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg">
+                        {getWorkerName(app.user).charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <Link
+                          href={`/admin/workforce/${app._id}`}
+                          className="font-semibold hover:text-cyan-400 transition-colors"
+                        >
+                          {getWorkerName(app.user)}
+                        </Link>
+                        <p className="text-sm text-slate-400">
+                          {app.user?.email || "No email"}
+                        </p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs ${STATUS_COLORS[app.workerStatus] || "bg-slate-500/20 text-slate-300"}`}
+                          >
+                            {STATUS_LABELS[app.workerStatus] ||
+                              app.workerStatus}
+                          </span>
+                          <span className="text-xs text-slate-500">
+                            Applied{" "}
+                            {new Date(app.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex flex-wrap gap-2">
+                      {app.workerStatus === "applied" &&
+                        app.applicationStatus === "pending" && (
+                          <>
+                            <button
+                              onClick={() => approveApplicant(app._id)}
+                              disabled={saving}
+                              className="px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-300 text-sm hover:bg-emerald-500/30 disabled:opacity-50 font-medium"
+                            >
+                              ✓ Approve
+                            </button>
+                            <button
+                              onClick={() => rejectApplicant(app._id)}
+                              disabled={saving}
+                              className="px-4 py-2 rounded-lg bg-red-500/20 text-red-300 text-sm hover:bg-red-500/30 disabled:opacity-50"
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
+                      {app.workerStatus === "applied" &&
+                        app.applicationStatus === "approved" && (
+                          <button
+                            onClick={() => unlockScreening(app._id)}
+                            disabled={saving}
+                            className="px-4 py-2 rounded-lg bg-amber-500/20 text-amber-300 text-sm hover:bg-amber-500/30 disabled:opacity-50 font-medium"
+                          >
+                            🔓 Unlock Screening
+                          </button>
+                        )}
+                      <Link
+                        href={`/admin/workforce/${app._id}`}
+                        className="px-3 py-2 rounded-lg bg-white/5 text-slate-300 text-sm hover:bg-white/10"
                       >
-                        {STATUS_LABELS[app.workerStatus] || app.workerStatus}
-                      </span>
-                      <span className="text-xs text-slate-500">
-                        Attempts: {app.attemptCount}/{app.maxAttempts}
-                      </span>
+                        View Profile →
+                      </Link>
                     </div>
                   </div>
-
-                  {/* Actions */}
-                  <div className="flex flex-wrap gap-2">
-                    {app.workerStatus === "applied" &&
-                      app.applicationStatus === "pending" && (
-                        <>
-                          <button
-                            onClick={() => approveApplicant(app._id)}
-                            disabled={saving}
-                            className="px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-sm hover:bg-emerald-500/30 disabled:opacity-50"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => rejectApplicant(app._id)}
-                            disabled={saving}
-                            className="px-3 py-1 rounded-lg bg-red-500/20 text-red-300 text-sm hover:bg-red-500/30 disabled:opacity-50"
-                          >
-                            Reject
-                          </button>
-                        </>
-                      )}
-                    {app.workerStatus === "applied" &&
-                      app.applicationStatus === "approved" && (
-                        <button
-                          onClick={() => unlockScreening(app._id)}
-                          disabled={saving}
-                          className="px-3 py-1 rounded-lg bg-amber-500/20 text-amber-300 text-sm hover:bg-amber-500/30 disabled:opacity-50"
-                        >
-                          Unlock Screening
-                        </button>
-                      )}
-                    {app.workerStatus === "failed" && (
-                      <button
-                        onClick={() =>
-                          setWorkerStatus(app._id, "screening_unlocked", true)
-                        }
-                        disabled={saving}
-                        className="px-3 py-1 rounded-lg bg-amber-500/20 text-amber-300 text-sm hover:bg-amber-500/30 disabled:opacity-50"
-                      >
-                        Reset & Retry
-                      </button>
-                    )}
-                    {(app.workerStatus === "screening_unlocked" ||
-                      app.workerStatus === "test_submitted") && (
-                      <button
-                        onClick={() =>
-                          setWorkerStatus(app._id, "ready_to_work")
-                        }
-                        disabled={saving}
-                        className="px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-sm hover:bg-emerald-500/30 disabled:opacity-50"
-                      >
-                        Force Ready
-                      </button>
-                    )}
-                    {app.workerStatus === "ready_to_work" && (
-                      <button
-                        onClick={() => setWorkerStatus(app._id, "assigned")}
-                        disabled={saving}
-                        className="px-3 py-1 rounded-lg bg-blue-500/20 text-blue-300 text-sm hover:bg-blue-500/30 disabled:opacity-50"
-                      >
-                        Assign
-                      </button>
-                    )}
-                    {app.workerStatus !== "suspended" && (
-                      <button
-                        onClick={() => setWorkerStatus(app._id, "suspended")}
-                        disabled={saving}
-                        className="px-3 py-1 rounded-lg bg-slate-500/20 text-slate-300 text-sm hover:bg-slate-500/30 disabled:opacity-50"
-                      >
-                        Suspend
-                      </button>
-                    )}
-                  </div>
                 </div>
-              </div>
-            ))
+              ))
           )}
         </div>
       )}
 
-      {/* Screening Tab - PATCH_52A: Centralized Selection */}
+      {/* PATCH_61: Screening Tab - Workers in screening phase */}
       {activeTab === "screening" && (
-        <div className="card space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold">📋 Screening Selection</h3>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold">📋 Workers in Screening</h3>
+              <p className="text-sm text-slate-400 mt-1">
+                Workers who are taking or have submitted their screening test
+              </p>
+            </div>
             <Link
               href="/admin/workspace/screenings"
-              className="text-sm text-slate-400 hover:text-white"
+              className="text-sm text-cyan-400 hover:underline"
             >
               Manage Screenings →
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="md:col-span-2">
-              <label className="text-xs text-slate-400 mb-1 block">
-                Select Screening
-              </label>
-              <select
-                value={selectedScreeningId}
-                onChange={(e) => setSelectedScreeningId(e.target.value)}
-                className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
-              >
-                <option value="">No screening</option>
-                {screenings.map((s) => (
-                  <option key={s._id} value={s._id}>
-                    {s.title}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-slate-500 mt-2">
-                Job roles only select existing screenings. Edit screenings in
-                the workspace screenings manager.
-              </p>
-            </div>
-            <div className="flex items-end">
-              <button
-                onClick={saveScreeningSelection}
-                disabled={saving}
-                className="btn-primary w-full disabled:opacity-50"
-              >
-                {saving ? "Saving..." : "Save Screening"}
-              </button>
-            </div>
-          </div>
-
+          {/* Current Screening Info */}
           {selectedScreening ? (
-            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-              <div className="flex items-center justify-between gap-3">
+            <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/20 mb-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-lg">
-                    {selectedScreening.title}
-                  </p>
-                  <div className="flex flex-wrap gap-4 mt-2 text-sm">
-                    <span className="flex items-center gap-1">
-                      <span className="text-emerald-400">✓</span>
-                      Pass: {selectedScreening.passingScore}%
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <span className="text-blue-400">⏱</span>
-                      Time: {selectedScreening.timeLimit} min
-                    </span>
+                  <p className="font-medium">{selectedScreening.title}</p>
+                  <div className="flex gap-4 mt-1 text-sm text-slate-400">
+                    <span>Pass: {selectedScreening.passingScore}%</span>
+                    <span>Time: {selectedScreening.timeLimit} min</span>
                   </div>
                 </div>
-                {selectedScreeningId && (
-                  <Link
-                    href={`/admin/workspace/screenings/${selectedScreeningId}`}
-                    className="btn-secondary text-sm"
-                  >
-                    Edit Screening
-                  </Link>
-                )}
+                <Link
+                  href={`/admin/workspace/screenings/${selectedScreeningId}`}
+                  className="btn-secondary text-sm"
+                >
+                  Edit Test
+                </Link>
               </div>
             </div>
           ) : (
-            <div className="text-center py-6 text-slate-400">
-              <div className="text-3xl mb-2">📝</div>
-              <p className="font-medium">No screening selected</p>
-              <p className="text-sm mt-1">
-                Select an existing screening from the dropdown.
+            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 mb-4">
+              <p className="text-amber-300">
+                ⚠️ No screening test assigned to this job role
+              </p>
+              <Link
+                href="/admin/workspace/screenings"
+                className="text-sm text-amber-400 hover:underline mt-1 inline-block"
+              >
+                Assign a screening in Settings →
+              </Link>
+            </div>
+          )}
+
+          {/* Workers in Screening */}
+          {applicants.filter(
+            (a) =>
+              a.workerStatus === "screening_unlocked" ||
+              a.workerStatus === "test_submitted" ||
+              a.workerStatus === "training_viewed" ||
+              a.workerStatus === "failed",
+          ).length === 0 ? (
+            <div className="card text-center py-8">
+              <div className="text-4xl mb-3">📝</div>
+              <p className="text-slate-400">No workers in screening phase</p>
+              <p className="text-sm text-slate-500 mt-1">
+                Approve applicants to unlock screening
               </p>
             </div>
-          )}
-        </div>
-      )}
-
-      {/* Training Materials Tab */}
-      {activeTab === "training" && (
-        <div className="card">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold">Training Materials</h3>
-            <button
-              onClick={addTrainingMaterial}
-              className="px-3 py-1 rounded-lg bg-blue-500/20 text-blue-300 text-sm hover:bg-blue-500/30"
-            >
-              + Add Material
-            </button>
-          </div>
-
-          {trainingForm.length === 0 ? (
-            <p className="text-slate-400 text-center py-4">
-              No training materials yet
-            </p>
           ) : (
-            <div className="space-y-4">
-              {trainingForm.map((m, idx) => (
-                <div
-                  key={idx}
-                  className="p-4 rounded-xl bg-white/5 border border-white/10"
-                >
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <input
-                      type="text"
-                      placeholder="Title"
-                      value={m.title}
-                      onChange={(e) =>
-                        updateTrainingMaterial(idx, "title", e.target.value)
-                      }
-                      className="bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
-                    />
-                    <select
-                      value={m.type}
-                      onChange={(e) =>
-                        updateTrainingMaterial(idx, "type", e.target.value)
-                      }
-                      className="bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
-                    >
-                      <option value="link">Link</option>
-                      <option value="video">Video</option>
-                      <option value="pdf">PDF</option>
-                    </select>
-                    <input
-                      type="url"
-                      placeholder="URL"
-                      value={m.url}
-                      onChange={(e) =>
-                        updateTrainingMaterial(idx, "url", e.target.value)
-                      }
-                      className="bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <button
-                    onClick={() => removeTrainingMaterial(idx)}
-                    className="text-red-400 text-xs mt-2 hover:text-red-300"
+            <div className="space-y-3">
+              {applicants
+                .filter(
+                  (a) =>
+                    a.workerStatus === "screening_unlocked" ||
+                    a.workerStatus === "test_submitted" ||
+                    a.workerStatus === "training_viewed" ||
+                    a.workerStatus === "failed",
+                )
+                .map((worker) => (
+                  <div
+                    key={worker._id}
+                    className="card hover:border-white/20 transition-colors"
                   >
-                    Remove
-                  </button>
-                </div>
-              ))}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white font-bold text-lg">
+                          {getWorkerName(worker.user).charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <Link
+                            href={`/admin/workforce/${worker._id}`}
+                            className="font-semibold hover:text-cyan-400 transition-colors"
+                          >
+                            {getWorkerName(worker.user)}
+                          </Link>
+                          <p className="text-sm text-slate-400">
+                            {worker.user?.email || "No email"}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs ${STATUS_COLORS[worker.workerStatus]}`}
+                            >
+                              {STATUS_LABELS[worker.workerStatus]}
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              Attempts: {worker.attemptCount}/
+                              {worker.maxAttempts}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Screening Actions */}
+                      <div className="flex flex-wrap gap-2">
+                        {worker.workerStatus === "test_submitted" && (
+                          <button
+                            onClick={() =>
+                              setWorkerStatus(worker._id, "ready_to_work")
+                            }
+                            disabled={saving}
+                            className="px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-300 text-sm hover:bg-emerald-500/30 disabled:opacity-50 font-medium"
+                          >
+                            ✓ Mark Passed
+                          </button>
+                        )}
+                        {worker.workerStatus === "failed" && (
+                          <button
+                            onClick={() =>
+                              setWorkerStatus(
+                                worker._id,
+                                "screening_unlocked",
+                                true,
+                              )
+                            }
+                            disabled={saving}
+                            className="px-4 py-2 rounded-lg bg-amber-500/20 text-amber-300 text-sm hover:bg-amber-500/30 disabled:opacity-50"
+                          >
+                            🔄 Allow Retry
+                          </button>
+                        )}
+                        {(worker.workerStatus === "screening_unlocked" ||
+                          worker.workerStatus === "training_viewed") && (
+                          <button
+                            onClick={() =>
+                              setWorkerStatus(worker._id, "ready_to_work")
+                            }
+                            disabled={saving}
+                            className="px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-300 text-sm hover:bg-emerald-500/30 disabled:opacity-50"
+                          >
+                            Skip → Ready
+                          </button>
+                        )}
+                        <Link
+                          href={`/admin/workforce/${worker._id}`}
+                          className="px-3 py-2 rounded-lg bg-white/5 text-slate-300 text-sm hover:bg-white/10"
+                        >
+                          View Profile →
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ))}
             </div>
           )}
+        </div>
+      )}
 
-          <div className="mt-4 pt-4 border-t border-white/10">
-            <button
-              onClick={saveTrainingMaterials}
-              disabled={saving}
-              className="btn-primary disabled:opacity-50"
+      {/* PATCH_61: Ready to Work Tab */}
+      {activeTab === "ready" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold">✅ Ready to Work</h3>
+              <p className="text-sm text-slate-400 mt-1">
+                Workers who passed screening and are ready for project
+                assignment
+              </p>
+            </div>
+          </div>
+
+          {applicants.filter((a) => a.workerStatus === "ready_to_work")
+            .length === 0 ? (
+            <div className="card text-center py-8">
+              <div className="text-4xl mb-3">🎯</div>
+              <p className="text-slate-400">No workers ready for assignment</p>
+              <p className="text-sm text-slate-500 mt-1">
+                Workers will appear here after passing screening
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {applicants
+                .filter((a) => a.workerStatus === "ready_to_work")
+                .map((worker) => (
+                  <div
+                    key={worker._id}
+                    className="card hover:border-emerald-500/30 transition-colors bg-gradient-to-br from-emerald-500/5 to-transparent"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center text-white font-bold text-xl">
+                        {getWorkerName(worker.user).charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1">
+                        <Link
+                          href={`/admin/workforce/${worker._id}`}
+                          className="font-semibold text-lg hover:text-cyan-400 transition-colors"
+                        >
+                          {getWorkerName(worker.user)}
+                        </Link>
+                        <p className="text-sm text-slate-400">
+                          {worker.user?.email || "No email"}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="px-2 py-0.5 rounded-full text-xs bg-emerald-500/20 text-emerald-300">
+                            ✓ Screening Passed
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-4 pt-4 border-t border-white/10">
+                      <button
+                        onClick={() => setWorkerStatus(worker._id, "assigned")}
+                        disabled={saving}
+                        className="flex-1 px-4 py-2 rounded-lg bg-blue-500/20 text-blue-300 text-sm hover:bg-blue-500/30 disabled:opacity-50 font-medium"
+                      >
+                        📦 Assign Project
+                      </button>
+                      <Link
+                        href={`/admin/workforce/${worker._id}`}
+                        className="px-4 py-2 rounded-lg bg-white/5 text-slate-300 text-sm hover:bg-white/10"
+                      >
+                        Profile
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* PATCH_61: Active Workers Tab */}
+      {activeTab === "active" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold">⚡ Active Workers</h3>
+              <p className="text-sm text-slate-400 mt-1">
+                Workers currently assigned to projects or working
+              </p>
+            </div>
+            <Link
+              href="/admin/workspace/projects"
+              className="text-sm text-cyan-400 hover:underline"
             >
-              {saving ? "Saving..." : "Save Training Materials"}
-            </button>
+              View All Projects →
+            </Link>
+          </div>
+
+          {applicants.filter(
+            (a) =>
+              a.workerStatus === "assigned" || a.workerStatus === "working",
+          ).length === 0 ? (
+            <div className="card text-center py-8">
+              <div className="text-4xl mb-3">⚡</div>
+              <p className="text-slate-400">No active workers</p>
+              <p className="text-sm text-slate-500 mt-1">
+                Assign projects to ready workers to get started
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {applicants
+                .filter(
+                  (a) =>
+                    a.workerStatus === "assigned" ||
+                    a.workerStatus === "working",
+                )
+                .map((worker) => (
+                  <div
+                    key={worker._id}
+                    className="card hover:border-blue-500/30 transition-colors"
+                  >
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white font-bold text-lg">
+                          {getWorkerName(worker.user).charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <Link
+                            href={`/admin/workforce/${worker._id}`}
+                            className="font-semibold hover:text-cyan-400 transition-colors"
+                          >
+                            {getWorkerName(worker.user)}
+                          </Link>
+                          <p className="text-sm text-slate-400">
+                            {worker.user?.email || "No email"}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs ${STATUS_COLORS[worker.workerStatus]}`}
+                            >
+                              {STATUS_LABELS[worker.workerStatus]}
+                            </span>
+                            {worker.totalEarnings > 0 && (
+                              <span className="text-xs text-emerald-400">
+                                💰 ${worker.totalEarnings.toFixed(2)} earned
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <Link
+                          href="/admin/proofs"
+                          className="px-3 py-2 rounded-lg bg-purple-500/20 text-purple-300 text-sm hover:bg-purple-500/30"
+                        >
+                          View Proofs
+                        </Link>
+                        <Link
+                          href={`/admin/workforce/${worker._id}`}
+                          className="px-3 py-2 rounded-lg bg-white/5 text-slate-300 text-sm hover:bg-white/10"
+                        >
+                          View Profile →
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* PATCH_61: Completed Tab */}
+      {activeTab === "completed" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold">🏆 Completed Work</h3>
+              <p className="text-sm text-slate-400 mt-1">
+                Workers who have completed projects (view in Proofs section)
+              </p>
+            </div>
+          </div>
+
+          <div className="card text-center py-8">
+            <div className="text-4xl mb-3">🏆</div>
+            <p className="text-slate-400">
+              View completed work in the Proofs section
+            </p>
+            <Link
+              href="/admin/proofs"
+              className="btn-primary mt-4 inline-block"
+            >
+              Go to Proofs →
+            </Link>
           </div>
         </div>
       )}
 
-      {/* Projects Tab - PATCH_46: Full Project Management */}
-      {activeTab === "projects" && (
-        <div className="card">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold">💼 Project Management</h3>
-            {projectMode === "list" && (
-              <button
-                onClick={() => setProjectMode("create")}
-                className="px-3 py-1 rounded-lg bg-blue-500/20 text-blue-300 text-sm hover:bg-blue-500/30"
+      {/* PATCH_61: Settings Tab - Screening, Training, Projects */}
+      {activeTab === "settings" && (
+        <div className="space-y-6">
+          {/* Screening Selection */}
+          <div className="card">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold">📋 Screening Test</h3>
+              <Link
+                href="/admin/workspace/screenings"
+                className="text-sm text-slate-400 hover:text-white"
               >
-                ➕ Create Project
-              </button>
-            )}
+                Manage Screenings →
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="md:col-span-2">
+                <label className="text-xs text-slate-400 mb-1 block">
+                  Select Screening
+                </label>
+                <select
+                  value={selectedScreeningId}
+                  onChange={(e) => setSelectedScreeningId(e.target.value)}
+                  className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                >
+                  <option value="">No screening</option>
+                  {screenings.map((s) => (
+                    <option key={s._id} value={s._id}>
+                      {s.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-end">
+                <button
+                  onClick={saveScreeningSelection}
+                  disabled={saving}
+                  className="btn-primary w-full disabled:opacity-50"
+                >
+                  {saving ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </div>
           </div>
 
-          {projectMode === "list" ? (
-            // List Mode
-            <>
-              {projects.length === 0 ? (
+          {/* Training Materials */}
+          <div className="card">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold">📚 Training Materials</h3>
+              <button
+                onClick={addTrainingMaterial}
+                className="px-3 py-1 rounded-lg bg-blue-500/20 text-blue-300 text-sm hover:bg-blue-500/30"
+              >
+                + Add Material
+              </button>
+            </div>
+
+            {trainingForm.length === 0 ? (
+              <p className="text-slate-400 text-center py-4">
+                No training materials yet
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {trainingForm.map((m, idx) => (
+                  <div
+                    key={idx}
+                    className="p-4 rounded-xl bg-white/5 border border-white/10"
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <input
+                        type="text"
+                        placeholder="Title"
+                        value={m.title}
+                        onChange={(e) =>
+                          updateTrainingMaterial(idx, "title", e.target.value)
+                        }
+                        className="bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                      />
+                      <select
+                        value={m.type}
+                        onChange={(e) =>
+                          updateTrainingMaterial(idx, "type", e.target.value)
+                        }
+                        className="bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                      >
+                        <option value="link">Link</option>
+                        <option value="video">Video</option>
+                        <option value="pdf">PDF</option>
+                      </select>
+                      <input
+                        type="url"
+                        placeholder="URL"
+                        value={m.url}
+                        onChange={(e) =>
+                          updateTrainingMaterial(idx, "url", e.target.value)
+                        }
+                        className="bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                      />
+                    </div>
+                    <button
+                      onClick={() => removeTrainingMaterial(idx)}
+                      className="text-red-400 text-xs mt-2 hover:text-red-300"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-4 pt-4 border-t border-white/10">
+              <button
+                onClick={saveTrainingMaterials}
+                disabled={saving}
+                className="btn-primary disabled:opacity-50"
+              >
+                {saving ? "Saving..." : "Save Training Materials"}
+              </button>
+            </div>
+          </div>
+
+          {/* Projects */}
+          <div className="card">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold">💼 Projects</h3>
+              {projectMode === "list" && (
+                <button
+                  onClick={() => setProjectMode("create")}
+                  className="px-3 py-1 rounded-lg bg-blue-500/20 text-blue-300 text-sm hover:bg-blue-500/30"
+                >
+                  ➕ Create Project
+                </button>
+              )}
+            </div>
+
+            {projectMode === "list" ? (
+              projects.length === 0 ? (
                 <div className="text-center py-8 text-slate-400">
                   <div className="text-4xl mb-3">📦</div>
                   <p className="font-medium">No projects yet</p>
-                  <p className="text-sm mt-2">
-                    Create projects to assign work to ready workers.
-                  </p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -849,180 +1200,67 @@ export default function AdminJobRolePage() {
                           </span>
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        {proj.status === "draft" && (
-                          <button className="px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-sm hover:bg-emerald-500/30">
-                            Activate
-                          </button>
-                        )}
-                        {proj.status === "active" && !proj.assignedWorker && (
-                          <button className="px-3 py-1 rounded-lg bg-blue-500/20 text-blue-300 text-sm hover:bg-blue-500/30">
-                            Assign Worker
-                          </button>
-                        )}
-                      </div>
                     </div>
                   ))}
                 </div>
-              )}
-
-              {/* Ready Workers for Assignment */}
-              <div className="mt-6 pt-4 border-t border-white/10">
-                <h4 className="text-sm font-medium mb-3">
-                  🟢 Ready Workers (
-                  {
-                    applicants.filter((a) => a.workerStatus === "ready_to_work")
-                      .length
-                  }
-                  )
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {applicants
-                    .filter((a) => a.workerStatus === "ready_to_work")
-                    .map((worker) => (
-                      <div
-                        key={worker._id}
-                        className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between"
-                      >
-                        <div>
-                          <p className="font-medium text-sm">
-                            {worker.user?.name}
-                          </p>
-                          <p className="text-xs text-slate-400">
-                            {worker.user?.email}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() =>
-                            setWorkerStatus(worker._id, "assigned")
-                          }
-                          disabled={saving}
-                          className="px-2 py-1 rounded bg-blue-500/20 text-blue-300 text-xs hover:bg-blue-500/30"
-                        >
-                          Assign
-                        </button>
-                      </div>
-                    ))}
-                  {applicants.filter((a) => a.workerStatus === "ready_to_work")
-                    .length === 0 && (
-                    <p className="text-sm text-slate-500 col-span-2">
-                      No workers ready for assignment yet.
-                    </p>
-                  )}
+              )
+            ) : (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">
+                      Project Title
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Data Entry Batch #1"
+                      value={projectForm.title}
+                      onChange={(e) =>
+                        setProjectForm({
+                          ...projectForm,
+                          title: e.target.value,
+                        })
+                      }
+                      className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">
+                      Pay Rate ($)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      value={projectForm.payRate}
+                      onChange={(e) =>
+                        setProjectForm({
+                          ...projectForm,
+                          payRate: Number(e.target.value),
+                        })
+                      }
+                      className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                    />
+                  </div>
                 </div>
-              </div>
-            </>
-          ) : (
-            // Create Mode
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs text-slate-400 mb-1 block">
-                    Project Title
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Data Entry Batch #1"
-                    value={projectForm.title}
-                    onChange={(e) =>
-                      setProjectForm({ ...projectForm, title: e.target.value })
-                    }
-                    className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 mb-1 block">
-                    Pay Type
-                  </label>
-                  <select
-                    value={projectForm.payType}
-                    onChange={(e) =>
-                      setProjectForm({
-                        ...projectForm,
-                        payType: e.target.value as any,
-                      })
-                    }
-                    className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                <div className="flex gap-3">
+                  <button
+                    onClick={createProject}
+                    disabled={saving}
+                    className="btn-primary disabled:opacity-50"
                   >
-                    <option value="per_task">Per Task</option>
-                    <option value="hourly">Hourly</option>
-                    <option value="fixed">Fixed</option>
-                  </select>
+                    {saving ? "Creating..." : "Create Project"}
+                  </button>
+                  <button
+                    onClick={() => setProjectMode("list")}
+                    className="btn-secondary"
+                  >
+                    Cancel
+                  </button>
                 </div>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs text-slate-400 mb-1 block">
-                    Pay Rate ($)
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    value={projectForm.payRate}
-                    onChange={(e) =>
-                      setProjectForm({
-                        ...projectForm,
-                        payRate: Number(e.target.value),
-                      })
-                    }
-                    className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 mb-1 block">
-                    Deadline (optional)
-                  </label>
-                  <input
-                    type="date"
-                    value={projectForm.deadline || ""}
-                    onChange={(e) =>
-                      setProjectForm({
-                        ...projectForm,
-                        deadline: e.target.value,
-                      })
-                    }
-                    className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs text-slate-400 mb-1 block">
-                  Description
-                </label>
-                <textarea
-                  placeholder="Describe the project tasks and requirements..."
-                  value={projectForm.description || ""}
-                  onChange={(e) =>
-                    setProjectForm({
-                      ...projectForm,
-                      description: e.target.value,
-                    })
-                  }
-                  rows={3}
-                  className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
-                />
-              </div>
-
-              <div className="flex gap-3 pt-4 border-t border-white/10">
-                <button
-                  onClick={createProject}
-                  disabled={saving}
-                  className="btn-primary disabled:opacity-50"
-                >
-                  {saving ? "Creating..." : "📦 Create Project"}
-                </button>
-                <button
-                  onClick={() => setProjectMode("list")}
-                  className="btn-secondary"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
     </div>
