@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 
 /**
  * PATCH_44: Admin Projects Management Page
+ * PATCH_64: Enhanced with linked screenings, execution state, and controls
  * Create, view, assign, and manage work projects
  */
 
@@ -43,23 +44,34 @@ interface Worker {
   status: string;
 }
 
+// PATCH_64: Screening interface for linkage
+interface Screening {
+  _id: string;
+  title: string;
+  category: string;
+  active: boolean;
+}
+
 function ProjectsContent() {
   const searchParams = useSearchParams();
   const showCreate = searchParams.get("action") === "create";
+  const categoryParam = searchParams.get("category");
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [workers, setWorkers] = useState<Worker[]>([]);
+  const [screenings, setScreenings] = useState<Screening[]>([]); // PATCH_64: For linkage
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(showCreate);
   const [filter, setFilter] = useState<string>("all");
+  const [showLinkedScreenings, setShowLinkedScreenings] = useState(false); // PATCH_64
 
   // Create form state
   const [form, setForm] = useState({
     title: "",
     description: "",
-    category: "microjobs",
+    category: categoryParam || "microjobs",
     priority: "medium",
     earnings: 0,
     deadline: "",
@@ -82,6 +94,7 @@ function ProjectsContent() {
   useEffect(() => {
     loadProjects();
     loadWorkers();
+    loadScreenings(); // PATCH_64
   }, [filter]);
 
   const loadProjects = async () => {
@@ -119,6 +132,64 @@ function ProjectsContent() {
     } catch (e) {
       console.error("Failed to load workers:", e);
     }
+  };
+
+  // PATCH_64: Load screenings for category linkage
+  const loadScreenings = async () => {
+    try {
+      const res = await apiRequest<any>(
+        "/api/admin/workspace/screenings",
+        "GET",
+        null,
+        true,
+      );
+      setScreenings(res.screenings || []);
+    } catch (e) {
+      console.error("Failed to load screenings for linkage:", e);
+    }
+  };
+
+  // PATCH_64: Get linked screenings for a category
+  const getLinkedScreenings = (category: string): Screening[] => {
+    return screenings.filter((s) => s.category === category);
+  };
+
+  // PATCH_64: Get execution state for a project
+  const getExecutionState = (
+    project: Project,
+  ): { state: string; color: string } => {
+    switch (project.status) {
+      case "draft":
+        return { state: "Draft", color: "bg-slate-500/20 text-slate-400" };
+      case "open":
+      case "pending":
+        return { state: "Open", color: "bg-amber-500/20 text-amber-400" };
+      case "assigned":
+        return { state: "Assigned", color: "bg-blue-500/20 text-blue-400" };
+      case "in_progress":
+      case "in-progress":
+        return {
+          state: "In Progress",
+          color: "bg-purple-500/20 text-purple-400",
+        };
+      case "completed":
+        return {
+          state: "Completed",
+          color: "bg-emerald-500/20 text-emerald-400",
+        };
+      case "cancelled":
+        return { state: "Cancelled", color: "bg-red-500/20 text-red-400" };
+      default:
+        return {
+          state: project.status,
+          color: "bg-slate-500/20 text-slate-400",
+        };
+    }
+  };
+
+  // PATCH_64: Check if project is locked (completed or cancelled)
+  const isProjectLocked = (project: Project): boolean => {
+    return ["completed", "cancelled"].includes(project.status);
   };
 
   // PATCH_57: When assign modal opens, filter workers by project category
@@ -241,10 +312,10 @@ function ProjectsContent() {
       {/* Header */}
       <div className="mb-6">
         <Link
-          href="/admin/workspace"
+          href="/admin/workspace/master"
           className="text-sm text-slate-400 hover:text-white mb-2 inline-block"
         >
-          ← Workspace Hub
+          ← Master Workspace
         </Link>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -253,14 +324,76 @@ function ProjectsContent() {
               <h1 className="text-2xl font-bold">Projects</h1>
               <p className="text-slate-400 text-sm">
                 Create and manage work projects
+                {categoryParam && (
+                  <span className="ml-2 text-purple-400">
+                    (Category: {categoryParam})
+                  </span>
+                )}
               </p>
             </div>
           </div>
-          <button onClick={() => setShowModal(true)} className="btn-primary">
-            + Create Project
-          </button>
+          <div className="flex items-center gap-2">
+            {/* PATCH_64: Linked Screenings Toggle */}
+            <button
+              onClick={() => setShowLinkedScreenings(!showLinkedScreenings)}
+              className={`btn-secondary text-sm ${showLinkedScreenings ? "ring-2 ring-cyan-500" : ""}`}
+            >
+              🔗 Linked Screenings
+            </button>
+            <button onClick={() => setShowModal(true)} className="btn-primary">
+              + Create Project
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* PATCH_64: Linked Screenings Panel */}
+      {showLinkedScreenings && (
+        <div className="mb-6 p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
+          <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+            🔗 Screenings Linked by Category
+            <span className="text-xs text-slate-400 font-normal">
+              (Implicit linkage via category)
+            </span>
+          </h3>
+          {screenings.length === 0 ? (
+            <p className="text-sm text-slate-400">
+              No screenings found.{" "}
+              <Link
+                href="/admin/workspace/screenings?action=create"
+                className="text-cyan-400 hover:underline"
+              >
+                Create one →
+              </Link>
+            </p>
+          ) : (
+            <div className="grid md:grid-cols-3 gap-3">
+              {screenings.map((s) => (
+                <Link
+                  key={s._id}
+                  href={`/admin/workspace/screenings?id=${s._id}`}
+                  className="p-3 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-white truncate">
+                      {s.title}
+                    </span>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded ${s.active ? "bg-emerald-500/20 text-emerald-400" : "bg-slate-600/20 text-slate-400"}`}
+                    >
+                      {s.active ? "Active" : "Inactive"}
+                    </span>
+                  </div>
+                  <div className="text-xs text-slate-500 mt-1">
+                    Category:{" "}
+                    <span className="text-purple-400">{s.category}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* PATCH_63: Contextual Guidance Banner for Projects */}
       {!loading && (

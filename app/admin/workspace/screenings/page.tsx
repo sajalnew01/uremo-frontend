@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 
 /**
  * PATCH_44: Admin Screenings Management Page
+ * PATCH_64: Enhanced with status lifecycle, validation state, and project linkage
  * Create and manage screening tests for job roles
  */
 
@@ -29,6 +30,14 @@ interface Screening {
   createdAt: string;
 }
 
+// PATCH_64: Project interface for linkage display
+interface Project {
+  _id: string;
+  title: string;
+  category: string;
+  status: string;
+}
+
 type ScreeningFormQuestion = {
   question: string;
   options: string[];
@@ -39,8 +48,10 @@ type ScreeningFormQuestion = {
 function ScreeningsContent() {
   const searchParams = useSearchParams();
   const showCreate = searchParams.get("action") === "create";
+  const categoryFilter = searchParams.get("category");
 
   const [screenings, setScreenings] = useState<Screening[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]); // PATCH_64: For linkage
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -57,7 +68,7 @@ function ScreeningsContent() {
   }>({
     title: "",
     description: "",
-    category: "microjobs",
+    category: categoryFilter || "microjobs",
     passingScore: 70,
     timeLimit: 30,
     questions: [
@@ -73,6 +84,7 @@ function ScreeningsContent() {
 
   useEffect(() => {
     loadScreenings();
+    loadProjects(); // PATCH_64: Load projects for linkage
   }, []);
 
   const loadScreenings = async () => {
@@ -91,6 +103,51 @@ function ScreeningsContent() {
       setLoading(false);
     }
   };
+
+  // PATCH_64: Load projects for category-based linkage
+  const loadProjects = async () => {
+    try {
+      const res = await apiRequest<any>(
+        "/api/admin/workspace/projects",
+        "GET",
+        null,
+        true,
+      );
+      setProjects(res.projects || []);
+    } catch (e: any) {
+      console.error("Failed to load projects for linkage:", e);
+    }
+  };
+
+  // PATCH_64: Get linked projects count for a screening (by category)
+  const getLinkedProjectsCount = (category: string): number => {
+    return projects.filter((p) => p.category === category).length;
+  };
+
+  // PATCH_64: Get validation state for a screening
+  const getValidationState = (
+    screening: Screening,
+  ): { valid: boolean; reason: string } => {
+    if (!screening.questions || screening.questions.length === 0) {
+      return { valid: false, reason: "No questions defined" };
+    }
+    if (screening.passingScore < 1 || screening.passingScore > 100) {
+      return { valid: false, reason: "Invalid passing score" };
+    }
+    if (screening.timeLimit < 1) {
+      return { valid: false, reason: "Invalid time limit" };
+    }
+    if (!(screening.active ?? screening.isActive)) {
+      return { valid: false, reason: "Screening is inactive" };
+    }
+    return { valid: true, reason: "Ready for workers" };
+  };
+
+  // PATCH_64: Filter screenings by category if URL param present
+  const filteredScreenings = useMemo(() => {
+    if (!categoryFilter) return screenings;
+    return screenings.filter((s) => s.category === categoryFilter);
+  }, [screenings, categoryFilter]);
 
   const normalizeOptions = (options: string[]) =>
     options.map((o) => o.trim()).filter(Boolean);
@@ -278,10 +335,10 @@ function ScreeningsContent() {
       {/* Header */}
       <div className="mb-6">
         <Link
-          href="/admin/workspace"
+          href="/admin/workspace/master"
           className="text-sm text-slate-400 hover:text-white mb-2 inline-block"
         >
-          ← Workspace Hub
+          ← Master Workspace
         </Link>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -290,6 +347,11 @@ function ScreeningsContent() {
               <h1 className="text-2xl font-bold">Screenings</h1>
               <p className="text-slate-400 text-sm">
                 Create and manage screening tests
+                {categoryFilter && (
+                  <span className="ml-2 text-cyan-400">
+                    (Filtered: {categoryFilter})
+                  </span>
+                )}
               </p>
             </div>
           </div>
@@ -298,6 +360,39 @@ function ScreeningsContent() {
           </button>
         </div>
       </div>
+
+      {/* PATCH_64: Quick Stats */}
+      {!loading && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="card text-center py-3">
+            <div className="text-xl font-bold text-white">
+              {filteredScreenings.length}
+            </div>
+            <div className="text-xs text-slate-400">Total Screenings</div>
+          </div>
+          <div className="card text-center py-3">
+            <div className="text-xl font-bold text-emerald-400">
+              {filteredScreenings.filter((s) => s.active ?? s.isActive).length}
+            </div>
+            <div className="text-xs text-slate-400">Active</div>
+          </div>
+          <div className="card text-center py-3">
+            <div className="text-xl font-bold text-purple-400">
+              {projects.length}
+            </div>
+            <div className="text-xs text-slate-400">Linked Projects</div>
+          </div>
+          <div className="card text-center py-3">
+            <div className="text-xl font-bold text-cyan-400">
+              {
+                filteredScreenings.filter((s) => getValidationState(s).valid)
+                  .length
+              }
+            </div>
+            <div className="text-xs text-slate-400">Valid</div>
+          </div>
+        </div>
+      )}
 
       {/* Messages */}
       {success && (
@@ -318,75 +413,149 @@ function ScreeningsContent() {
         </div>
       )}
 
-      {/* Screenings List */}
-      {!loading && screenings.length > 0 && (
+      {/* Screenings List - PATCH_64: Enhanced with lifecycle & linkage */}
+      {!loading && filteredScreenings.length > 0 && (
         <div className="space-y-3">
-          {screenings.map((screening) => (
-            <div
-              key={screening._id}
-              className="p-4 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-white">
-                      {screening.title}
-                    </h3>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs ${
-                        (screening.active ?? screening.isActive)
-                          ? "bg-emerald-500/20 text-emerald-400"
-                          : "bg-slate-500/20 text-slate-400"
-                      }`}
-                    >
-                      {(screening.active ?? screening.isActive)
-                        ? "Active"
-                        : "Inactive"}
-                    </span>
-                  </div>
-                  <p className="text-sm text-slate-400 line-clamp-2">
-                    {screening.description}
-                  </p>
-                  <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
-                    <span>📚 {screening.questions?.length || 0} questions</span>
-                    <span>⏱ {screening.timeLimit} min</span>
-                    <span>🎯 {screening.passingScore}% to pass</span>
-                  </div>
-                </div>
+          {filteredScreenings.map((screening) => {
+            const validation = getValidationState(screening);
+            const linkedCount = getLinkedProjectsCount(screening.category);
 
-                <div className="flex flex-col gap-2 shrink-0">
-                  <Link
-                    href={`/admin/workspace/screenings/${screening._id}`}
-                    className="btn-secondary text-sm text-center"
-                  >
-                    View / Edit
-                  </Link>
-                  <button
-                    onClick={() => handleDuplicate(screening._id)}
-                    className="btn-secondary text-sm"
-                  >
-                    Duplicate
-                  </button>
-                  <button
-                    onClick={() => handleDelete(screening._id)}
-                    className="px-3 py-1 rounded-lg bg-red-500/20 text-red-300 text-sm hover:bg-red-500/30"
-                  >
-                    Delete
-                  </button>
+            return (
+              <div
+                key={screening._id}
+                className="p-4 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <h3 className="font-semibold text-white">
+                        {screening.title}
+                      </h3>
+                      {/* Status Badge */}
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs ${
+                          (screening.active ?? screening.isActive)
+                            ? "bg-emerald-500/20 text-emerald-400"
+                            : "bg-slate-500/20 text-slate-400"
+                        }`}
+                      >
+                        {(screening.active ?? screening.isActive)
+                          ? "Active"
+                          : "Inactive"}
+                      </span>
+                      {/* PATCH_64: Validation State */}
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs ${
+                          validation.valid
+                            ? "bg-cyan-500/20 text-cyan-400"
+                            : "bg-amber-500/20 text-amber-400"
+                        }`}
+                        title={validation.reason}
+                      >
+                        {validation.valid
+                          ? "✓ Valid"
+                          : "⚠ " + validation.reason}
+                      </span>
+                      {/* PATCH_64: Category Badge */}
+                      <span className="px-2 py-0.5 rounded-full text-xs bg-purple-500/20 text-purple-400">
+                        {screening.category}
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-400 line-clamp-2">
+                      {screening.description}
+                    </p>
+                    <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
+                      <span>
+                        📚 {screening.questions?.length || 0} questions
+                      </span>
+                      <span>⏱ {screening.timeLimit} min</span>
+                      <span>🎯 {screening.passingScore}% to pass</span>
+                      {/* PATCH_64: Linked Projects */}
+                      <span
+                        className={linkedCount > 0 ? "text-purple-400" : ""}
+                      >
+                        🔗 {linkedCount} project{linkedCount !== 1 ? "s" : ""}{" "}
+                        linked
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2 shrink-0">
+                    <Link
+                      href={`/admin/workspace/screenings/${screening._id}`}
+                      className="btn-secondary text-sm text-center"
+                    >
+                      View / Edit
+                    </Link>
+                    <button
+                      onClick={() => handleDuplicate(screening._id)}
+                      className="btn-secondary text-sm"
+                    >
+                      Duplicate
+                    </button>
+                    {/* PATCH_64: Promote to Project Button */}
+                    {validation.valid && (
+                      <Link
+                        href={`/admin/workspace/projects?action=create&category=${screening.category}`}
+                        className="px-3 py-1 rounded-lg bg-purple-500/20 text-purple-300 text-sm hover:bg-purple-500/30 text-center"
+                      >
+                        ➕ Create Project
+                      </Link>
+                    )}
+                    <button
+                      onClick={() => handleDelete(screening._id)}
+                      className="px-3 py-1 rounded-lg bg-red-500/20 text-red-300 text-sm hover:bg-red-500/30"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
       {/* Empty State */}
-      {!loading && screenings.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-slate-400 mb-4">No screenings created yet.</p>
-          <button onClick={() => setShowModal(true)} className="btn-primary">
-            Create Your First Screening
+      {!loading && filteredScreenings.length === 0 && (
+        <div className="text-center py-12 card">
+          <div className="text-5xl mb-4">📝</div>
+          <h3 className="text-lg font-semibold text-white mb-2">
+            No Screenings Yet
+          </h3>
+          <p className="text-slate-400 mb-4 max-w-md mx-auto">
+            Screenings are qualification tests that workers must pass before
+            receiving projects.
+          </p>
+          <button
+            onClick={() => setShowModal(true)}
+            className="btn-primary mb-4"
+          >
+            + Create Your First Screening
           </button>
+          <div className="text-sm text-slate-500 space-y-1">
+            <p>After creating screenings:</p>
+            <p>
+              1.{" "}
+              <Link
+                href="/admin/work-positions"
+                className="text-cyan-400 hover:underline"
+              >
+                Attach to Job Roles
+              </Link>{" "}
+              for worker qualification
+            </p>
+            <p>
+              2.{" "}
+              <Link
+                href="/admin/workspace/projects"
+                className="text-cyan-400 hover:underline"
+              >
+                Create Projects
+              </Link>{" "}
+              for qualified workers
+            </p>
+          </div>
         </div>
       )}
 
