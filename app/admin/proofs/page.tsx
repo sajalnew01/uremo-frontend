@@ -165,6 +165,58 @@ export default function AdminProofsPage() {
         description="Approve or reject completed project work submissions from workers"
       />
 
+      {/* PATCH_63: Contextual Guidance Banner for Proofs */}
+      {!loading && (
+        <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 via-slate-800/50 to-amber-500/10 border border-emerald-500/20">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">✅</span>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-white mb-1">
+                Proof Review Process:
+              </h3>
+              <ul className="text-sm text-slate-300 space-y-1">
+                {stats.pending > 0 ? (
+                  <>
+                    <li>
+                      •{" "}
+                      <span className="text-amber-400 font-medium">
+                        {stats.pending} proof{stats.pending > 1 ? "s" : ""}
+                      </span>{" "}
+                      waiting for your review
+                    </li>
+                    <li>
+                      • Review attachments & notes →{" "}
+                      <span className="text-emerald-400">Approve</span> quality
+                      work or <span className="text-red-400">Reject</span> with
+                      reason
+                    </li>
+                    <li className="text-slate-400">
+                      • After approval, credit earnings in{" "}
+                      <Link
+                        href="/admin/workspace/projects"
+                        className="text-cyan-400 hover:underline"
+                      >
+                        Projects
+                      </Link>
+                    </li>
+                  </>
+                ) : (
+                  <li className="text-emerald-400">
+                    ✓ All proofs reviewed! No pending submissions.
+                  </li>
+                )}
+              </ul>
+            </div>
+            <Link
+              href="/admin/workforce"
+              className="text-xs text-slate-400 hover:text-white whitespace-nowrap"
+            >
+              → Worker Pipeline
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
@@ -213,7 +265,7 @@ export default function AdminProofsPage() {
         </div>
       )}
 
-      {/* Empty State */}
+      {/* Empty State - PATCH_63: Enhanced with helpful next steps */}
       {!loading && proofs.length === 0 && (
         <div className="text-center py-12 card">
           <div className="text-5xl mb-4">📭</div>
@@ -225,6 +277,26 @@ export default function AdminProofsPage() {
               ? "All pending proofs have been reviewed. Great job!"
               : `No proofs with "${filter}" status.`}
           </p>
+          <div className="text-sm text-slate-500 space-y-1">
+            <p>
+              Proofs appear here when workers submit completed project work.
+            </p>
+            <p className="mt-2">
+              <Link
+                href="/admin/workspace/projects"
+                className="text-cyan-400 hover:underline"
+              >
+                Check Projects →
+              </Link>
+              {" | "}
+              <Link
+                href="/admin/workforce"
+                className="text-cyan-400 hover:underline"
+              >
+                View Workers →
+              </Link>
+            </p>
+          </div>
           {filter !== "pending" && (
             <button
               onClick={() => setFilter("pending")}

@@ -581,6 +581,82 @@ export default function WorkforceControlCenterPage() {
           </div>
         </div>
 
+        {/* PATCH_63: Contextual Guidance Banner */}
+        {!loading && (
+          <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-blue-500/10 via-slate-800/50 to-purple-500/10 border border-blue-500/20">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">💡</span>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-white mb-1">
+                  What to do next:
+                </h3>
+                <ul className="text-sm text-slate-300 space-y-1">
+                  {stats.applied > 0 && (
+                    <li>
+                      •{" "}
+                      <span className="text-amber-400 font-medium">
+                        {stats.applied} new application
+                        {stats.applied > 1 ? "s" : ""}
+                      </span>{" "}
+                      awaiting review → Click worker card → Approve or Reject
+                    </li>
+                  )}
+                  {stats.testSubmitted > 0 && (
+                    <li>
+                      •{" "}
+                      <span className="text-purple-400 font-medium">
+                        {stats.testSubmitted} test
+                        {stats.testSubmitted > 1 ? "s" : ""} submitted
+                      </span>{" "}
+                      → Review answers → Pass or Fail screening
+                    </li>
+                  )}
+                  {stats.readyToWork > 0 && (
+                    <li>
+                      •{" "}
+                      <span className="text-emerald-400 font-medium">
+                        {stats.readyToWork} worker
+                        {stats.readyToWork > 1 ? "s" : ""} ready
+                      </span>{" "}
+                      → Assign them a project from{" "}
+                      <Link
+                        href="/admin/workspace/projects"
+                        className="text-cyan-400 hover:underline"
+                      >
+                        Projects
+                      </Link>
+                    </li>
+                  )}
+                  {pendingProofs.length > 0 && (
+                    <li>
+                      •{" "}
+                      <span className="text-cyan-400 font-medium">
+                        {pendingProofs.length} proof
+                        {pendingProofs.length > 1 ? "s" : ""} pending
+                      </span>{" "}
+                      → Review submitted work → Approve & credit earnings
+                    </li>
+                  )}
+                  {stats.applied === 0 &&
+                    stats.testSubmitted === 0 &&
+                    stats.readyToWork === 0 &&
+                    pendingProofs.length === 0 && (
+                      <li className="text-emerald-400">
+                        ✓ All caught up! No pending actions right now.
+                      </li>
+                    )}
+                </ul>
+              </div>
+              <Link
+                href="/admin/work-positions"
+                className="text-xs text-slate-400 hover:text-white whitespace-nowrap"
+              >
+                → Job Roles Setup
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Quick Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mt-6">
           {[

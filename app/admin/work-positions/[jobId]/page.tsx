@@ -504,6 +504,80 @@ export default function AdminJobRolePage() {
         </div>
       )}
 
+      {/* PATCH_63: Contextual Guidance Banner for Job Role */}
+      {stats && (
+        <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-amber-500/10 via-slate-800/50 to-emerald-500/10 border border-amber-500/20">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">🎯</span>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-white mb-1">
+                Job Role Status:
+              </h3>
+              <p className="text-sm text-slate-300">
+                {stats.applied > 0 && (
+                  <span className="block">
+                    →{" "}
+                    <span className="text-amber-400">
+                      {stats.applied} application{stats.applied > 1 ? "s" : ""}
+                    </span>{" "}
+                    waiting in <span className="font-medium">Applicants</span>{" "}
+                    tab for your review
+                  </span>
+                )}
+                {stats.testSubmitted > 0 && (
+                  <span className="block">
+                    →{" "}
+                    <span className="text-purple-400">
+                      {stats.testSubmitted} test
+                      {stats.testSubmitted > 1 ? "s" : ""}
+                    </span>{" "}
+                    ready to grade in{" "}
+                    <span className="font-medium">Screening</span> tab
+                  </span>
+                )}
+                {stats.readyToWork > 0 && (
+                  <span className="block">
+                    →{" "}
+                    <span className="text-emerald-400">
+                      {stats.readyToWork} worker
+                      {stats.readyToWork > 1 ? "s" : ""}
+                    </span>{" "}
+                    passed screening — assign projects in{" "}
+                    <span className="font-medium">Ready to Work</span> tab
+                  </span>
+                )}
+                {stats.assigned + stats.working > 0 && (
+                  <span className="block">
+                    →{" "}
+                    <span className="text-cyan-400">
+                      {stats.assigned + stats.working} worker
+                      {stats.assigned + stats.working > 1 ? "s" : ""}
+                    </span>{" "}
+                    actively working — monitor in{" "}
+                    <span className="font-medium">Active</span> tab
+                  </span>
+                )}
+                {stats.applied === 0 &&
+                  stats.testSubmitted === 0 &&
+                  stats.readyToWork === 0 &&
+                  stats.assigned + stats.working === 0 && (
+                    <span className="text-slate-400">
+                      No pending actions for this job role. Workers will appear
+                      when they apply.
+                    </span>
+                  )}
+              </p>
+            </div>
+            <Link
+              href="/admin/workforce"
+              className="text-xs text-slate-400 hover:text-white whitespace-nowrap"
+            >
+              → All Workers
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* PATCH_61: Lifecycle-Based Tab Navigation */}
       <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
         {[

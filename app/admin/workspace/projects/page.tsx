@@ -262,6 +262,99 @@ function ProjectsContent() {
         </div>
       </div>
 
+      {/* PATCH_63: Contextual Guidance Banner for Projects */}
+      {!loading && (
+        <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-cyan-500/10 via-slate-800/50 to-blue-500/10 border border-cyan-500/20">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">📦</span>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-white mb-1">
+                Project Workflow:
+              </h3>
+              <ul className="text-sm text-slate-300 space-y-1">
+                {projects.filter((p) => p.status === "pending" && !p.assignedTo)
+                  .length > 0 && (
+                  <li>
+                    •{" "}
+                    <span className="text-amber-400 font-medium">
+                      {
+                        projects.filter(
+                          (p) => p.status === "pending" && !p.assignedTo,
+                        ).length
+                      }{" "}
+                      unassigned project
+                      {projects.filter(
+                        (p) => p.status === "pending" && !p.assignedTo,
+                      ).length > 1
+                        ? "s"
+                        : ""}
+                    </span>{" "}
+                    → Click "Assign" to give to a ready worker
+                  </li>
+                )}
+                {projects.filter(
+                  (p) => p.status === "in-progress" || p.status === "assigned",
+                ).length > 0 && (
+                  <li>
+                    •{" "}
+                    <span className="text-purple-400 font-medium">
+                      {
+                        projects.filter(
+                          (p) =>
+                            p.status === "in-progress" ||
+                            p.status === "assigned",
+                        ).length
+                      }{" "}
+                      project
+                      {projects.filter(
+                        (p) =>
+                          p.status === "in-progress" || p.status === "assigned",
+                      ).length > 1
+                        ? "s"
+                        : ""}{" "}
+                      in progress
+                    </span>{" "}
+                    → Workers are completing the work
+                  </li>
+                )}
+                {projects.filter(
+                  (p) => p.status === "completed" && !p.earningsCredited,
+                ).length > 0 && (
+                  <li>
+                    •{" "}
+                    <span className="text-emerald-400 font-medium">
+                      {
+                        projects.filter(
+                          (p) =>
+                            p.status === "completed" && !p.earningsCredited,
+                        ).length
+                      }{" "}
+                      completed
+                    </span>{" "}
+                    → Click "Credit Earnings" to pay the worker
+                  </li>
+                )}
+                {projects.length === 0 && (
+                  <li className="text-slate-400">
+                    No projects yet. Click "+ Create Project" to get started.
+                  </li>
+                )}
+              </ul>
+              <p className="text-xs text-slate-500 mt-2">
+                💡 Tip: Workers must be in "Ready to Work" status before they
+                can be assigned projects.
+                <Link
+                  href="/admin/workforce"
+                  className="text-cyan-400 hover:underline ml-1"
+                >
+                  Check Worker Pipeline →
+                </Link>
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Messages */}
       {success && (
         <div className="p-4 mb-6 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
@@ -377,13 +470,45 @@ function ProjectsContent() {
         </div>
       )}
 
-      {/* Empty State */}
+      {/* Empty State - PATCH_63: Enhanced with helpful guidance */}
       {!loading && projects.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-slate-400 mb-4">No projects found.</p>
-          <button onClick={() => setShowModal(true)} className="btn-primary">
-            Create Your First Project
+        <div className="text-center py-12 card">
+          <div className="text-5xl mb-4">📋</div>
+          <h3 className="text-lg font-semibold text-white mb-2">
+            No Projects Yet
+          </h3>
+          <p className="text-slate-400 mb-4 max-w-md mx-auto">
+            Projects are work tasks that get assigned to qualified workers.
+          </p>
+          <button
+            onClick={() => setShowModal(true)}
+            className="btn-primary mb-4"
+          >
+            + Create Your First Project
           </button>
+          <div className="text-sm text-slate-500 space-y-1">
+            <p>Before assigning projects, make sure you have:</p>
+            <p>
+              1.{" "}
+              <Link
+                href="/admin/work-positions"
+                className="text-cyan-400 hover:underline"
+              >
+                Job Roles
+              </Link>{" "}
+              set up with screening
+            </p>
+            <p>
+              2. Workers who passed screening in{" "}
+              <Link
+                href="/admin/workforce"
+                className="text-cyan-400 hover:underline"
+              >
+                "Ready to Work"
+              </Link>{" "}
+              status
+            </p>
+          </div>
         </div>
       )}
 
