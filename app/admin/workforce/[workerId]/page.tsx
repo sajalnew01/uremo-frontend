@@ -8,19 +8,18 @@ import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 
 /**
- * PATCH_61: Worker 360° Control Page
+ * PATCH_62: Worker Command Center
  *
  * THE SINGLE SOURCE OF TRUTH for a single worker.
  * All worker lifecycle actions accessible from ONE place.
  *
- * Tabs:
- * 1. Overview - Identity, status, quick stats
- * 2. Applications - All job applications for this user
- * 3. Screening - Test history, scores, attempts
- * 4. Projects - Assigned, active, and completed projects
- * 5. Proofs - Submitted proof of work
- * 6. Earnings - Total, pending, credited, withdrawal history
- * 7. Activity Log - Timeline of all worker events
+ * Structure (Top to Bottom):
+ * 1. Identity Block - Name, email, ID, job role, current status
+ * 2. Journey Timeline - Visual worker progress
+ * 3. Primary Action Panel - ONE action based on current status
+ * 4. Contextual Details - Collapsible tabs for history
+ *
+ * KEY PRINCIPLE: Admin never asks "what next?" - UI tells them.
  */
 
 type TabType =
@@ -61,7 +60,42 @@ const STATUS_COLORS: Record<string, string> = {
   inactive: "bg-slate-500/20 text-slate-300 border-slate-500/30",
   fresh: "bg-slate-500/20 text-slate-300 border-slate-500/30",
   screening_available: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+  completed: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+  proof_submitted: "bg-purple-500/20 text-purple-300 border-purple-500/30",
 };
+
+// PATCH_62: Human-readable status descriptions
+const STATUS_DESCRIPTIONS: Record<string, string> = {
+  applied: "Application pending — Awaiting admin review",
+  screening_unlocked:
+    "Screening unlocked — Waiting for worker to complete training",
+  training_viewed: "Training completed — Waiting for worker to submit test",
+  test_submitted: "Test submitted — Awaiting admin review",
+  failed: "Screening failed — Can retry or be permanently rejected",
+  ready_to_work: "Screening passed — Ready for project assignment",
+  assigned: "Project assigned — Worker preparing to start",
+  working: "Actively working — Project in progress",
+  proof_submitted: "Proof submitted — Awaiting admin approval & payment",
+  completed: "Project completed — Available for new assignments",
+  suspended: "Account suspended — Contact admin for details",
+  inactive: "Inactive — No recent activity",
+  fresh: "New user — Not yet applied",
+  screening_available: "Screening available — Ready to begin",
+};
+
+// PATCH_62: Journey steps for timeline
+const JOURNEY_STEPS = [
+  { key: "applied", label: "Applied", icon: "📝" },
+  { key: "approved", label: "Approved", icon: "✅" },
+  { key: "screening_unlocked", label: "Screening Unlocked", icon: "🔓" },
+  { key: "training_viewed", label: "Training Viewed", icon: "📚" },
+  { key: "test_submitted", label: "Test Submitted", icon: "📋" },
+  { key: "ready_to_work", label: "Ready to Work", icon: "🎯" },
+  { key: "assigned", label: "Project Assigned", icon: "📦" },
+  { key: "working", label: "Working", icon: "⚡" },
+  { key: "proof_submitted", label: "Proof Submitted", icon: "📸" },
+  { key: "completed", label: "Completed", icon: "🏆" },
+];
 
 interface WorkerDetail {
   _id: string;
@@ -516,6 +550,131 @@ export default function Worker360Page() {
     }
   };
 
+  // PATCH_62: Additional action handlers for Command Center
+  const handleUnlockScreening = async () => {
+    if (!worker) return;
+
+    setActionLoading("unlock");
+    try {
+      await apiRequest(
+        `/api/admin/workspace/job/${worker.position?._id}/unlock-screening`,
+        "PUT",
+        { applicantId: worker._id },
+        true,
+      );
+      toast("Screening unlocked successfully", "success");
+      loadWorkerData();
+    } catch (error: any) {
+      toast(error.message || "Failed to unlock screening", "error");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handlePassTest = async () => {
+    if (!worker) return;
+
+    setActionLoading("pass-test");
+    try {
+      await apiRequest(
+        `/api/admin/workspace/worker/${worker._id}/status`,
+        "PUT",
+        { workerStatus: "ready_to_work" },
+        true,
+      );
+      toast("Worker passed screening - Ready to work!", "success");
+      loadWorkerData();
+    } catch (error: any) {
+      toast(error.message || "Failed to update status", "error");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleFailTest = async () => {
+    if (!worker) return;
+
+    setActionLoading("fail-test");
+    try {
+      await apiRequest(
+        `/api/admin/workspace/worker/${worker._id}/status`,
+        "PUT",
+        { workerStatus: "failed" },
+        true,
+      );
+      toast("Worker failed screening", "success");
+      loadWorkerData();
+    } catch (error: any) {
+      toast(error.message || "Failed to update status", "error");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleAllowRetry = async () => {
+    if (!worker) return;
+
+    setActionLoading("retry");
+    try {
+      await apiRequest(
+        `/api/admin/workspace/worker/${worker._id}/status`,
+        "PUT",
+        {
+          workerStatus: "screening_unlocked",
+          attemptCount: worker.attemptCount,
+        },
+        true,
+      );
+      toast("Worker can now retry screening", "success");
+      loadWorkerData();
+    } catch (error: any) {
+      toast(error.message || "Failed to allow retry", "error");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // PATCH_62: Helper to get primary action description
+  const getPrimaryActionDescription = (
+    workerStatus: string,
+    appStatus: string,
+  ): string => {
+    if (workerStatus === "applied" && appStatus === "pending") {
+      return "Review this application and approve to unlock their screening access.";
+    }
+    if (workerStatus === "applied" && appStatus === "approved") {
+      return "Application approved. Unlock screening to let worker begin training.";
+    }
+    if (
+      workerStatus === "screening_unlocked" ||
+      workerStatus === "training_viewed"
+    ) {
+      return "Worker is completing training and preparing for the test. No action needed yet.";
+    }
+    if (workerStatus === "test_submitted") {
+      return "Worker submitted their test. Review answers and mark as passed or failed.";
+    }
+    if (workerStatus === "failed") {
+      return "Worker failed screening. Allow them to retry or reject permanently.";
+    }
+    if (workerStatus === "ready_to_work") {
+      return "Worker passed screening and is ready for their first project assignment.";
+    }
+    if (workerStatus === "assigned" || workerStatus === "working") {
+      return "Worker is actively working on their assigned project.";
+    }
+    if (workerStatus === "proof_submitted") {
+      return "Worker submitted proof of work. Review and approve to credit their earnings.";
+    }
+    if (workerStatus === "completed") {
+      return "Project completed. Assign a new project or archive this worker.";
+    }
+    if (workerStatus === "suspended") {
+      return "Worker is suspended. Unsuspend to allow them to continue working.";
+    }
+    return "Review worker status and take appropriate action.";
+  };
+
   // Identity validation - BLOCK actions if user data is missing
   const hasValidIdentity =
     worker?.user?._id && worker?.user?.email && worker?.user?.firstName;
@@ -562,97 +721,465 @@ export default function Worker360Page() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Header with Identity Panel */}
+      {/* PATCH_62: Worker Command Center Header */}
       <div className="bg-slate-800/50 border-b border-slate-700/50">
         <div className="max-w-7xl mx-auto px-4 py-6">
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 text-sm text-slate-400 mb-4">
             <Link href="/admin/workforce" className="hover:text-cyan-400">
-              Workforce Control Center
+              Workforce Pipeline
             </Link>
             <span>→</span>
-            <span className="text-white">{workerName}</span>
+            <span className="text-cyan-400">Worker Command Center</span>
           </div>
 
-          {/* Identity Panel */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex items-center gap-4">
-              {/* Avatar */}
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-2xl font-bold text-white">
-                {hasValidIdentity
-                  ? worker.user.firstName.charAt(0).toUpperCase()
-                  : "?"}
-              </div>
+          {/* SECTION 1: IDENTITY BLOCK */}
+          <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-700/50">
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+              <div className="flex items-start gap-4">
+                {/* Avatar */}
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-3xl font-bold text-white flex-shrink-0">
+                  {hasValidIdentity
+                    ? worker.user.firstName.charAt(0).toUpperCase()
+                    : "?"}
+                </div>
 
-              <div>
-                <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                  {workerName}
-                  {!hasValidIdentity && (
-                    <span className="text-red-400 text-sm font-normal bg-red-500/20 px-2 py-1 rounded">
-                      ⚠️ Identity Missing - Actions Blocked
-                    </span>
-                  )}
-                </h1>
-                <div className="flex flex-wrap items-center gap-3 text-sm text-slate-400 mt-1">
-                  {hasValidIdentity && (
-                    <span className="flex items-center gap-1">
-                      📧 {worker.user.email}
-                    </span>
-                  )}
-                  <span className="flex items-center gap-1">
-                    🏢 {worker.positionTitle}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    🆔 {worker._id.slice(-8)}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    📅 Joined {new Date(worker.createdAt).toLocaleDateString()}
-                  </span>
+                <div className="flex-1">
+                  {/* Page Title */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-2xl">🧭</span>
+                    <h1 className="text-2xl font-bold text-white">
+                      Worker Command Center
+                    </h1>
+                  </div>
+                  <p className="text-sm text-slate-400 mb-4">
+                    All actions, history, and decisions for this worker — in one
+                    place.
+                  </p>
+
+                  {/* Worker Name */}
+                  <h2 className="text-xl font-semibold text-white flex items-center gap-2 mb-2">
+                    {workerName}
+                    {!hasValidIdentity && (
+                      <span className="text-red-400 text-xs font-normal bg-red-500/20 px-2 py-1 rounded">
+                        ⚠️ Identity Missing
+                      </span>
+                    )}
+                  </h2>
+
+                  {/* Identity Details Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                    <div className="bg-slate-800/50 rounded-lg p-2">
+                      <p className="text-slate-500 text-xs">Email</p>
+                      <p
+                        className="text-white font-medium truncate cursor-pointer hover:text-cyan-400 transition"
+                        onClick={() => {
+                          navigator.clipboard.writeText(
+                            worker.user?.email || "",
+                          );
+                          toast("Email copied!", "success");
+                        }}
+                        title="Click to copy"
+                      >
+                        {worker.user?.email || "Not available"}
+                      </p>
+                    </div>
+                    <div className="bg-slate-800/50 rounded-lg p-2">
+                      <p className="text-slate-500 text-xs">Worker ID</p>
+                      <p className="text-white font-mono text-xs">
+                        {worker._id.slice(-8)}
+                      </p>
+                    </div>
+                    <div className="bg-slate-800/50 rounded-lg p-2">
+                      <p className="text-slate-500 text-xs">Job Role</p>
+                      {worker.position?._id ? (
+                        <Link
+                          href={`/admin/work-positions/${worker.position._id}`}
+                          className="text-cyan-400 hover:underline font-medium truncate block"
+                        >
+                          {worker.positionTitle}
+                        </Link>
+                      ) : (
+                        <p className="text-white font-medium truncate">
+                          {worker.positionTitle}
+                        </p>
+                      )}
+                    </div>
+                    <div className="bg-slate-800/50 rounded-lg p-2">
+                      <p className="text-slate-500 text-xs">Applied</p>
+                      <p className="text-white font-medium">
+                        {new Date(worker.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Status & Quick Actions */}
-            <div className="flex flex-wrap items-center gap-3">
-              <span
-                className={`px-4 py-2 rounded-full border text-sm font-medium ${STATUS_COLORS[worker.workerStatus] || STATUS_COLORS.applied}`}
-              >
-                {STATUS_LABELS[worker.workerStatus] || worker.workerStatus}
-              </span>
-
-              {hasValidIdentity && (
-                <>
-                  <button
-                    onClick={() => setShowStatusModal(true)}
-                    className="px-4 py-2 bg-slate-700/50 hover:bg-slate-600/50 text-white rounded-lg text-sm transition"
-                  >
-                    Change Status
-                  </button>
-                  <button
-                    onClick={() => setShowNotesModal(true)}
-                    className="px-4 py-2 bg-slate-700/50 hover:bg-slate-600/50 text-white rounded-lg text-sm transition"
-                  >
-                    📝 Notes
-                  </button>
-                  {worker.workerStatus === "ready_to_work" && (
-                    <button
-                      onClick={() => setShowAssignModal(true)}
-                      className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm transition"
-                    >
-                      Assign Project
-                    </button>
-                  )}
-                </>
-              )}
+              {/* Current Status Badge */}
+              <div className="flex flex-col items-start lg:items-end gap-2">
+                <span
+                  className={`px-4 py-2 rounded-full border text-sm font-medium ${STATUS_COLORS[worker.workerStatus] || STATUS_COLORS.applied}`}
+                >
+                  {STATUS_LABELS[worker.workerStatus] || worker.workerStatus}
+                </span>
+                <p className="text-sm text-slate-400 max-w-[250px] text-left lg:text-right">
+                  {STATUS_DESCRIPTIONS[worker.workerStatus] || "Status unknown"}
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="bg-slate-800/30 border-b border-slate-700/50">
+      {/* SECTION 2: JOURNEY TIMELINE */}
+      <div className="bg-slate-800/30 border-b border-slate-700/50 py-4 overflow-x-auto">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex overflow-x-auto">
+          <div className="flex items-center justify-between min-w-[800px]">
+            {JOURNEY_STEPS.map((step, index) => {
+              // Determine step state
+              const stepOrder = JOURNEY_STEPS.findIndex(
+                (s) => s.key === step.key,
+              );
+              const currentOrder = JOURNEY_STEPS.findIndex(
+                (s) =>
+                  s.key === worker.workerStatus ||
+                  (worker.workerStatus === "approved" &&
+                    s.key === "approved") ||
+                  (worker.status === "approved" &&
+                    step.key === "approved" &&
+                    worker.workerStatus !== "applied"),
+              );
+
+              // Special handling for different states
+              let isCurrent = step.key === worker.workerStatus;
+              let isCompleted = false;
+              let isFailed =
+                worker.workerStatus === "failed" &&
+                step.key === "test_submitted";
+
+              // Mark as approved if status is approved
+              if (step.key === "approved" && worker.status === "approved") {
+                isCompleted = true;
+              }
+
+              // Determine completed steps based on current status
+              const statusProgress: Record<string, number> = {
+                applied: 0,
+                approved: 1,
+                screening_unlocked: 2,
+                training_viewed: 3,
+                test_submitted: 4,
+                ready_to_work: 5,
+                assigned: 6,
+                working: 7,
+                proof_submitted: 8,
+                completed: 9,
+              };
+
+              const currentProgress = statusProgress[worker.workerStatus] || 0;
+              const stepProgress = statusProgress[step.key] || 0;
+
+              // Account for approved status
+              if (worker.status === "approved" && stepProgress <= 1) {
+                isCompleted =
+                  stepProgress < currentProgress || step.key === "approved";
+              } else {
+                isCompleted = stepProgress < currentProgress;
+              }
+
+              // Special handling for failed state
+              if (worker.workerStatus === "failed") {
+                isCurrent = step.key === "test_submitted";
+                isFailed = true;
+              }
+
+              return (
+                <div key={step.key} className="flex items-center">
+                  <div className="flex flex-col items-center">
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center text-lg border-2 transition-all ${
+                        isCurrent
+                          ? isFailed
+                            ? "bg-red-500/30 border-red-500 text-red-300"
+                            : "bg-cyan-500/30 border-cyan-500 text-cyan-300 ring-4 ring-cyan-500/20"
+                          : isCompleted
+                            ? "bg-emerald-500/30 border-emerald-500 text-emerald-300"
+                            : "bg-slate-700/30 border-slate-600 text-slate-500"
+                      }`}
+                    >
+                      {isCompleted ? "✓" : isFailed ? "✕" : step.icon}
+                    </div>
+                    <p
+                      className={`text-xs mt-1 whitespace-nowrap ${
+                        isCurrent
+                          ? isFailed
+                            ? "text-red-400 font-medium"
+                            : "text-cyan-400 font-medium"
+                          : isCompleted
+                            ? "text-emerald-400"
+                            : "text-slate-500"
+                      }`}
+                    >
+                      {step.label}
+                    </p>
+                  </div>
+                  {index < JOURNEY_STEPS.length - 1 && (
+                    <div
+                      className={`w-8 h-0.5 mx-1 ${
+                        isCompleted ? "bg-emerald-500" : "bg-slate-700"
+                      }`}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* SECTION 3: PRIMARY ACTION PANEL */}
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="bg-gradient-to-r from-cyan-500/10 via-slate-800/50 to-purple-500/10 rounded-xl p-6 border border-cyan-500/20 mb-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                ⚡ Next Action Required
+              </h3>
+              <p className="text-sm text-slate-400 mt-1">
+                {getPrimaryActionDescription(
+                  worker.workerStatus,
+                  worker.status,
+                )}
+              </p>
+            </div>
+
+            {/* PRIMARY ACTION BUTTONS - Only ONE based on status */}
+            <div className="flex flex-wrap gap-3">
+              {/* Applied + Pending → Approve/Reject */}
+              {worker.workerStatus === "applied" &&
+                worker.status === "pending" &&
+                hasValidIdentity && (
+                  <>
+                    <button
+                      onClick={handleApproveApplication}
+                      disabled={actionLoading === "approve-app"}
+                      className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {actionLoading === "approve-app"
+                        ? "Processing..."
+                        : "✓ Approve Application"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        const reason = prompt("Rejection reason:");
+                        if (reason) handleRejectApplication(reason);
+                      }}
+                      disabled={actionLoading === "reject-app"}
+                      className="px-4 py-3 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition disabled:opacity-50"
+                    >
+                      Reject
+                    </button>
+                  </>
+                )}
+
+              {/* Applied + Approved (legacy) → Unlock Screening */}
+              {worker.workerStatus === "applied" &&
+                worker.status === "approved" &&
+                hasValidIdentity && (
+                  <button
+                    onClick={() => handleUnlockScreening()}
+                    disabled={actionLoading === "unlock"}
+                    className="px-6 py-3 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-medium transition disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {actionLoading === "unlock"
+                      ? "Processing..."
+                      : "🔓 Unlock Screening"}
+                  </button>
+                )}
+
+              {/* Screening Unlocked / Training Viewed → Waiting */}
+              {(worker.workerStatus === "screening_unlocked" ||
+                worker.workerStatus === "training_viewed") && (
+                <div className="px-6 py-3 bg-slate-700/50 text-slate-300 rounded-lg flex items-center gap-2">
+                  <span className="animate-pulse">⏳</span>
+                  Waiting for worker to submit test...
+                </div>
+              )}
+
+              {/* Test Submitted → Pass/Fail */}
+              {worker.workerStatus === "test_submitted" && hasValidIdentity && (
+                <>
+                  <button
+                    onClick={() => handlePassTest()}
+                    disabled={actionLoading === "pass-test"}
+                    className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {actionLoading === "pass-test"
+                      ? "Processing..."
+                      : "✓ Pass Screening"}
+                  </button>
+                  <button
+                    onClick={() => handleFailTest()}
+                    disabled={actionLoading === "fail-test"}
+                    className="px-4 py-3 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition disabled:opacity-50"
+                  >
+                    ✕ Fail Screening
+                  </button>
+                  <Link
+                    href="/admin/workspace/screenings"
+                    className="px-4 py-3 bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 rounded-lg transition"
+                  >
+                    View Answers →
+                  </Link>
+                </>
+              )}
+
+              {/* Failed → Retry/Reject */}
+              {worker.workerStatus === "failed" && hasValidIdentity && (
+                <>
+                  <button
+                    onClick={() => handleAllowRetry()}
+                    disabled={actionLoading === "retry"}
+                    className="px-6 py-3 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-medium transition disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {actionLoading === "retry"
+                      ? "Processing..."
+                      : "🔄 Allow Retry"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      const reason = prompt("Rejection reason:");
+                      if (reason) handleRejectApplication(reason);
+                    }}
+                    className="px-4 py-3 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition"
+                  >
+                    Reject Permanently
+                  </button>
+                </>
+              )}
+
+              {/* Ready to Work → Assign Project */}
+              {worker.workerStatus === "ready_to_work" && hasValidIdentity && (
+                <button
+                  onClick={() => setShowAssignModal(true)}
+                  className="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-medium transition flex items-center gap-2"
+                >
+                  📦 Assign Project
+                </button>
+              )}
+
+              {/* Assigned/Working → View Project */}
+              {(worker.workerStatus === "assigned" ||
+                worker.workerStatus === "working") && (
+                <Link
+                  href={
+                    worker.currentProject ? `/admin/workspace/projects` : "#"
+                  }
+                  className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-medium transition flex items-center gap-2"
+                >
+                  👁️ View Active Project
+                </Link>
+              )}
+
+              {/* Proof Submitted → Approve & Credit */}
+              {(worker.workerStatus === "proof_submitted" ||
+                proofs.some((p) => p.status === "pending")) &&
+                hasValidIdentity && (
+                  <button
+                    onClick={() => {
+                      const pendingProof = proofs.find(
+                        (p) => p.status === "pending",
+                      );
+                      if (pendingProof) {
+                        handleApproveProof(
+                          pendingProof._id,
+                          pendingProof.projectId?._id,
+                        );
+                      }
+                    }}
+                    disabled={actionLoading?.startsWith("proof-")}
+                    className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {actionLoading?.startsWith("proof-")
+                      ? "Processing..."
+                      : "💰 Approve Proof & Credit Earnings"}
+                  </button>
+                )}
+
+              {/* Completed → New Project/Archive */}
+              {worker.workerStatus === "completed" && hasValidIdentity && (
+                <>
+                  <button
+                    onClick={() => setShowAssignModal(true)}
+                    className="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-medium transition flex items-center gap-2"
+                  >
+                    📦 Assign New Project
+                  </button>
+                  <button
+                    onClick={() => {
+                      setNewStatus("inactive");
+                      handleStatusChange();
+                    }}
+                    className="px-4 py-3 bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 rounded-lg transition"
+                  >
+                    Archive Worker
+                  </button>
+                </>
+              )}
+
+              {/* Suspended → Unsuspend */}
+              {worker.workerStatus === "suspended" && hasValidIdentity && (
+                <button
+                  onClick={() => {
+                    setNewStatus("ready_to_work");
+                    handleStatusChange();
+                  }}
+                  className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition"
+                >
+                  Unsuspend Worker
+                </button>
+              )}
+
+              {/* Identity Missing - Show Warning */}
+              {!hasValidIdentity && (
+                <div className="px-6 py-3 bg-red-500/20 text-red-400 rounded-lg flex items-center gap-2">
+                  ⚠️ Cannot take actions - Worker identity is incomplete
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Secondary Actions Row */}
+          <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-slate-700/50">
+            <button
+              onClick={() => setShowStatusModal(true)}
+              className="px-3 py-1.5 bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 rounded text-sm transition"
+            >
+              Manual Status Override
+            </button>
+            <button
+              onClick={() => setShowNotesModal(true)}
+              className="px-3 py-1.5 bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 rounded text-sm transition"
+            >
+              📝 Admin Notes
+            </button>
+            {worker.resumeUrl && (
+              <a
+                href={worker.resumeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1.5 bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 rounded text-sm transition"
+              >
+                📄 View Resume
+              </a>
+            )}
+          </div>
+        </div>
+
+        {/* SECTION 4: CONTEXTUAL DETAILS (Collapsible Tabs) */}
+        <div className="bg-slate-800/30 rounded-xl border border-slate-700/50">
+          {/* Tabs */}
+          <div className="flex overflow-x-auto border-b border-slate-700/50">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -668,657 +1195,658 @@ export default function Worker360Page() {
               </button>
             ))}
           </div>
-        </div>
-      </div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="p-6"
+            >
+              {/* Overview Tab */}
+              {activeTab === "overview" && (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Stats Cards */}
+                  <div className="lg:col-span-2 grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <StatCard
+                      label="Total Earnings"
+                      value={`$${worker.totalEarnings.toFixed(2)}`}
+                      color="emerald"
+                    />
+                    <StatCard
+                      label="Pending Earnings"
+                      value={`$${worker.pendingEarnings.toFixed(2)}`}
+                      color="amber"
+                    />
+                    <StatCard
+                      label="Projects Done"
+                      value={worker.projectsCompleted.length.toString()}
+                      color="cyan"
+                    />
+                    <StatCard
+                      label="Test Attempts"
+                      value={`${worker.attemptCount}/${worker.maxAttempts}`}
+                      color="purple"
+                    />
+                  </div>
 
-      {/* Tab Content */}
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            {/* Overview Tab */}
-            {activeTab === "overview" && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Stats Cards */}
-                <div className="lg:col-span-2 grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <StatCard
-                    label="Total Earnings"
-                    value={`$${worker.totalEarnings.toFixed(2)}`}
-                    color="emerald"
-                  />
-                  <StatCard
-                    label="Pending Earnings"
-                    value={`$${worker.pendingEarnings.toFixed(2)}`}
-                    color="amber"
-                  />
-                  <StatCard
-                    label="Projects Done"
-                    value={worker.projectsCompleted.length.toString()}
-                    color="cyan"
-                  />
-                  <StatCard
-                    label="Test Attempts"
-                    value={`${worker.attemptCount}/${worker.maxAttempts}`}
-                    color="purple"
-                  />
-                </div>
-
-                {/* Current Status Card */}
-                <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
-                  <h3 className="text-lg font-semibold text-white mb-4">
-                    Current Status
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Application</span>
-                      <span
-                        className={`font-medium ${worker.status === "approved" ? "text-emerald-400" : worker.status === "rejected" ? "text-red-400" : "text-amber-400"}`}
-                      >
-                        {worker.status.charAt(0).toUpperCase() +
-                          worker.status.slice(1)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Worker Status</span>
-                      <span className="text-white font-medium">
-                        {STATUS_LABELS[worker.workerStatus] ||
-                          worker.workerStatus}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Pay Rate</span>
-                      <span className="text-white font-medium">
-                        ${worker.payRate}/task
-                      </span>
-                    </div>
-                    {worker.currentProject && (
+                  {/* Current Status Card */}
+                  <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
+                    <h3 className="text-lg font-semibold text-white mb-4">
+                      Current Status
+                    </h3>
+                    <div className="space-y-3">
                       <div className="flex justify-between">
-                        <span className="text-slate-400">Active Project</span>
-                        <span className="text-cyan-400 font-medium">
-                          {worker.currentProject.title}
+                        <span className="text-slate-400">Application</span>
+                        <span
+                          className={`font-medium ${worker.status === "approved" ? "text-emerald-400" : worker.status === "rejected" ? "text-red-400" : "text-amber-400"}`}
+                        >
+                          {worker.status.charAt(0).toUpperCase() +
+                            worker.status.slice(1)}
                         </span>
                       </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Resume & Application Details */}
-                <div className="lg:col-span-3 bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
-                  <h3 className="text-lg font-semibold text-white mb-4">
-                    Application Details
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="text-sm text-slate-400 block mb-2">
-                        Application Message
-                      </label>
-                      <p className="text-white bg-slate-900/50 p-4 rounded-lg">
-                        {worker.message || "No message provided"}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm text-slate-400 block mb-2">
-                        Resume
-                      </label>
-                      {worker.resumeUrl ? (
-                        <a
-                          href={worker.resumeUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600/20 text-cyan-400 rounded-lg hover:bg-cyan-600/30 transition"
-                        >
-                          📄 View Resume
-                        </a>
-                      ) : (
-                        <p className="text-slate-500">No resume uploaded</p>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Worker Status</span>
+                        <span className="text-white font-medium">
+                          {STATUS_LABELS[worker.workerStatus] ||
+                            worker.workerStatus}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Pay Rate</span>
+                        <span className="text-white font-medium">
+                          ${worker.payRate}/task
+                        </span>
+                      </div>
+                      {worker.currentProject && (
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Active Project</span>
+                          <span className="text-cyan-400 font-medium">
+                            {worker.currentProject.title}
+                          </span>
+                        </div>
                       )}
                     </div>
                   </div>
 
-                  {/* Admin Notes */}
-                  {worker.adminNotes && (
-                    <div className="mt-6">
-                      <label className="text-sm text-slate-400 block mb-2">
-                        Admin Notes
-                      </label>
-                      <p className="text-white bg-slate-900/50 p-4 rounded-lg">
-                        {worker.adminNotes}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Quick Actions */}
-                {hasValidIdentity &&
-                  worker.status === "pending" &&
-                  worker.workerStatus === "applied" && (
-                    <div className="lg:col-span-3 bg-amber-500/10 border border-amber-500/30 rounded-xl p-6">
-                      <h3 className="text-lg font-semibold text-amber-400 mb-4">
-                        ⚡ Pending Application Review
-                      </h3>
-                      <p className="text-slate-300 mb-4">
-                        This worker has applied and is awaiting your review.
-                        Approve to unlock their screening.
-                      </p>
-                      <div className="flex gap-3">
-                        <button
-                          onClick={handleApproveApplication}
-                          disabled={actionLoading === "approve-app"}
-                          className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition disabled:opacity-50"
-                        >
-                          {actionLoading === "approve-app"
-                            ? "Approving..."
-                            : "✓ Approve & Unlock Screening"}
-                        </button>
-                        <button
-                          onClick={() => {
-                            const reason = prompt("Rejection reason:");
-                            if (reason) handleRejectApplication(reason);
-                          }}
-                          disabled={actionLoading === "reject-app"}
-                          className="px-6 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition disabled:opacity-50"
-                        >
-                          ✕ Reject
-                        </button>
-                      </div>
-                    </div>
-                  )}
-              </div>
-            )}
-
-            {/* Applications Tab */}
-            {activeTab === "applications" && (
-              <div className="bg-slate-800/50 rounded-xl border border-slate-700/50">
-                <div className="p-6 border-b border-slate-700/50">
-                  <h2 className="text-lg font-semibold text-white">
-                    Job Applications
-                  </h2>
-                </div>
-                <div className="p-6">
-                  <div className="bg-slate-900/50 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-4">
+                  {/* Resume & Application Details */}
+                  <div className="lg:col-span-3 bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
+                    <h3 className="text-lg font-semibold text-white mb-4">
+                      Application Details
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <h3 className="text-white font-medium">
-                          {worker.positionTitle}
-                        </h3>
-                        <p className="text-sm text-slate-400">
-                          Applied on{" "}
-                          {new Date(worker.createdAt).toLocaleDateString()}
+                        <label className="text-sm text-slate-400 block mb-2">
+                          Application Message
+                        </label>
+                        <p className="text-white bg-slate-900/50 p-4 rounded-lg">
+                          {worker.message || "No message provided"}
                         </p>
                       </div>
-                      <span
-                        className={`px-3 py-1 rounded-full text-sm ${
-                          worker.status === "approved"
-                            ? "bg-emerald-500/20 text-emerald-400"
-                            : worker.status === "rejected"
-                              ? "bg-red-500/20 text-red-400"
-                              : "bg-amber-500/20 text-amber-400"
-                        }`}
-                      >
-                        {worker.status.charAt(0).toUpperCase() +
-                          worker.status.slice(1)}
-                      </span>
+                      <div>
+                        <label className="text-sm text-slate-400 block mb-2">
+                          Resume
+                        </label>
+                        {worker.resumeUrl ? (
+                          <a
+                            href={worker.resumeUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600/20 text-cyan-400 rounded-lg hover:bg-cyan-600/30 transition"
+                          >
+                            📄 View Resume
+                          </a>
+                        ) : (
+                          <p className="text-slate-500">No resume uploaded</p>
+                        )}
+                      </div>
                     </div>
-                    {worker.resumeUrl && (
-                      <a
-                        href={worker.resumeUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-cyan-400 text-sm hover:underline"
-                      >
-                        📄 View Resume
-                      </a>
+
+                    {/* Admin Notes */}
+                    {worker.adminNotes && (
+                      <div className="mt-6">
+                        <label className="text-sm text-slate-400 block mb-2">
+                          Admin Notes
+                        </label>
+                        <p className="text-white bg-slate-900/50 p-4 rounded-lg">
+                          {worker.adminNotes}
+                        </p>
+                      </div>
                     )}
                   </div>
-                </div>
-              </div>
-            )}
 
-            {/* Screening Tab */}
-            {activeTab === "screening" && (
-              <div className="bg-slate-800/50 rounded-xl border border-slate-700/50">
-                <div className="p-6 border-b border-slate-700/50">
-                  <h2 className="text-lg font-semibold text-white">
-                    Screening & Tests
-                  </h2>
-                </div>
-                <div className="p-6">
-                  {/* Attempt Status */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div className="bg-slate-900/50 rounded-lg p-4">
-                      <p className="text-sm text-slate-400">Attempts Used</p>
-                      <p className="text-2xl font-bold text-white">
-                        {worker.attemptCount} / {worker.maxAttempts}
-                      </p>
-                    </div>
-                    <div className="bg-slate-900/50 rounded-lg p-4">
-                      <p className="text-sm text-slate-400">
-                        Screenings Completed
-                      </p>
-                      <p className="text-2xl font-bold text-white">
-                        {worker.screeningsCompleted.length}
-                      </p>
-                    </div>
-                    <div className="bg-slate-900/50 rounded-lg p-4">
-                      <p className="text-sm text-slate-400">Tests Passed</p>
-                      <p className="text-2xl font-bold text-emerald-400">
-                        {worker.testsCompleted.filter((t) => t.passed).length}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Screening History */}
-                  {worker.screeningsCompleted.length > 0 ? (
-                    <div className="space-y-3">
-                      <h3 className="text-white font-medium mb-3">
-                        Screening History
-                      </h3>
-                      {worker.screeningsCompleted.map((s, i) => (
-                        <div
-                          key={i}
-                          className="bg-slate-900/50 rounded-lg p-4 flex items-center justify-between"
-                        >
-                          <div>
-                            <p className="text-white">Screening #{i + 1}</p>
-                            <p className="text-sm text-slate-400">
-                              Completed{" "}
-                              {new Date(s.completedAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <span
-                            className={`px-3 py-1 rounded-full text-sm ${s.score >= 70 ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"}`}
-                          >
-                            {s.score}%
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-slate-400">
-                      No screenings completed yet
-                    </div>
-                  )}
-
-                  {/* Test History */}
-                  {worker.testsCompleted.length > 0 && (
-                    <div className="mt-6 space-y-3">
-                      <h3 className="text-white font-medium mb-3">
-                        Test History
-                      </h3>
-                      {worker.testsCompleted.map((t, i) => (
-                        <div
-                          key={i}
-                          className="bg-slate-900/50 rounded-lg p-4 flex items-center justify-between"
-                        >
-                          <div>
-                            <p className="text-white">Test #{i + 1}</p>
-                            <p className="text-sm text-slate-400">
-                              {new Date(t.completedAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <span className="text-white">{t.score}%</span>
-                            <span
-                              className={`px-3 py-1 rounded-full text-sm ${t.passed ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"}`}
-                            >
-                              {t.passed ? "Passed" : "Failed"}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Manual Status Override for test_submitted */}
+                  {/* Quick Actions */}
                   {hasValidIdentity &&
-                    worker.workerStatus === "test_submitted" && (
-                      <div className="mt-6 bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
-                        <h3 className="text-purple-400 font-medium mb-3">
-                          ⚡ Test Pending Review
+                    worker.status === "pending" &&
+                    worker.workerStatus === "applied" && (
+                      <div className="lg:col-span-3 bg-amber-500/10 border border-amber-500/30 rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-amber-400 mb-4">
+                          ⚡ Pending Application Review
                         </h3>
-                        <p className="text-slate-300 text-sm mb-4">
-                          Worker has submitted their test. Review and mark as
-                          passed or failed.
+                        <p className="text-slate-300 mb-4">
+                          This worker has applied and is awaiting your review.
+                          Approve to unlock their screening.
                         </p>
                         <div className="flex gap-3">
                           <button
-                            onClick={() => {
-                              setNewStatus("ready_to_work");
-                              handleStatusChange();
-                            }}
-                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition"
+                            onClick={handleApproveApplication}
+                            disabled={actionLoading === "approve-app"}
+                            className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition disabled:opacity-50"
                           >
-                            ✓ Pass - Ready to Work
+                            {actionLoading === "approve-app"
+                              ? "Approving..."
+                              : "✓ Approve & Unlock Screening"}
                           </button>
                           <button
                             onClick={() => {
-                              setNewStatus("failed");
-                              handleStatusChange();
+                              const reason = prompt("Rejection reason:");
+                              if (reason) handleRejectApplication(reason);
                             }}
-                            className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition"
+                            disabled={actionLoading === "reject-app"}
+                            className="px-6 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition disabled:opacity-50"
                           >
-                            ✕ Fail Test
+                            ✕ Reject
                           </button>
                         </div>
                       </div>
                     )}
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Projects Tab */}
-            {activeTab === "projects" && (
-              <div className="bg-slate-800/50 rounded-xl border border-slate-700/50">
-                <div className="p-6 border-b border-slate-700/50 flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-white">Projects</h2>
-                  {hasValidIdentity &&
-                    worker.workerStatus === "ready_to_work" && (
-                      <button
-                        onClick={() => setShowAssignModal(true)}
-                        className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm transition"
-                      >
-                        + Assign Project
-                      </button>
-                    )}
-                </div>
-                <div className="p-6">
-                  {projects.length > 0 ? (
-                    <div className="space-y-4">
-                      {projects.map((project) => (
-                        <div
-                          key={project._id}
-                          className="bg-slate-900/50 rounded-lg p-4"
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <h3 className="text-white font-medium">
-                                {project.title}
-                              </h3>
-                              <p className="text-sm text-slate-400">
-                                {project.category} • ${project.payRate}/{" "}
-                                {project.payType}
-                              </p>
-                            </div>
-                            <span
-                              className={`px-3 py-1 rounded-full text-sm ${
-                                project.status === "completed"
-                                  ? "bg-emerald-500/20 text-emerald-400"
-                                  : project.status === "in_progress"
-                                    ? "bg-blue-500/20 text-blue-400"
-                                    : project.status === "assigned"
-                                      ? "bg-cyan-500/20 text-cyan-400"
-                                      : "bg-slate-500/20 text-slate-400"
-                              }`}
-                            >
-                              {project.status.replace("_", " ")}
-                            </span>
-                          </div>
-                          {project.description && (
-                            <p className="text-slate-400 text-sm mt-2">
-                              {project.description}
-                            </p>
-                          )}
-                          <div className="flex items-center gap-4 mt-3 text-xs text-slate-500">
-                            {project.assignedAt && (
-                              <span>
-                                Assigned:{" "}
-                                {new Date(
-                                  project.assignedAt,
-                                ).toLocaleDateString()}
-                              </span>
-                            )}
-                            {project.completedAt && (
-                              <span>
-                                Completed:{" "}
-                                {new Date(
-                                  project.completedAt,
-                                ).toLocaleDateString()}
-                              </span>
-                            )}
-                            {project.earningsCredited && (
-                              <span className="text-emerald-400">
-                                Credited: ${project.earningsCredited}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-slate-400">
-                      No projects assigned yet
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Proofs Tab */}
-            {activeTab === "proofs" && (
-              <div className="bg-slate-800/50 rounded-xl border border-slate-700/50">
-                <div className="p-6 border-b border-slate-700/50">
-                  <h2 className="text-lg font-semibold text-white">
-                    Proof of Work
-                  </h2>
-                </div>
-                <div className="p-6">
-                  {proofs.length > 0 ? (
-                    <div className="space-y-4">
-                      {proofs.map((proof) => (
-                        <div
-                          key={proof._id}
-                          className="bg-slate-900/50 rounded-lg p-4"
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <h3 className="text-white font-medium">
-                                {proof.projectId?.title || "Unknown Project"}
-                              </h3>
-                              <p className="text-sm text-slate-400">
-                                Submitted{" "}
-                                {new Date(proof.createdAt).toLocaleDateString()}
-                              </p>
-                            </div>
-                            <span
-                              className={`px-3 py-1 rounded-full text-sm ${
-                                proof.status === "approved"
-                                  ? "bg-emerald-500/20 text-emerald-400"
-                                  : proof.status === "rejected"
-                                    ? "bg-red-500/20 text-red-400"
-                                    : "bg-amber-500/20 text-amber-400"
-                              }`}
-                            >
-                              {proof.status.charAt(0).toUpperCase() +
-                                proof.status.slice(1)}
-                            </span>
-                          </div>
-                          <p className="text-slate-300 text-sm mt-2">
-                            {proof.submissionText}
-                          </p>
-                          {proof.attachments.length > 0 && (
-                            <div className="flex gap-2 mt-3">
-                              {proof.attachments.map((att, i) => (
-                                <a
-                                  key={i}
-                                  href={att.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-cyan-400 text-sm hover:underline"
-                                >
-                                  📎 {att.filename || `Attachment ${i + 1}`}
-                                </a>
-                              ))}
-                            </div>
-                          )}
-                          {proof.status === "pending" && hasValidIdentity && (
-                            <div className="flex gap-3 mt-4">
-                              <button
-                                onClick={() =>
-                                  handleApproveProof(
-                                    proof._id,
-                                    proof.projectId?._id,
-                                  )
-                                }
-                                disabled={
-                                  actionLoading === `proof-${proof._id}`
-                                }
-                                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm transition disabled:opacity-50"
-                              >
-                                {actionLoading === `proof-${proof._id}`
-                                  ? "Processing..."
-                                  : "✓ Approve & Credit"}
-                              </button>
-                              <button
-                                onClick={() => {
-                                  const reason = prompt("Rejection reason:");
-                                  if (reason)
-                                    handleRejectProof(proof._id, reason);
-                                }}
-                                disabled={
-                                  actionLoading === `proof-${proof._id}`
-                                }
-                                className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg text-sm transition disabled:opacity-50"
-                              >
-                                ✕ Reject
-                              </button>
-                            </div>
-                          )}
-                          {proof.rejectionReason && (
-                            <p className="text-red-400 text-sm mt-2">
-                              Rejected: {proof.rejectionReason}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-slate-400">
-                      No proofs submitted yet
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Earnings Tab */}
-            {activeTab === "earnings" && (
-              <div className="space-y-6">
-                {/* Earnings Summary */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
-                    <p className="text-sm text-slate-400 mb-1">
-                      Total Earnings
-                    </p>
-                    <p className="text-3xl font-bold text-emerald-400">
-                      ${worker.totalEarnings.toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
-                    <p className="text-sm text-slate-400 mb-1">
-                      Pending Earnings
-                    </p>
-                    <p className="text-3xl font-bold text-amber-400">
-                      ${worker.pendingEarnings.toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
-                    <p className="text-sm text-slate-400 mb-1">Pay Rate</p>
-                    <p className="text-3xl font-bold text-white">
-                      ${worker.payRate}/task
-                    </p>
-                  </div>
-                </div>
-
-                {/* Projects Completed with Earnings */}
+              {/* Applications Tab */}
+              {activeTab === "applications" && (
                 <div className="bg-slate-800/50 rounded-xl border border-slate-700/50">
                   <div className="p-6 border-b border-slate-700/50">
                     <h2 className="text-lg font-semibold text-white">
-                      Earnings Breakdown
+                      Job Applications
                     </h2>
                   </div>
                   <div className="p-6">
-                    {worker.projectsCompleted.length > 0 ? (
+                    <div className="bg-slate-900/50 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h3 className="text-white font-medium">
+                            {worker.positionTitle}
+                          </h3>
+                          <p className="text-sm text-slate-400">
+                            Applied on{" "}
+                            {new Date(worker.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <span
+                          className={`px-3 py-1 rounded-full text-sm ${
+                            worker.status === "approved"
+                              ? "bg-emerald-500/20 text-emerald-400"
+                              : worker.status === "rejected"
+                                ? "bg-red-500/20 text-red-400"
+                                : "bg-amber-500/20 text-amber-400"
+                          }`}
+                        >
+                          {worker.status.charAt(0).toUpperCase() +
+                            worker.status.slice(1)}
+                        </span>
+                      </div>
+                      {worker.resumeUrl && (
+                        <a
+                          href={worker.resumeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-cyan-400 text-sm hover:underline"
+                        >
+                          📄 View Resume
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Screening Tab */}
+              {activeTab === "screening" && (
+                <div className="bg-slate-800/50 rounded-xl border border-slate-700/50">
+                  <div className="p-6 border-b border-slate-700/50">
+                    <h2 className="text-lg font-semibold text-white">
+                      Screening & Tests
+                    </h2>
+                  </div>
+                  <div className="p-6">
+                    {/* Attempt Status */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                      <div className="bg-slate-900/50 rounded-lg p-4">
+                        <p className="text-sm text-slate-400">Attempts Used</p>
+                        <p className="text-2xl font-bold text-white">
+                          {worker.attemptCount} / {worker.maxAttempts}
+                        </p>
+                      </div>
+                      <div className="bg-slate-900/50 rounded-lg p-4">
+                        <p className="text-sm text-slate-400">
+                          Screenings Completed
+                        </p>
+                        <p className="text-2xl font-bold text-white">
+                          {worker.screeningsCompleted.length}
+                        </p>
+                      </div>
+                      <div className="bg-slate-900/50 rounded-lg p-4">
+                        <p className="text-sm text-slate-400">Tests Passed</p>
+                        <p className="text-2xl font-bold text-emerald-400">
+                          {worker.testsCompleted.filter((t) => t.passed).length}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Screening History */}
+                    {worker.screeningsCompleted.length > 0 ? (
                       <div className="space-y-3">
-                        {worker.projectsCompleted.map((p, i) => (
+                        <h3 className="text-white font-medium mb-3">
+                          Screening History
+                        </h3>
+                        {worker.screeningsCompleted.map((s, i) => (
                           <div
                             key={i}
                             className="bg-slate-900/50 rounded-lg p-4 flex items-center justify-between"
                           >
                             <div>
-                              <p className="text-white">Project #{i + 1}</p>
+                              <p className="text-white">Screening #{i + 1}</p>
                               <p className="text-sm text-slate-400">
                                 Completed{" "}
-                                {new Date(p.completedAt).toLocaleDateString()}
+                                {new Date(s.completedAt).toLocaleDateString()}
                               </p>
                             </div>
-                            <span className="text-emerald-400 font-bold">
-                              +${p.earnings.toFixed(2)}
+                            <span
+                              className={`px-3 py-1 rounded-full text-sm ${s.score >= 70 ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"}`}
+                            >
+                              {s.score}%
                             </span>
                           </div>
                         ))}
                       </div>
                     ) : (
                       <div className="text-center py-8 text-slate-400">
-                        No completed projects yet
+                        No screenings completed yet
+                      </div>
+                    )}
+
+                    {/* Test History */}
+                    {worker.testsCompleted.length > 0 && (
+                      <div className="mt-6 space-y-3">
+                        <h3 className="text-white font-medium mb-3">
+                          Test History
+                        </h3>
+                        {worker.testsCompleted.map((t, i) => (
+                          <div
+                            key={i}
+                            className="bg-slate-900/50 rounded-lg p-4 flex items-center justify-between"
+                          >
+                            <div>
+                              <p className="text-white">Test #{i + 1}</p>
+                              <p className="text-sm text-slate-400">
+                                {new Date(t.completedAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-white">{t.score}%</span>
+                              <span
+                                className={`px-3 py-1 rounded-full text-sm ${t.passed ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"}`}
+                              >
+                                {t.passed ? "Passed" : "Failed"}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Manual Status Override for test_submitted */}
+                    {hasValidIdentity &&
+                      worker.workerStatus === "test_submitted" && (
+                        <div className="mt-6 bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
+                          <h3 className="text-purple-400 font-medium mb-3">
+                            ⚡ Test Pending Review
+                          </h3>
+                          <p className="text-slate-300 text-sm mb-4">
+                            Worker has submitted their test. Review and mark as
+                            passed or failed.
+                          </p>
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => {
+                                setNewStatus("ready_to_work");
+                                handleStatusChange();
+                              }}
+                              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition"
+                            >
+                              ✓ Pass - Ready to Work
+                            </button>
+                            <button
+                              onClick={() => {
+                                setNewStatus("failed");
+                                handleStatusChange();
+                              }}
+                              className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition"
+                            >
+                              ✕ Fail Test
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                  </div>
+                </div>
+              )}
+
+              {/* Projects Tab */}
+              {activeTab === "projects" && (
+                <div className="bg-slate-800/50 rounded-xl border border-slate-700/50">
+                  <div className="p-6 border-b border-slate-700/50 flex items-center justify-between">
+                    <h2 className="text-lg font-semibold text-white">
+                      Projects
+                    </h2>
+                    {hasValidIdentity &&
+                      worker.workerStatus === "ready_to_work" && (
+                        <button
+                          onClick={() => setShowAssignModal(true)}
+                          className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm transition"
+                        >
+                          + Assign Project
+                        </button>
+                      )}
+                  </div>
+                  <div className="p-6">
+                    {projects.length > 0 ? (
+                      <div className="space-y-4">
+                        {projects.map((project) => (
+                          <div
+                            key={project._id}
+                            className="bg-slate-900/50 rounded-lg p-4"
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div>
+                                <h3 className="text-white font-medium">
+                                  {project.title}
+                                </h3>
+                                <p className="text-sm text-slate-400">
+                                  {project.category} • ${project.payRate}/{" "}
+                                  {project.payType}
+                                </p>
+                              </div>
+                              <span
+                                className={`px-3 py-1 rounded-full text-sm ${
+                                  project.status === "completed"
+                                    ? "bg-emerald-500/20 text-emerald-400"
+                                    : project.status === "in_progress"
+                                      ? "bg-blue-500/20 text-blue-400"
+                                      : project.status === "assigned"
+                                        ? "bg-cyan-500/20 text-cyan-400"
+                                        : "bg-slate-500/20 text-slate-400"
+                                }`}
+                              >
+                                {project.status.replace("_", " ")}
+                              </span>
+                            </div>
+                            {project.description && (
+                              <p className="text-slate-400 text-sm mt-2">
+                                {project.description}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-4 mt-3 text-xs text-slate-500">
+                              {project.assignedAt && (
+                                <span>
+                                  Assigned:{" "}
+                                  {new Date(
+                                    project.assignedAt,
+                                  ).toLocaleDateString()}
+                                </span>
+                              )}
+                              {project.completedAt && (
+                                <span>
+                                  Completed:{" "}
+                                  {new Date(
+                                    project.completedAt,
+                                  ).toLocaleDateString()}
+                                </span>
+                              )}
+                              {project.earningsCredited && (
+                                <span className="text-emerald-400">
+                                  Credited: ${project.earningsCredited}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-slate-400">
+                        No projects assigned yet
                       </div>
                     )}
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Activity Log Tab */}
-            {activeTab === "activity" && (
-              <div className="bg-slate-800/50 rounded-xl border border-slate-700/50">
-                <div className="p-6 border-b border-slate-700/50">
-                  <h2 className="text-lg font-semibold text-white">
-                    Activity Timeline
-                  </h2>
-                </div>
-                <div className="p-6">
-                  {activities.length > 0 ? (
-                    <div className="space-y-4">
-                      {activities.map((event, i) => (
-                        <div key={event._id} className="flex gap-4">
-                          <div className="flex flex-col items-center">
-                            <div
-                              className={`w-3 h-3 rounded-full ${
-                                event.type.includes("completed") ||
-                                event.type.includes("passed")
-                                  ? "bg-emerald-500"
-                                  : event.type.includes("failed")
-                                    ? "bg-red-500"
-                                    : "bg-cyan-500"
-                              }`}
-                            />
-                            {i < activities.length - 1 && (
-                              <div className="w-0.5 h-full bg-slate-700 mt-1" />
+              {/* Proofs Tab */}
+              {activeTab === "proofs" && (
+                <div className="bg-slate-800/50 rounded-xl border border-slate-700/50">
+                  <div className="p-6 border-b border-slate-700/50">
+                    <h2 className="text-lg font-semibold text-white">
+                      Proof of Work
+                    </h2>
+                  </div>
+                  <div className="p-6">
+                    {proofs.length > 0 ? (
+                      <div className="space-y-4">
+                        {proofs.map((proof) => (
+                          <div
+                            key={proof._id}
+                            className="bg-slate-900/50 rounded-lg p-4"
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div>
+                                <h3 className="text-white font-medium">
+                                  {proof.projectId?.title || "Unknown Project"}
+                                </h3>
+                                <p className="text-sm text-slate-400">
+                                  Submitted{" "}
+                                  {new Date(
+                                    proof.createdAt,
+                                  ).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <span
+                                className={`px-3 py-1 rounded-full text-sm ${
+                                  proof.status === "approved"
+                                    ? "bg-emerald-500/20 text-emerald-400"
+                                    : proof.status === "rejected"
+                                      ? "bg-red-500/20 text-red-400"
+                                      : "bg-amber-500/20 text-amber-400"
+                                }`}
+                              >
+                                {proof.status.charAt(0).toUpperCase() +
+                                  proof.status.slice(1)}
+                              </span>
+                            </div>
+                            <p className="text-slate-300 text-sm mt-2">
+                              {proof.submissionText}
+                            </p>
+                            {proof.attachments.length > 0 && (
+                              <div className="flex gap-2 mt-3">
+                                {proof.attachments.map((att, i) => (
+                                  <a
+                                    key={i}
+                                    href={att.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-cyan-400 text-sm hover:underline"
+                                  >
+                                    📎 {att.filename || `Attachment ${i + 1}`}
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+                            {proof.status === "pending" && hasValidIdentity && (
+                              <div className="flex gap-3 mt-4">
+                                <button
+                                  onClick={() =>
+                                    handleApproveProof(
+                                      proof._id,
+                                      proof.projectId?._id,
+                                    )
+                                  }
+                                  disabled={
+                                    actionLoading === `proof-${proof._id}`
+                                  }
+                                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm transition disabled:opacity-50"
+                                >
+                                  {actionLoading === `proof-${proof._id}`
+                                    ? "Processing..."
+                                    : "✓ Approve & Credit"}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    const reason = prompt("Rejection reason:");
+                                    if (reason)
+                                      handleRejectProof(proof._id, reason);
+                                  }}
+                                  disabled={
+                                    actionLoading === `proof-${proof._id}`
+                                  }
+                                  className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg text-sm transition disabled:opacity-50"
+                                >
+                                  ✕ Reject
+                                </button>
+                              </div>
+                            )}
+                            {proof.rejectionReason && (
+                              <p className="text-red-400 text-sm mt-2">
+                                Rejected: {proof.rejectionReason}
+                              </p>
                             )}
                           </div>
-                          <div className="pb-4">
-                            <p className="text-white">{event.description}</p>
-                            <p className="text-sm text-slate-400">
-                              {new Date(event.timestamp).toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-slate-400">
-                      No activity recorded yet
-                    </div>
-                  )}
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-slate-400">
+                        No proofs submitted yet
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
+              )}
+
+              {/* Earnings Tab */}
+              {activeTab === "earnings" && (
+                <div className="space-y-6">
+                  {/* Earnings Summary */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
+                      <p className="text-sm text-slate-400 mb-1">
+                        Total Earnings
+                      </p>
+                      <p className="text-3xl font-bold text-emerald-400">
+                        ${worker.totalEarnings.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
+                      <p className="text-sm text-slate-400 mb-1">
+                        Pending Earnings
+                      </p>
+                      <p className="text-3xl font-bold text-amber-400">
+                        ${worker.pendingEarnings.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
+                      <p className="text-sm text-slate-400 mb-1">Pay Rate</p>
+                      <p className="text-3xl font-bold text-white">
+                        ${worker.payRate}/task
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Projects Completed with Earnings */}
+                  <div className="bg-slate-800/50 rounded-xl border border-slate-700/50">
+                    <div className="p-6 border-b border-slate-700/50">
+                      <h2 className="text-lg font-semibold text-white">
+                        Earnings Breakdown
+                      </h2>
+                    </div>
+                    <div className="p-6">
+                      {worker.projectsCompleted.length > 0 ? (
+                        <div className="space-y-3">
+                          {worker.projectsCompleted.map((p, i) => (
+                            <div
+                              key={i}
+                              className="bg-slate-900/50 rounded-lg p-4 flex items-center justify-between"
+                            >
+                              <div>
+                                <p className="text-white">Project #{i + 1}</p>
+                                <p className="text-sm text-slate-400">
+                                  Completed{" "}
+                                  {new Date(p.completedAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <span className="text-emerald-400 font-bold">
+                                +${p.earnings.toFixed(2)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-slate-400">
+                          No completed projects yet
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Activity Log Tab */}
+              {activeTab === "activity" && (
+                <div className="bg-slate-800/50 rounded-xl border border-slate-700/50">
+                  <div className="p-6 border-b border-slate-700/50">
+                    <h2 className="text-lg font-semibold text-white">
+                      Activity Timeline
+                    </h2>
+                  </div>
+                  <div className="p-6">
+                    {activities.length > 0 ? (
+                      <div className="space-y-4">
+                        {activities.map((event, i) => (
+                          <div key={event._id} className="flex gap-4">
+                            <div className="flex flex-col items-center">
+                              <div
+                                className={`w-3 h-3 rounded-full ${
+                                  event.type.includes("completed") ||
+                                  event.type.includes("passed")
+                                    ? "bg-emerald-500"
+                                    : event.type.includes("failed")
+                                      ? "bg-red-500"
+                                      : "bg-cyan-500"
+                                }`}
+                              />
+                              {i < activities.length - 1 && (
+                                <div className="w-0.5 h-full bg-slate-700 mt-1" />
+                              )}
+                            </div>
+                            <div className="pb-4">
+                              <p className="text-white">{event.description}</p>
+                              <p className="text-sm text-slate-400">
+                                {new Date(event.timestamp).toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-slate-400">
+                        No activity recorded yet
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Status Change Modal */}
