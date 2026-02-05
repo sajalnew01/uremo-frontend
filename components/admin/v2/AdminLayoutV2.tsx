@@ -92,7 +92,7 @@ export default function AdminLayoutV2({ children }: { children: ReactNode }) {
         apiRequest("/api/admin/orders", "GET", null, true),
         apiRequest("/api/admin/tickets", "GET", null, true),
         apiRequest("/api/admin/proofs", "GET", null, true),
-        apiRequest("/api/admin/applications", "GET", null, true),
+        apiRequest("/api/apply-work/admin", "GET", null, true),
         apiRequest("/api/admin/workspace/screenings", "GET", null, true),
         apiRequest("/api/admin/affiliate/withdrawals", "GET", null, true),
       ]);
