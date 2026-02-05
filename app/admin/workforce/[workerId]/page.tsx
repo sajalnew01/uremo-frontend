@@ -10,6 +10,10 @@ import {
   ConfirmActionModal,
   ActionType,
 } from "@/components/admin/ConfirmActionModal";
+import {
+  WorkerLifecycleTimeline,
+  WorkerRiskIndicators,
+} from "@/components/workforce";
 
 /**
  * PATCH_62: Worker Command Center
@@ -730,6 +734,36 @@ export default function Worker360Page() {
     return "Review worker status and take appropriate action.";
   };
 
+  // PATCH_65: State transition helper - shows what each action will do
+  const getStateTransitionInfo = (
+    action: string,
+  ): { from: string; to: string; icon: string } => {
+    const transitions: Record<
+      string,
+      { from: string; to: string; icon: string }
+    > = {
+      "approve-app": {
+        from: "Applied (Pending)",
+        to: "Screening Unlocked",
+        icon: "✓",
+      },
+      "reject-app": { from: "Applied", to: "Rejected", icon: "✕" },
+      "unlock-screening": {
+        from: "Applied (Approved)",
+        to: "Screening Unlocked",
+        icon: "🔓",
+      },
+      "pass-test": { from: "Test Submitted", to: "Ready to Work", icon: "✓" },
+      "fail-test": { from: "Test Submitted", to: "Failed", icon: "✕" },
+      "allow-retry": { from: "Failed", to: "Screening Unlocked", icon: "🔄" },
+      "assign-project": { from: "Ready to Work", to: "Assigned", icon: "📦" },
+      "approve-proof": { from: "Proof Submitted", to: "Completed", icon: "💰" },
+      suspend: { from: "Current Status", to: "Suspended", icon: "🚫" },
+      unsuspend: { from: "Suspended", to: "Ready to Work", icon: "✅" },
+    };
+    return transitions[action] || { from: "—", to: "—", icon: "?" };
+  };
+
   // Identity validation - BLOCK actions if user data is missing
   const hasValidIdentity =
     worker?.user?._id && worker?.user?.email && worker?.user?.firstName;
@@ -880,115 +914,42 @@ export default function Worker360Page() {
                 <p className="text-sm text-slate-400 max-w-[250px] text-left lg:text-right">
                   {STATUS_DESCRIPTIONS[worker.workerStatus] || "Status unknown"}
                 </p>
+
+                {/* PATCH-65: Risk Indicators */}
+                <div className="mt-2">
+                  <WorkerRiskIndicators
+                    workerStatus={worker.workerStatus}
+                    applicationStatus={worker.status}
+                    isFailed={worker.workerStatus === "failed"}
+                    isSuspended={worker.workerStatus === "suspended"}
+                    attemptCount={worker.attemptCount}
+                    maxAttempts={worker.maxAttempts}
+                    projectsCompleted={worker.projectsCompleted?.length || 0}
+                    createdAt={worker.createdAt}
+                    updatedAt={worker.updatedAt}
+                    size="sm"
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* SECTION 2: JOURNEY TIMELINE */}
-      <div className="bg-slate-800/30 border-b border-slate-700/50 py-4 overflow-x-auto">
+      {/* SECTION 2: JOURNEY TIMELINE - PATCH-65 Enhanced */}
+      <div className="bg-slate-800/30 border-b border-slate-700/50 py-4">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center justify-between min-w-[800px]">
-            {JOURNEY_STEPS.map((step, index) => {
-              // Determine step state
-              const stepOrder = JOURNEY_STEPS.findIndex(
-                (s) => s.key === step.key,
-              );
-              const currentOrder = JOURNEY_STEPS.findIndex(
-                (s) =>
-                  s.key === worker.workerStatus ||
-                  (worker.workerStatus === "approved" &&
-                    s.key === "approved") ||
-                  (worker.status === "approved" &&
-                    step.key === "approved" &&
-                    worker.workerStatus !== "applied"),
-              );
-
-              // Special handling for different states
-              let isCurrent = step.key === worker.workerStatus;
-              let isCompleted = false;
-              let isFailed =
-                worker.workerStatus === "failed" &&
-                step.key === "test_submitted";
-
-              // Mark as approved if status is approved
-              if (step.key === "approved" && worker.status === "approved") {
-                isCompleted = true;
-              }
-
-              // Determine completed steps based on current status
-              const statusProgress: Record<string, number> = {
-                applied: 0,
-                approved: 1,
-                screening_unlocked: 2,
-                training_viewed: 3,
-                test_submitted: 4,
-                ready_to_work: 5,
-                assigned: 6,
-                working: 7,
-                proof_submitted: 8,
-                completed: 9,
-              };
-
-              const currentProgress = statusProgress[worker.workerStatus] || 0;
-              const stepProgress = statusProgress[step.key] || 0;
-
-              // Account for approved status
-              if (worker.status === "approved" && stepProgress <= 1) {
-                isCompleted =
-                  stepProgress < currentProgress || step.key === "approved";
-              } else {
-                isCompleted = stepProgress < currentProgress;
-              }
-
-              // Special handling for failed state
-              if (worker.workerStatus === "failed") {
-                isCurrent = step.key === "test_submitted";
-                isFailed = true;
-              }
-
-              return (
-                <div key={step.key} className="flex items-center">
-                  <div className="flex flex-col items-center">
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center text-lg border-2 transition-all ${
-                        isCurrent
-                          ? isFailed
-                            ? "bg-red-500/30 border-red-500 text-red-300"
-                            : "bg-cyan-500/30 border-cyan-500 text-cyan-300 ring-4 ring-cyan-500/20"
-                          : isCompleted
-                            ? "bg-emerald-500/30 border-emerald-500 text-emerald-300"
-                            : "bg-slate-700/30 border-slate-600 text-slate-500"
-                      }`}
-                    >
-                      {isCompleted ? "✓" : isFailed ? "✕" : step.icon}
-                    </div>
-                    <p
-                      className={`text-xs mt-1 whitespace-nowrap ${
-                        isCurrent
-                          ? isFailed
-                            ? "text-red-400 font-medium"
-                            : "text-cyan-400 font-medium"
-                          : isCompleted
-                            ? "text-emerald-400"
-                            : "text-slate-500"
-                      }`}
-                    >
-                      {step.label}
-                    </p>
-                  </div>
-                  {index < JOURNEY_STEPS.length - 1 && (
-                    <div
-                      className={`w-8 h-0.5 mx-1 ${
-                        isCompleted ? "bg-emerald-500" : "bg-slate-700"
-                      }`}
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <WorkerLifecycleTimeline
+            currentStatus={worker.workerStatus}
+            applicationStatus={worker.status}
+            createdAt={worker.createdAt}
+            approvedAt={worker.approvedAt}
+            approvedBy={worker.approvedBy}
+            trainingViewedAt={worker.trainingViewedAt}
+            isFailed={worker.workerStatus === "failed"}
+            isSuspended={worker.workerStatus === "suspended"}
+            layout="horizontal"
+          />
         </div>
       </div>
 
@@ -1018,7 +979,8 @@ export default function Worker360Page() {
                     <button
                       onClick={handleApproveApplication}
                       disabled={actionLoading === "approve-app"}
-                      className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition disabled:opacity-50 flex items-center gap-2"
+                      title="Approves application and unlocks screening access (Applied → Screening Unlocked)"
+                      className="group px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition disabled:opacity-50 flex items-center gap-2"
                     >
                       {actionLoading === "approve-app"
                         ? "Processing..."
@@ -1030,6 +992,7 @@ export default function Worker360Page() {
                         if (reason) handleRejectApplication(reason);
                       }}
                       disabled={actionLoading === "reject-app"}
+                      title="Permanently rejects this application"
                       className="px-4 py-3 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition disabled:opacity-50"
                     >
                       Reject
@@ -1044,6 +1007,7 @@ export default function Worker360Page() {
                   <button
                     onClick={() => handleUnlockScreening()}
                     disabled={actionLoading === "unlock"}
+                    title="Unlocks training and screening test access (Applied → Screening Unlocked)"
                     className="px-6 py-3 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-medium transition disabled:opacity-50 flex items-center gap-2"
                   >
                     {actionLoading === "unlock"
@@ -1055,7 +1019,10 @@ export default function Worker360Page() {
               {/* Screening Unlocked / Training Viewed → Waiting */}
               {(worker.workerStatus === "screening_unlocked" ||
                 worker.workerStatus === "training_viewed") && (
-                <div className="px-6 py-3 bg-slate-700/50 text-slate-300 rounded-lg flex items-center gap-2">
+                <div
+                  className="px-6 py-3 bg-slate-700/50 text-slate-300 rounded-lg flex items-center gap-2"
+                  title="Worker is completing training - no action available until they submit their test"
+                >
                   <span className="animate-pulse">⏳</span>
                   Waiting for worker to submit test...
                 </div>
@@ -1067,6 +1034,7 @@ export default function Worker360Page() {
                   <button
                     onClick={() => handlePassTest()}
                     disabled={actionLoading === "pass-test"}
+                    title="Marks screening as passed - worker becomes Ready to Work"
                     className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition disabled:opacity-50 flex items-center gap-2"
                   >
                     {actionLoading === "pass-test"
@@ -1076,12 +1044,14 @@ export default function Worker360Page() {
                   <button
                     onClick={() => handleFailTest()}
                     disabled={actionLoading === "fail-test"}
+                    title="Marks screening as failed - worker can be given a retry later"
                     className="px-4 py-3 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition disabled:opacity-50"
                   >
                     ✕ Fail Screening
                   </button>
                   <Link
                     href="/admin/workspace/screenings"
+                    title="View the worker's submitted screening answers"
                     className="px-4 py-3 bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 rounded-lg transition"
                   >
                     View Answers →
@@ -1095,6 +1065,7 @@ export default function Worker360Page() {
                   <button
                     onClick={() => handleAllowRetry()}
                     disabled={actionLoading === "retry"}
+                    title="Resets worker status to Screening Unlocked so they can take the test again"
                     className="px-6 py-3 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-medium transition disabled:opacity-50 flex items-center gap-2"
                   >
                     {actionLoading === "retry"
@@ -1106,6 +1077,7 @@ export default function Worker360Page() {
                       const reason = prompt("Rejection reason:");
                       if (reason) handleRejectApplication(reason);
                     }}
+                    title="Permanently rejects this worker - they cannot apply again"
                     className="px-4 py-3 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition"
                   >
                     Reject Permanently
@@ -1117,6 +1089,7 @@ export default function Worker360Page() {
               {worker.workerStatus === "ready_to_work" && hasValidIdentity && (
                 <button
                   onClick={() => setShowAssignModal(true)}
+                  title="Opens project assignment modal - worker status will change to Assigned"
                   className="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-medium transition flex items-center gap-2"
                 >
                   📦 Assign Project
@@ -1130,6 +1103,7 @@ export default function Worker360Page() {
                   href={
                     worker.currentProject ? `/admin/workspace/projects` : "#"
                   }
+                  title="View the project this worker is currently assigned to"
                   className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-medium transition flex items-center gap-2"
                 >
                   👁️ View Active Project
@@ -1153,6 +1127,7 @@ export default function Worker360Page() {
                       }
                     }}
                     disabled={actionLoading?.startsWith("proof-")}
+                    title="Approves proof of work and credits earnings to worker's wallet"
                     className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition disabled:opacity-50 flex items-center gap-2"
                   >
                     {actionLoading?.startsWith("proof-")
@@ -1166,6 +1141,7 @@ export default function Worker360Page() {
                 <>
                   <button
                     onClick={() => setShowAssignModal(true)}
+                    title="Opens project assignment modal - worker status will change to Assigned"
                     className="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-medium transition flex items-center gap-2"
                   >
                     📦 Assign New Project
@@ -1175,6 +1151,7 @@ export default function Worker360Page() {
                       setNewStatus("inactive");
                       handleStatusChange();
                     }}
+                    title="Marks worker as inactive - they will not appear in active workforce lists"
                     className="px-4 py-3 bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 rounded-lg transition"
                   >
                     Archive Worker
@@ -1189,6 +1166,7 @@ export default function Worker360Page() {
                     setNewStatus("ready_to_work");
                     handleStatusChange();
                   }}
+                  title="Removes suspension and returns worker to Ready to Work status"
                   className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition"
                 >
                   Unsuspend Worker

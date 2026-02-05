@@ -5,6 +5,11 @@ export { default as WorkerTimelineModal } from "./WorkerTimelineModal";
 export { default as WorkerActionPanel } from "./WorkerActionPanel";
 export { default as PendingActionQueue } from "./PendingActionQueue";
 
+// PATCH-65: Enhanced visibility components
+export { default as WorkerLifecycleTimeline } from "./WorkerLifecycleTimeline";
+export { default as WorkerRiskIndicators, WorkerRiskBadges } from "./WorkerRiskIndicators";
+export { default as StateAwareActionPanel, getActionTransitionInfo } from "./StateAwareActionPanel";
+
 // Re-export types
 export type { WorkerData } from "./WorkerPipelineCard";
 export type {
