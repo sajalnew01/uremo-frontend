@@ -6,6 +6,10 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
+import {
+  ConfirmActionModal,
+  ActionType,
+} from "@/components/admin/ConfirmActionModal";
 
 /**
  * PATCH_62: Worker Command Center
@@ -220,6 +224,40 @@ export default function Worker360Page() {
   const [newStatus, setNewStatus] = useState("");
   const [adminNotes, setAdminNotes] = useState("");
   const [creditAmount, setCreditAmount] = useState(0);
+
+  // PATCH-64: Confirmation modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    actionType: ActionType;
+    title: string;
+    description: string;
+    details?: any;
+    warningMessage?: string;
+    confirmButtonText: string;
+    isDangerous: boolean;
+    onConfirm: () => Promise<void>;
+  }>({
+    isOpen: false,
+    actionType: "generic",
+    title: "",
+    description: "",
+    confirmButtonText: "Confirm",
+    isDangerous: false,
+    onConfirm: async () => {},
+  });
+
+  // PATCH-64: Helper to show confirmation modal
+  const showConfirmation = (config: Partial<typeof confirmModal>) => {
+    setConfirmModal({
+      ...confirmModal,
+      isOpen: true,
+      ...config,
+    } as typeof confirmModal);
+  };
+
+  const closeConfirmation = () => {
+    setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+  };
 
   // Load worker data
   const loadWorkerData = useCallback(async () => {
@@ -510,24 +548,41 @@ export default function Worker360Page() {
     }
   };
 
+  // PATCH-64: Wrapped with confirmation modal
   const handleApproveApplication = async () => {
     if (!worker) return;
 
-    setActionLoading("approve-app");
-    try {
-      await apiRequest(
-        `/api/apply-work/admin/${worker._id}`,
-        "PUT",
-        { status: "approved", workerStatus: "screening_unlocked" },
-        true,
-      );
-      toast("Application approved, screening unlocked", "success");
-      loadWorkerData();
-    } catch (error: any) {
-      toast(error.message || "Failed to approve application", "error");
-    } finally {
-      setActionLoading(null);
-    }
+    showConfirmation({
+      actionType: "worker_approve",
+      title: "Approve Worker Application",
+      description: `You are about to APPROVE this worker's application. This will unlock screening access.`,
+      details: {
+        workerName:
+          `${worker.user?.firstName || ""} ${worker.user?.lastName || ""}`.trim(),
+        workerEmail: worker.user?.email,
+        currentState: worker.workerStatus,
+        targetState: "screening_unlocked",
+      },
+      confirmButtonText: "Approve Application",
+      isDangerous: false,
+      onConfirm: async () => {
+        setActionLoading("approve-app");
+        try {
+          await apiRequest(
+            `/api/apply-work/admin/${worker._id}`,
+            "PUT",
+            { status: "approved", workerStatus: "screening_unlocked" },
+            true,
+          );
+          toast("Application approved, screening unlocked", "success");
+          loadWorkerData();
+        } catch (error: any) {
+          toast(error.message || "Failed to approve application", "error");
+        } finally {
+          setActionLoading(null);
+        }
+      },
+    });
   };
 
   const handleRejectApplication = async (reason: string) => {
@@ -1985,6 +2040,20 @@ export default function Worker360Page() {
           </div>
         </div>
       )}
+
+      {/* PATCH-64: Safety Confirmation Modal */}
+      <ConfirmActionModal
+        isOpen={confirmModal.isOpen}
+        onClose={closeConfirmation}
+        onConfirm={confirmModal.onConfirm}
+        actionType={confirmModal.actionType}
+        title={confirmModal.title}
+        description={confirmModal.description}
+        details={confirmModal.details}
+        warningMessage={confirmModal.warningMessage}
+        confirmButtonText={confirmModal.confirmButtonText}
+        isDangerous={confirmModal.isDangerous}
+      />
     </div>
   );
 }
