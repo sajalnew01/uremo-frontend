@@ -75,6 +75,7 @@ function ProjectsContent() {
     priority: "medium",
     earnings: 0,
     deadline: "",
+    screeningId: "", // PATCH_65.1: Link to screening test
   });
   const [creating, setCreating] = useState(false);
 
@@ -90,6 +91,24 @@ function ProjectsContent() {
   const [creditAmount, setCreditAmount] = useState<number>(0);
   const [creditRating, setCreditRating] = useState<number>(5);
   const [crediting, setCrediting] = useState(false);
+
+  // PATCH_65.1: View/Edit project state
+  const [viewModal, setViewModal] = useState<Project | null>(null);
+  const [editModal, setEditModal] = useState<Project | null>(null);
+  const [editForm, setEditForm] = useState({
+    title: "",
+    description: "",
+    category: "microjobs",
+    instructions: "",
+    payRate: 0,
+    payType: "per_task",
+    deadline: "",
+    status: "open",
+    screeningId: "",
+  });
+  const [updating, setUpdating] = useState(false);
+  const [viewLoading, setViewLoading] = useState(false);
+  const [viewData, setViewData] = useState<any>(null);
 
   useEffect(() => {
     loadProjects();
@@ -234,6 +253,7 @@ function ProjectsContent() {
         priority: "medium",
         earnings: 0,
         deadline: "",
+        screeningId: "",
       });
       loadProjects();
     } catch (e: any) {
@@ -283,6 +303,83 @@ function ProjectsContent() {
       setError(e.message || "Failed to credit earnings");
     } finally {
       setCrediting(false);
+    }
+  };
+
+  // PATCH_65.1: View project details
+  const handleViewProject = async (project: Project) => {
+    setViewModal(project);
+    setViewLoading(true);
+    try {
+      const res = await apiRequest<any>(
+        `/api/admin/workspace/project/${project._id}`,
+        "GET",
+        null,
+        true,
+      );
+      setViewData(res);
+    } catch (e: any) {
+      setError(e.message || "Failed to load project details");
+      setViewModal(null);
+    } finally {
+      setViewLoading(false);
+    }
+  };
+
+  // PATCH_65.1: Open edit modal with project data
+  const handleOpenEdit = (project: Project) => {
+    setEditForm({
+      title: project.title || "",
+      description: project.description || "",
+      category: project.category || "microjobs",
+      instructions: (project as any).instructions || "",
+      payRate: project.earnings || 0,
+      payType: (project as any).payType || "per_task",
+      deadline: project.deadline ? project.deadline.split("T")[0] : "",
+      status: project.status || "open",
+      screeningId: (project as any).screeningId || "",
+    });
+    setEditModal(project);
+  };
+
+  // PATCH_65.1: Handle update project
+  const handleUpdateProject = async () => {
+    if (!editModal) return;
+
+    setUpdating(true);
+    setError(null);
+    try {
+      await apiRequest(
+        `/api/admin/workspace/project/${editModal._id}`,
+        "PUT",
+        editForm,
+        true,
+      );
+      setSuccess("Project updated successfully!");
+      setEditModal(null);
+      loadProjects();
+    } catch (e: any) {
+      setError(e.message || "Failed to update project");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // PATCH_65.1: Handle delete project
+  const handleDeleteProject = async (project: Project) => {
+    if (!confirm(`Are you sure you want to delete "${project.title}"?`)) return;
+
+    try {
+      await apiRequest(
+        `/api/admin/workspace/project/${project._id}`,
+        "DELETE",
+        null,
+        true,
+      );
+      setSuccess("Project deleted successfully!");
+      loadProjects();
+    } catch (e: any) {
+      setError(e.message || "Failed to delete project");
     }
   };
 
@@ -569,7 +666,38 @@ function ProjectsContent() {
                     </p>
                     <p className="text-xs text-slate-500">Payout</p>
                   </div>
-                  {project.status === "pending" && (
+
+                  {/* PATCH_65.1: View/Edit/Delete buttons */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleViewProject(project)}
+                      className="px-3 py-1.5 text-xs bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 rounded-lg transition"
+                      title="View project details"
+                    >
+                      👁️ View
+                    </button>
+                    {!["completed", "cancelled"].includes(project.status) && (
+                      <button
+                        onClick={() => handleOpenEdit(project)}
+                        className="px-3 py-1.5 text-xs bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 rounded-lg transition"
+                        title="Edit project"
+                      >
+                        ✏️ Edit
+                      </button>
+                    )}
+                    {["draft", "open", "pending"].includes(project.status) && (
+                      <button
+                        onClick={() => handleDeleteProject(project)}
+                        className="px-3 py-1.5 text-xs bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition"
+                        title="Delete project"
+                      >
+                        🗑️
+                      </button>
+                    )}
+                  </div>
+
+                  {(project.status === "pending" ||
+                    project.status === "open") && (
                     <button
                       onClick={() => setAssignModal(project)}
                       className="btn-secondary text-sm"
@@ -692,6 +820,10 @@ function ProjectsContent() {
                     <option value="data-entry">Data Entry</option>
                     <option value="content">Content</option>
                     <option value="research">Research</option>
+                    <option value="writing">Writing</option>
+                    <option value="teaching">Teaching</option>
+                    <option value="coding_math">Coding & Math</option>
+                    <option value="outlier">Outlier</option>
                     <option value="other">Other</option>
                   </select>
                 </div>
@@ -713,6 +845,33 @@ function ProjectsContent() {
                   </select>
                 </div>
               </div>
+
+              {/* PATCH_65.1: Linked Screening Selection */}
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">
+                  Required Screening Test
+                </label>
+                <select
+                  value={(form as any).screeningId || ""}
+                  onChange={(e) =>
+                    setForm({ ...form, screeningId: e.target.value } as any)
+                  }
+                  className="input w-full"
+                >
+                  <option value="">No screening required</option>
+                  {screenings
+                    .filter((s) => s.category === form.category || !s.category)
+                    .map((s) => (
+                      <option key={s._id} value={s._id}>
+                        {s.title} ({s.category})
+                      </option>
+                    ))}
+                </select>
+                <p className="text-xs text-slate-500 mt-1">
+                  Only workers who passed this screening can be assigned
+                </p>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-slate-400 mb-1">
@@ -898,6 +1057,387 @@ function ProjectsContent() {
                   : `Credit $${creditAmount.toFixed(2)}`}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* PATCH_65.1: View Project Modal */}
+      {viewModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-white">
+                Project Details
+              </h2>
+              <button
+                onClick={() => {
+                  setViewModal(null);
+                  setViewData(null);
+                }}
+                className="text-slate-400 hover:text-white text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            {viewLoading ? (
+              <div className="text-center py-8 text-slate-400">
+                Loading project details...
+              </div>
+            ) : viewData ? (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-white">
+                    {viewData.project?.title}
+                  </h3>
+                  <div className="flex gap-2 mt-2">
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-xs ${getStatusBadge(viewData.project?.status)}`}
+                    >
+                      {viewData.project?.status}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-xs bg-slate-700 text-slate-300">
+                      {viewData.project?.category}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-3 bg-slate-700/50 rounded-lg">
+                    <p className="text-xs text-slate-400">Pay Rate</p>
+                    <p className="text-lg font-semibold text-emerald-400">
+                      ${viewData.project?.payRate?.toFixed(2) || "0.00"}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {viewData.project?.payType || "per_task"}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-slate-700/50 rounded-lg">
+                    <p className="text-xs text-slate-400">Earnings Credited</p>
+                    <p className="text-lg font-semibold text-cyan-400">
+                      $
+                      {viewData.project?.earningsCredited?.toFixed(2) || "0.00"}
+                    </p>
+                    {viewData.project?.creditedAt && (
+                      <p className="text-xs text-slate-500">
+                        {new Date(
+                          viewData.project.creditedAt,
+                        ).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {viewData.project?.description && (
+                  <div>
+                    <p className="text-xs text-slate-400 mb-1">Description</p>
+                    <p className="text-sm text-slate-300">
+                      {viewData.project.description}
+                    </p>
+                  </div>
+                )}
+
+                {viewData.project?.instructions && (
+                  <div>
+                    <p className="text-xs text-slate-400 mb-1">Instructions</p>
+                    <p className="text-sm text-slate-300 whitespace-pre-wrap">
+                      {viewData.project.instructions}
+                    </p>
+                  </div>
+                )}
+
+                {viewData.workerProfile && (
+                  <div className="p-3 bg-cyan-900/20 border border-cyan-500/20 rounded-lg">
+                    <p className="text-xs text-slate-400 mb-1">
+                      Assigned Worker
+                    </p>
+                    <p className="text-sm text-white">
+                      {viewData.workerProfile.user?.firstName}{" "}
+                      {viewData.workerProfile.user?.lastName}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {viewData.workerProfile.user?.email}
+                    </p>
+                    <p className="text-xs text-cyan-400 mt-1">
+                      Status: {viewData.workerProfile.workerStatus}
+                    </p>
+                  </div>
+                )}
+
+                {viewData.proofs && viewData.proofs.length > 0 && (
+                  <div>
+                    <p className="text-xs text-slate-400 mb-2">
+                      Proofs of Work ({viewData.proofs.length})
+                    </p>
+                    <div className="space-y-2">
+                      {viewData.proofs.map((proof: any) => (
+                        <div
+                          key={proof._id}
+                          className="p-2 bg-slate-700/50 rounded-lg"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-xs ${
+                                proof.status === "approved"
+                                  ? "bg-emerald-500/20 text-emerald-400"
+                                  : proof.status === "rejected"
+                                    ? "bg-red-500/20 text-red-400"
+                                    : "bg-amber-500/20 text-amber-400"
+                              }`}
+                            >
+                              {proof.status}
+                            </span>
+                            <span className="text-xs text-slate-400">
+                              {new Date(proof.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          {proof.notes && (
+                            <p className="text-xs text-slate-300 mt-1">
+                              {proof.notes}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-4 border-t border-slate-700">
+                  <button
+                    onClick={() => {
+                      setViewModal(null);
+                      setViewData(null);
+                    }}
+                    className="btn-secondary flex-1"
+                  >
+                    Close
+                  </button>
+                  {!["completed", "cancelled"].includes(
+                    viewData.project?.status,
+                  ) && (
+                    <button
+                      onClick={() => {
+                        setViewModal(null);
+                        setViewData(null);
+                        handleOpenEdit(viewData.project);
+                      }}
+                      className="btn-primary flex-1"
+                    >
+                      ✏️ Edit Project
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-red-400">
+                Failed to load project details
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* PATCH_65.1: Edit Project Modal */}
+      {editModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-white">Edit Project</h2>
+              <button
+                onClick={() => setEditModal(null)}
+                className="text-slate-400 hover:text-white text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleUpdateProject();
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">
+                  Title *
+                </label>
+                <input
+                  type="text"
+                  value={editForm.title}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, title: e.target.value })
+                  }
+                  className="input w-full"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={editForm.description}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, description: e.target.value })
+                  }
+                  className="input w-full"
+                  rows={3}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-slate-400 mb-1">
+                    Category
+                  </label>
+                  <select
+                    value={editForm.category}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, category: e.target.value })
+                    }
+                    className="input w-full"
+                  >
+                    <option value="microjobs">Microjobs</option>
+                    <option value="writing">Writing</option>
+                    <option value="teaching">Teaching</option>
+                    <option value="coding_math">Coding & Math</option>
+                    <option value="outlier">Outlier</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-400 mb-1">
+                    Status
+                  </label>
+                  <select
+                    value={editForm.status}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, status: e.target.value })
+                    }
+                    className="input w-full"
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="open">Open</option>
+                    <option value="assigned">Assigned</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-slate-400 mb-1">
+                    Pay Rate ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={editForm.payRate}
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        payRate: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="input w-full"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-400 mb-1">
+                    Pay Type
+                  </label>
+                  <select
+                    value={editForm.payType}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, payType: e.target.value })
+                    }
+                    className="input w-full"
+                  >
+                    <option value="per_task">Per Task</option>
+                    <option value="hourly">Hourly</option>
+                    <option value="fixed">Fixed</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">
+                  Linked Screening Test
+                </label>
+                <select
+                  value={editForm.screeningId}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, screeningId: e.target.value })
+                  }
+                  className="input w-full"
+                >
+                  <option value="">No screening required</option>
+                  {screenings
+                    .filter(
+                      (s) => s.category === editForm.category || !s.category,
+                    )
+                    .map((s) => (
+                      <option key={s._id} value={s._id}>
+                        {s.title} ({s.category})
+                      </option>
+                    ))}
+                </select>
+                <p className="text-xs text-slate-500 mt-1">
+                  Only workers who passed this screening can be assigned
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">
+                  Instructions
+                </label>
+                <textarea
+                  value={editForm.instructions}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, instructions: e.target.value })
+                  }
+                  className="input w-full"
+                  rows={4}
+                  placeholder="Detailed instructions for the worker..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">
+                  Deadline
+                </label>
+                <input
+                  type="date"
+                  value={editForm.deadline}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, deadline: e.target.value })
+                  }
+                  className="input w-full"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setEditModal(null)}
+                  className="btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updating || !editForm.title}
+                  className="btn-primary flex-1 disabled:opacity-50"
+                >
+                  {updating ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
