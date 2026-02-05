@@ -257,6 +257,35 @@ export default function WorkerPipelineCard({
   const renderIndicators = () => {
     const indicators = [];
 
+    // PATCH-65.1: Show project binding warning if assigned but no project visible
+    if (
+      (workerStatus === "assigned" || workerStatus === "working") &&
+      !worker.currentProject
+    ) {
+      indicators.push(
+        <span
+          key="no-project-warning"
+          className="px-1.5 py-0.5 text-[10px] bg-red-500/20 text-red-300 rounded flex items-center gap-1"
+          title="Worker is assigned but no project is visible - data inconsistency"
+        >
+          ⚠️ No Project
+        </span>,
+      );
+    }
+
+    // PATCH-65.1: Show current project if exists
+    if (worker.currentProject) {
+      indicators.push(
+        <span
+          key="project"
+          className="px-1.5 py-0.5 text-[10px] bg-cyan-500/20 text-cyan-300 rounded truncate max-w-[120px]"
+          title={worker.currentProject.title}
+        >
+          📦 {worker.currentProject.title}
+        </span>,
+      );
+    }
+
     if (workerStatus === "test_submitted") {
       indicators.push(
         <span

@@ -10,6 +10,10 @@ export { default as WorkerLifecycleTimeline } from "./WorkerLifecycleTimeline";
 export { default as WorkerRiskIndicators, WorkerRiskBadges } from "./WorkerRiskIndicators";
 export { default as StateAwareActionPanel, getActionTransitionInfo } from "./StateAwareActionPanel";
 
+// PATCH-65.1: Project lifecycle clarity components
+export { default as ActiveProjectCard, ActiveProjectBadge } from "./ActiveProjectCard";
+export { default as ProjectCompletionConfirmation, CompletionStatusBadge, deriveCompletionData } from "./ProjectCompletionConfirmation";
+
 // Re-export types
 export type { WorkerData } from "./WorkerPipelineCard";
 export type {

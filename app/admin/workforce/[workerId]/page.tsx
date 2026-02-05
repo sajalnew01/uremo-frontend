@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,6 +13,9 @@ import {
 import {
   WorkerLifecycleTimeline,
   WorkerRiskIndicators,
+  ActiveProjectCard,
+  ProjectCompletionConfirmation,
+  deriveCompletionData,
 } from "@/components/workforce";
 
 /**
@@ -1303,6 +1306,27 @@ export default function Worker360Page() {
                     </div>
                   </div>
 
+                  {/* PATCH-65.1: Active Project Card - Prominent display */}
+                  <div className="lg:col-span-3">
+                    <ActiveProjectCard
+                      project={
+                        projects.find(
+                          (p) =>
+                            p.status === "in_progress" ||
+                            p.status === "assigned",
+                        ) || (worker.currentProject as any)
+                      }
+                      workerStatus={worker.workerStatus}
+                      proof={proofs.find((p) => p.status === "pending")}
+                      earnings={{
+                        credited: worker.projectsCompleted.length > 0,
+                        amount: worker.totalEarnings,
+                        creditedAt: worker.projectsCompleted[0]?.completedAt,
+                      }}
+                      onViewProject={() => setActiveTab("projects")}
+                    />
+                  </div>
+
                   {/* Resume & Application Details */}
                   <div className="lg:col-span-3 bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
                     <h3 className="text-lg font-semibold text-white mb-4">
@@ -1587,65 +1611,89 @@ export default function Worker360Page() {
                   <div className="p-6">
                     {projects.length > 0 ? (
                       <div className="space-y-4">
-                        {projects.map((project) => (
-                          <div
-                            key={project._id}
-                            className="bg-slate-900/50 rounded-lg p-4"
-                          >
-                            <div className="flex items-start justify-between mb-2">
-                              <div>
-                                <h3 className="text-white font-medium">
-                                  {project.title}
-                                </h3>
-                                <p className="text-sm text-slate-400">
-                                  {project.category} • ${project.payRate}/{" "}
-                                  {project.payType}
-                                </p>
+                        {projects.map((project) => {
+                          // PATCH-65.1: Find related proof for this project
+                          const projectProof = proofs.find(
+                            (p) => p.projectId?._id === project._id,
+                          );
+                          const isCompleted = project.status === "completed";
+                          const completionData = deriveCompletionData(
+                            project,
+                            projectProof,
+                            null,
+                          );
+
+                          return (
+                            <div
+                              key={project._id}
+                              className="bg-slate-900/50 rounded-lg p-4"
+                            >
+                              <div className="flex items-start justify-between mb-2">
+                                <div>
+                                  <h3 className="text-white font-medium">
+                                    {project.title}
+                                  </h3>
+                                  <p className="text-sm text-slate-400">
+                                    {project.category} • ${project.payRate}/{" "}
+                                    {project.payType}
+                                  </p>
+                                </div>
+                                <span
+                                  className={`px-3 py-1 rounded-full text-sm ${
+                                    project.status === "completed"
+                                      ? "bg-emerald-500/20 text-emerald-400"
+                                      : project.status === "in_progress"
+                                        ? "bg-blue-500/20 text-blue-400"
+                                        : project.status === "assigned"
+                                          ? "bg-cyan-500/20 text-cyan-400"
+                                          : "bg-slate-500/20 text-slate-400"
+                                  }`}
+                                >
+                                  {project.status.replace("_", " ")}
+                                </span>
                               </div>
-                              <span
-                                className={`px-3 py-1 rounded-full text-sm ${
-                                  project.status === "completed"
-                                    ? "bg-emerald-500/20 text-emerald-400"
-                                    : project.status === "in_progress"
-                                      ? "bg-blue-500/20 text-blue-400"
-                                      : project.status === "assigned"
-                                        ? "bg-cyan-500/20 text-cyan-400"
-                                        : "bg-slate-500/20 text-slate-400"
-                                }`}
-                              >
-                                {project.status.replace("_", " ")}
-                              </span>
-                            </div>
-                            {project.description && (
-                              <p className="text-slate-400 text-sm mt-2">
-                                {project.description}
-                              </p>
-                            )}
-                            <div className="flex items-center gap-4 mt-3 text-xs text-slate-500">
-                              {project.assignedAt && (
-                                <span>
-                                  Assigned:{" "}
-                                  {new Date(
-                                    project.assignedAt,
-                                  ).toLocaleDateString()}
-                                </span>
+                              {project.description && (
+                                <p className="text-slate-400 text-sm mt-2">
+                                  {project.description}
+                                </p>
                               )}
-                              {project.completedAt && (
-                                <span>
-                                  Completed:{" "}
-                                  {new Date(
-                                    project.completedAt,
-                                  ).toLocaleDateString()}
-                                </span>
-                              )}
-                              {project.earningsCredited && (
-                                <span className="text-emerald-400">
-                                  Credited: ${project.earningsCredited}
-                                </span>
+                              <div className="flex items-center gap-4 mt-3 text-xs text-slate-500">
+                                {project.assignedAt && (
+                                  <span>
+                                    Assigned:{" "}
+                                    {new Date(
+                                      project.assignedAt,
+                                    ).toLocaleDateString()}
+                                  </span>
+                                )}
+                                {project.completedAt && (
+                                  <span>
+                                    Completed:{" "}
+                                    {new Date(
+                                      project.completedAt,
+                                    ).toLocaleDateString()}
+                                  </span>
+                                )}
+                                {project.earningsCredited && (
+                                  <span className="text-emerald-400">
+                                    Credited: ${project.earningsCredited}
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* PATCH-65.1: Project Completion Confirmation */}
+                              {(isCompleted || projectProof) && (
+                                <div className="mt-4">
+                                  <ProjectCompletionConfirmation
+                                    isCompleted={isCompleted}
+                                    completion={completionData}
+                                    showFullDetails={true}
+                                  />
+                                </div>
                               )}
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     ) : (
                       <div className="text-center py-8 text-slate-400">
