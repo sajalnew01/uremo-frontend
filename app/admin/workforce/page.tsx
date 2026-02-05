@@ -348,6 +348,28 @@ export default function WorkforceControlCenterPage() {
           toast("Attempts reset. Worker can retry screening.", "success");
           break;
 
+        case "reset_to_ready":
+          // PATCH-66: Reset orphaned worker to ready_to_work status
+          const resetToReadyWorker = workers.find(
+            (w) => w.applicationId === workerId || w._id === workerId,
+          );
+          const resetToReadyPositionId =
+            resetToReadyWorker?.jobId?._id || resetToReadyWorker?.position?._id;
+
+          if (resetToReadyPositionId) {
+            await apiRequest(
+              `/api/admin/workspace/job/${resetToReadyPositionId}/set-status`,
+              "PUT",
+              {
+                applicantId: workerId,
+                workerStatus: "ready_to_work",
+              },
+              true,
+            );
+          }
+          toast("Worker reset to Ready to Work status.", "success");
+          break;
+
         case "assign_project":
           // Open assign modal
           const assignWorker = workers.find(

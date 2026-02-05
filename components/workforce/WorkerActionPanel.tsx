@@ -79,7 +79,8 @@ export default function WorkerActionPanel({
               <p className="text-sm text-slate-400 mb-4">
                 Assigning to:{" "}
                 <span className="text-white">
-                  {worker.userId?.firstName} {worker.userId?.lastName}
+                  {worker.userId?.firstName || "Unknown"}{" "}
+                  {worker.userId?.lastName || "Worker"}
                 </span>
               </p>
             )}
@@ -132,7 +133,8 @@ export default function WorkerActionPanel({
               <p className="text-sm text-slate-400 mb-4">
                 Crediting to:{" "}
                 <span className="text-white">
-                  {worker.userId?.firstName} {worker.userId?.lastName}
+                  {worker.userId?.firstName || "Unknown"}{" "}
+                  {worker.userId?.lastName || "Worker"}
                 </span>
               </p>
             )}

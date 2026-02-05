@@ -273,11 +273,12 @@ export default function PendingActionQueue({
               >
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-white truncate">
-                    {proof.workerId?.firstName} {proof.workerId?.lastName}
+                    {proof.workerId?.firstName || "Unknown"}{" "}
+                    {proof.workerId?.lastName || "Worker"}
                   </p>
                   <p className="text-xs text-slate-400 truncate">
-                    {proof.projectId?.title} • $
-                    {proof.projectId?.payRate?.toFixed(2) || "0.00"}
+                    {proof.projectId?.title || "Project"} • $
+                    {(proof.projectId?.payRate || 0).toFixed(2)}
                   </p>
                 </div>
                 <div className="flex gap-2 shrink-0 ml-4">

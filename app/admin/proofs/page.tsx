@@ -333,9 +333,10 @@ export default function AdminProofsPage() {
                   </div>
                   <div className="flex items-center gap-4 text-sm text-slate-400">
                     <span>
-                      👤 {proof.workerId?.firstName} {proof.workerId?.lastName}
+                      👤 {proof.workerId?.firstName || "Unknown"}{" "}
+                      {proof.workerId?.lastName || "Worker"}
                     </span>
-                    <span>📧 {proof.workerId?.email}</span>
+                    <span>📧 {proof.workerId?.email || "N/A"}</span>
                     {proof.jobRoleId && <span>💼 {proof.jobRoleId.title}</span>}
                   </div>
                 </div>

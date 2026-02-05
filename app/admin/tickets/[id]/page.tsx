@@ -435,9 +435,12 @@ export default function AdminTicketViewPage() {
             {/* User Info */}
             <div className="p-3 rounded-lg bg-[#1F2937] text-sm">
               <p className="font-medium">
-                {ticket.user?.firstName} {ticket.user?.lastName}
+                {ticket.user?.firstName || "Unknown"}{" "}
+                {ticket.user?.lastName || "User"}
               </p>
-              <p className="text-[#9CA3AF]">{ticket.user?.email}</p>
+              <p className="text-[#9CA3AF]">
+                {ticket.user?.email || "No email"}
+              </p>
               {ticket.order && (
                 <Link
                   href={`/admin/orders/${ticket.order._id}`}

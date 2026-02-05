@@ -189,6 +189,26 @@ export default function WorkerPipelineCard({
         );
 
       case "assigned":
+        // PATCH-66: If assigned but no project, show fix options
+        if (!worker.currentProject) {
+          return (
+            <div className="flex gap-2">
+              <button
+                onClick={() => onAction("assign_project", worker.applicationId)}
+                className="flex-1 px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              >
+                📋 Assign
+              </button>
+              <button
+                onClick={() => onAction("reset_to_ready", worker.applicationId)}
+                className="flex-1 px-3 py-1.5 text-xs font-medium bg-amber-600/50 hover:bg-amber-600 text-white rounded-lg transition-colors"
+                title="Reset worker to Ready to Work status"
+              >
+                🔄 Reset
+              </button>
+            </div>
+          );
+        }
         return (
           <button
             onClick={() => onAction("view_project", worker.applicationId)}

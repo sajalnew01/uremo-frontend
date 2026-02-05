@@ -280,9 +280,12 @@ export default function AdminTicketsPage() {
                   <td className="py-3 px-4">
                     <div className="text-xs">
                       <p>
-                        {ticket.user?.firstName} {ticket.user?.lastName}
+                        {ticket.user?.firstName || "Unknown"}{" "}
+                        {ticket.user?.lastName || "User"}
                       </p>
-                      <p className="text-[#6B7280]">{ticket.user?.email}</p>
+                      <p className="text-[#6B7280]">
+                        {ticket.user?.email || "No email"}
+                      </p>
                     </div>
                   </td>
                   <td className="py-3 px-4 capitalize">

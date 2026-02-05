@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
+import { useToast } from "@/hooks/useToast";
 
 /**
  * PATCH_61B: Admin Workers Management - Enhanced
@@ -48,6 +49,7 @@ interface SelectedWorker extends Worker {
 }
 
 export default function AdminWorkersPage() {
+  const { toast } = useToast();
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -211,13 +213,20 @@ export default function AdminWorkersPage() {
 
                       {/* Quick Action Buttons */}
                       <div className="flex gap-2 flex-shrink-0">
+                        <Link
+                          href={`/admin/workforce/${worker._id}`}
+                          className="px-3 py-2 bg-slate-500/20 text-slate-300 hover:bg-slate-500/30 rounded-lg text-sm font-medium transition"
+                          title="View full Worker 360° profile"
+                        >
+                          📊 360°
+                        </Link>
                         <button
                           onClick={() => {
                             setSelectedWorker(worker);
                             setShowProfileModal(true);
                           }}
                           className="px-3 py-2 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded-lg text-sm font-medium transition"
-                          title="View full profile"
+                          title="Quick view profile"
                         >
                           👁️ View
                         </button>
@@ -482,18 +491,13 @@ export default function AdminWorkersPage() {
                 >
                   ✅ Assign Task
                 </button>
-                <button
-                  onClick={() => {
-                    // Allow worker to apply to another gig
-                    alert(
-                      "Feature: Create a quick link to send worker for new applications\nWorker: " +
-                        selectedWorker.userId?.email,
-                    );
-                  }}
-                  className="flex-1 px-4 py-3 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded-xl font-semibold transition"
+                <Link
+                  href={`/admin/work-positions?invite=${selectedWorker.userId?.email || ""}`}
+                  onClick={() => setShowProfileModal(false)}
+                  className="flex-1 px-4 py-3 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded-xl font-semibold transition text-center"
                 >
                   📝 Apply to Another Gig
-                </button>
+                </Link>
                 <button
                   onClick={() => setShowProfileModal(false)}
                   className="flex-1 px-4 py-3 bg-slate-500/20 text-slate-400 hover:bg-slate-500/30 rounded-xl font-semibold transition"
@@ -573,7 +577,7 @@ export default function AdminWorkersPage() {
               <button
                 onClick={async () => {
                   if (!taskDescription.trim()) {
-                    alert("Please enter a task description");
+                    toast("Please enter a task description", "error");
                     return;
                   }
 
@@ -588,14 +592,15 @@ export default function AdminWorkersPage() {
                       },
                       true,
                     );
-                    alert(
-                      "✅ Task assigned successfully! Worker will be notified.",
+                    toast(
+                      "Task assigned successfully! Worker will be notified.",
+                      "success",
                     );
                     setShowTaskModal(false);
                     setTaskDescription("");
                     loadWorkers();
                   } catch (e: any) {
-                    alert("❌ Failed to assign task: " + e.message);
+                    toast("Failed to assign task: " + e.message, "error");
                   } finally {
                     setTaskAssigning(false);
                   }

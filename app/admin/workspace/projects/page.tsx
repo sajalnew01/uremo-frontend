@@ -872,6 +872,20 @@ function ProjectsContent() {
                 </p>
               </div>
 
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">
+                  Instructions
+                </label>
+                <textarea
+                  value={(form as any).instructions || ""}
+                  onChange={(e) =>
+                    setForm({ ...form, instructions: e.target.value } as any)
+                  }
+                  className="input w-full h-20 resize-none"
+                  placeholder="Detailed instructions for the worker..."
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-slate-400 mb-1">
@@ -1152,14 +1166,14 @@ function ProjectsContent() {
                       Assigned Worker
                     </p>
                     <p className="text-sm text-white">
-                      {viewData.workerProfile.user?.firstName}{" "}
-                      {viewData.workerProfile.user?.lastName}
+                      {viewData.workerProfile.user?.firstName || "Unknown"}{" "}
+                      {viewData.workerProfile.user?.lastName || "Worker"}
                     </p>
                     <p className="text-xs text-slate-400">
-                      {viewData.workerProfile.user?.email}
+                      {viewData.workerProfile.user?.email || "No email"}
                     </p>
                     <p className="text-xs text-cyan-400 mt-1">
-                      Status: {viewData.workerProfile.workerStatus}
+                      Status: {viewData.workerProfile.workerStatus || "N/A"}
                     </p>
                   </div>
                 )}
