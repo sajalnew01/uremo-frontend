@@ -380,7 +380,9 @@ export default function ActionQueuePage() {
           Action Queue
         </h1>
         <p className="text-slate-400 mt-1 text-sm">
-          {loading ? "Loading..." : `${actions.length} items need attention`}
+          {loading
+            ? "Checking..."
+            : `${actions.length} items require your action`}
         </p>
       </div>
 
@@ -485,9 +487,9 @@ export default function ActionQueuePage() {
         ) : filteredActions.length === 0 ? (
           <div className="p-12 text-center">
             <div className="text-4xl mb-3">🎉</div>
-            <div className="text-white font-medium">All Clear!</div>
+            <div className="text-white font-medium">Queue Empty</div>
             <div className="text-slate-500 text-sm">
-              No pending actions in this category
+              No pending items in this view. Check back later or refresh.
             </div>
           </div>
         ) : (

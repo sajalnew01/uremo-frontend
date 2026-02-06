@@ -62,7 +62,7 @@ export default function CommandRail({
   const sections: NavSection[] = [
     {
       id: "master",
-      label: "Master Workspace",
+      label: "Action Queue",
       icon: <CommandIcon />,
       href: "/admin",
       badge: totalUrgent > 0 ? totalUrgent : undefined,
@@ -90,7 +90,7 @@ export default function CommandRail({
     },
     {
       id: "workspace",
-      label: "Workspace System",
+      label: "Worker Ops",
       icon: <WorkspaceIcon />,
       badge: badges.pendingProofs + badges.invalidScreenings,
       items: [
@@ -113,7 +113,7 @@ export default function CommandRail({
     },
     {
       id: "workforce",
-      label: "Workforce Acquisition",
+      label: "Hiring",
       icon: <WorkforceIcon />,
       badge: badges.pendingApplications,
       items: [
@@ -128,7 +128,7 @@ export default function CommandRail({
     },
     {
       id: "support",
-      label: "Support & Trust",
+      label: "Support",
       icon: <SupportIcon />,
       badge: badges.openTickets,
       items: [
@@ -166,7 +166,7 @@ export default function CommandRail({
     },
     {
       id: "system",
-      label: "System & Growth",
+      label: "System",
       icon: <SystemIcon />,
       items: [
         { label: "Analytics", href: "/admin/analytics" },

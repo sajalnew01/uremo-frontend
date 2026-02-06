@@ -1,4 +1,14 @@
-"use client";
+﻿"use client";
+
+/**
+ * LEGACY / DEPRECATED SURFACE (Phase 4)
+ *
+ * This page represents the older proposal-based JarvisX Write UI.
+ * Deployed backend currently disables proposal/memory write routes; only execute is implemented.
+ *
+ * Canonical admin UI is `app/admin/jarvisx/CommandCenter.tsx`.
+ * Do not expand functionality here without backend contract changes.
+ */
 
 import { useEffect, useState } from "react";
 import Card from "@/components/Card";
@@ -99,6 +109,12 @@ export default function AdminJarvisXWritePage() {
   const isAdmin = String((user as any)?.role || "") === "admin";
   const email = String((user as any)?.email || "").trim();
 
+  // Backend reality (uremo-backend/src/routes/jarvisx.write.routes.js):
+  // Proposal-based JarvisX Write routes are commented out; only /api/jarvisx/write/execute exists.
+  const writeProposalsEnabled = false;
+  const writeLockReason =
+    "Write proposals are not enabled on this deployment. To execute admin commands, use the JarvisX Chat at /admin/jarvisx instead.";
+
   const [command, setCommand] = useState("");
   const [loadingPropose, setLoadingPropose] = useState(false);
 
@@ -129,6 +145,10 @@ export default function AdminJarvisXWritePage() {
   };
 
   const loadHistory = async () => {
+    if (!writeProposalsEnabled) {
+      setHistory([]);
+      return;
+    }
     setLoadingHistory(true);
     try {
       const list = await apiRequest<Proposal[]>(
@@ -150,10 +170,10 @@ export default function AdminJarvisXWritePage() {
 
   useEffect(() => {
     if (!isAuthenticated || !isAdmin) return;
-    loadHistory();
+    if (writeProposalsEnabled) loadHistory();
     loadHealth();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, isAdmin]);
+  }, [isAuthenticated, isAdmin, writeProposalsEnabled]);
 
   useEffect(() => {
     setExecutionError(null);
@@ -165,6 +185,10 @@ export default function AdminJarvisXWritePage() {
     activeProposal.actions.length === 0;
 
   const generateProposal = async () => {
+    if (!writeProposalsEnabled) {
+      toast(writeLockReason, "error");
+      return;
+    }
     const text = command.trim();
     if (!text) {
       toast("Please enter a command.", "error");
@@ -303,6 +327,29 @@ export default function AdminJarvisXWritePage() {
       <div className="max-w-4xl">
         <h1 className="text-2xl font-bold">JarvisX Write</h1>
         <p className="text-[#9CA3AF] mt-2">Admin access required.</p>
+      </div>
+    );
+  }
+
+  if (!writeProposalsEnabled) {
+    return (
+      <div className="max-w-4xl">
+        <h1 className="text-2xl font-bold">JarvisX Write</h1>
+        <p className="text-[#9CA3AF] mt-2">Admin: {email || "—"}</p>
+
+        <div className="mt-4 rounded-2xl border border-slate-600/30 bg-slate-800/40 px-4 py-3 text-slate-100">
+          <p className="font-semibold">Deprecated</p>
+          <p className="text-sm mt-1">
+            Do not use this surface for operational work. Next step: use the
+            JarvisX Command Center at{" "}
+            <span className="font-semibold">/admin/jarvisx</span>.
+          </p>
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-amber-100">
+          <p className="font-semibold">Locked</p>
+          <p className="text-sm mt-1">{writeLockReason}</p>
+        </div>
       </div>
     );
   }
@@ -596,3 +643,4 @@ export default function AdminJarvisXWritePage() {
     </div>
   );
 }
+

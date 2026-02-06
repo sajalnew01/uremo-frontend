@@ -14,7 +14,7 @@ export const runtime = "nodejs";
 
 export async function GET(req: Request) {
   const backend = getBackendBase();
-  const url = `${backend}/api/jarvisx/ping`;
+  const url = `${backend}/api/jarvisx/health`;
 
   const headers: Record<string, string> = {};
   const auth = req.headers.get("authorization");

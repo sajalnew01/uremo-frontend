@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import Card from "@/components/Card";
@@ -151,20 +151,26 @@ function TabButton({
   active,
   label,
   onClick,
+  disabled,
+  title,
 }: {
   active: boolean;
   label: string;
   onClick: () => void;
+  disabled?: boolean;
+  title?: string;
 }) {
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
+      disabled={Boolean(disabled)}
+      title={title}
       className={`rounded-2xl px-4 py-2 text-sm font-semibold border transition ${
         active
           ? "border-blue-400/30 bg-blue-500/15 text-blue-100"
           : "border-white/10 bg-white/5 hover:bg-white/10 text-slate-200"
-      }`}
+      } ${disabled ? "opacity-50 cursor-not-allowed hover:bg-white/5" : ""}`}
     >
       {label}
     </button>
@@ -179,6 +185,13 @@ export default function AdminJarvisXCommandCenter() {
   const email = String((user as any)?.email || "").trim();
 
   const [tab, setTab] = useState<"chat" | "proposals" | "memory">("chat");
+
+  // Backend reality (uremo-backend/src/routes/jarvisx.write.routes.js):
+  // Only /api/jarvisx/write/execute is implemented; proposals & memory routes are commented out.
+  const writeProposalsEnabled = false;
+  const writeMemoryEnabled = false;
+  const writeLockReason =
+    "Proposals & Memory are currently disabled. The JarvisX Chat is fully operational — use natural language to query platform data.";
 
   // Health + context
   const [context, setContext] = useState<AdminContext | null>(null);
@@ -295,6 +308,10 @@ export default function AdminJarvisXCommandCenter() {
   };
 
   const loadHistory = async () => {
+    if (!writeProposalsEnabled) {
+      setHistory([]);
+      return;
+    }
     setLoadingHistory(true);
     try {
       const list = await apiRequest<Proposal[]>(
@@ -315,6 +332,10 @@ export default function AdminJarvisXCommandCenter() {
   };
 
   const loadMemory = async () => {
+    if (!writeMemoryEnabled) {
+      setMemories([]);
+      return;
+    }
     setLoadingMemories(true);
     try {
       const list = await apiRequest<MemoryItem[]>(
@@ -335,8 +356,8 @@ export default function AdminJarvisXCommandCenter() {
     if (!isAuthenticated || !isAdmin) return;
     loadContext();
     loadHealth();
-    loadHistory();
-    loadMemory();
+    if (writeProposalsEnabled) loadHistory();
+    if (writeMemoryEnabled) loadMemory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, isAdmin]);
 
@@ -365,6 +386,16 @@ export default function AdminJarvisXCommandCenter() {
       // "Via chatting" write-mode: draft a proposal from chat when prefixed.
       // This keeps normal chat lightweight, but enables operational commands.
       if (isWritePrefixed) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: uuid(),
+            role: "assistant",
+            text: "NOT IMPLEMENTED: JarvisX write/propose is disabled in the deployed backend. Use normal chat (no `!`) or implement JarvisX write routes server-side.",
+          },
+        ]);
+        return;
+
         const cleaned = text.replace(/^(!|do:|write:)\s*/i, "").trim();
         if (!cleaned) {
           setMessages((prev) => [
@@ -468,6 +499,10 @@ export default function AdminJarvisXCommandCenter() {
     activeProposal.actions.length === 0;
 
   const generateProposal = async () => {
+    if (!writeProposalsEnabled) {
+      toast(writeLockReason, "error");
+      return;
+    }
     const text = command.trim();
     if (!text) {
       toast("Please enter a command.", "error");
@@ -503,6 +538,10 @@ export default function AdminJarvisXCommandCenter() {
   };
 
   const saveEdits = async () => {
+    if (!writeProposalsEnabled) {
+      toast(writeLockReason, "error");
+      return;
+    }
     if (!activeProposal?._id) return;
     if (activeProposal.status !== "pending") {
       toast("Only pending proposals can be edited.", "error");
@@ -541,6 +580,10 @@ export default function AdminJarvisXCommandCenter() {
   };
 
   const approveAndExecute = async () => {
+    if (!writeProposalsEnabled) {
+      toast(writeLockReason, "error");
+      return;
+    }
     if (!activeProposal?._id) return;
 
     setExecutionError(null);
@@ -597,6 +640,10 @@ export default function AdminJarvisXCommandCenter() {
   };
 
   const rejectProposal = async () => {
+    if (!writeProposalsEnabled) {
+      toast(writeLockReason, "error");
+      return;
+    }
     if (!activeProposal?._id) return;
 
     try {
@@ -616,6 +663,10 @@ export default function AdminJarvisXCommandCenter() {
   };
 
   const openDetails = async (id: string) => {
+    if (!writeProposalsEnabled) {
+      toast(writeLockReason, "error");
+      return;
+    }
     setDetailsOpen(true);
     setDetailsProposal(null);
     try {
@@ -632,6 +683,10 @@ export default function AdminJarvisXCommandCenter() {
   };
 
   const deleteMemory = async (id: string) => {
+    if (!writeMemoryEnabled) {
+      toast(writeLockReason, "error");
+      return;
+    }
     if (!id) return;
     try {
       await apiRequest(`/api/jarvisx/write/memory/${id}`, "DELETE", null, true);
@@ -677,11 +732,15 @@ export default function AdminJarvisXCommandCenter() {
             active={tab === "proposals"}
             label="Proposals"
             onClick={() => setTab("proposals")}
+            disabled={!writeProposalsEnabled}
+            title={writeLockReason}
           />
           <TabButton
             active={tab === "memory"}
             label="Memory"
             onClick={() => setTab("memory")}
+            disabled={!writeMemoryEnabled}
+            title={writeLockReason}
           />
         </div>
       </div>
@@ -1243,3 +1302,4 @@ export default function AdminJarvisXCommandCenter() {
     </div>
   );
 }
+

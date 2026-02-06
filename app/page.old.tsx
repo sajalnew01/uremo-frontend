@@ -1,5 +1,16 @@
 "use client";
 
+/**
+ * LEGACY / DEPRECATED (Phase 4)
+ *
+ * This file is retained as a historical snapshot and should not be used as a route.
+ * Canonical route is `app/page.tsx`.
+ *
+ * Deprecation notes:
+ * - Do not link to this file from navigation.
+ * - Safe future cleanup candidate after confirming no external references.
+ */
+
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";

@@ -1,5 +1,16 @@
 "use client";
 
+/**
+ * LEGACY / DEPRECATED (Phase 4)
+ *
+ * Retained as an older Explore Services implementation. Canonical route is
+ * `app/explore-services/page.tsx`.
+ *
+ * Deprecation notes:
+ * - Do not link to or depend on this file.
+ * - Keep only for rollback/reference until explicitly removed in a future, approved phase.
+ */
+
 // PATCH_56: Explore Services - Premium Marketplace Experience
 // Modern, polished UI with hybrid marketplace layout, enhanced search, filters, and premium service cards
 

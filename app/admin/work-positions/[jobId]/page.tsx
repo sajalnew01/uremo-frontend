@@ -146,6 +146,9 @@ export default function AdminJobRolePage() {
 
   // PATCH_46: Projects state
   const [projects, setProjects] = useState<Project[]>([]);
+  const [projectsLockedReason, setProjectsLockedReason] = useState<
+    string | null
+  >(null);
   const [projectForm, setProjectForm] = useState<Project>({
     title: "",
     description: "",
@@ -367,12 +370,20 @@ export default function AdminJobRolePage() {
         true,
       );
       setProjects(res.projects || []);
+      setProjectsLockedReason(null);
     } catch (e: any) {
-      console.log("Projects not available yet");
+      setProjects([]);
+      setProjectsLockedReason(
+        "LOCKED: Projects are unavailable for this job role in the deployed backend (or you lack access). Required to unlock: backend must support /api/admin/workspace/job/:jobId/projects and your admin token must have permission.",
+      );
     }
   };
 
   const createProject = async () => {
+    if (projectsLockedReason) {
+      toast(projectsLockedReason, "error");
+      return;
+    }
     if (!projectForm.title) {
       toast("Please add a project title", "error");
       return;
@@ -403,10 +414,14 @@ export default function AdminJobRolePage() {
   };
 
   const assignProject = async (projectId: string, workerId: string) => {
+    if (projectsLockedReason) {
+      toast(projectsLockedReason, "error");
+      return;
+    }
     setSaving(true);
     try {
       await apiRequest(
-        `/api/admin/workspace/job/${jobId}/projects/${projectId}/assign`,
+        `/api/admin/workspace/project/${projectId}/assign`,
         "PUT",
         { workerId },
         true,
@@ -968,9 +983,10 @@ export default function AdminJobRolePage() {
                       <button
                         onClick={() => setWorkerStatus(worker._id, "assigned")}
                         disabled={saving}
+                        title="Visibility: this button only updates the worker status to Assigned. It does NOT pick a project. Next step: assign a project in Workforce Control Center or Workspace → Projects."
                         className="flex-1 px-4 py-2 rounded-lg bg-blue-500/20 text-blue-300 text-sm hover:bg-blue-500/30 disabled:opacity-50 font-medium"
                       >
-                        📦 Assign Project
+                        📦 Mark Assigned (status only)
                       </button>
                       <Link
                         href={`/admin/workforce/${worker._id}`}
@@ -1235,12 +1251,28 @@ export default function AdminJobRolePage() {
               {projectMode === "list" && (
                 <button
                   onClick={() => setProjectMode("create")}
+                  disabled={Boolean(projectsLockedReason)}
+                  title={
+                    projectsLockedReason ||
+                    "Create a project for this job role (requires backend support)"
+                  }
                   className="px-3 py-1 rounded-lg bg-blue-500/20 text-blue-300 text-sm hover:bg-blue-500/30"
                 >
                   ➕ Create Project
                 </button>
               )}
             </div>
+
+            {projectsLockedReason && (
+              <div className="mb-4 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-amber-100">
+                <p className="font-semibold">Locked</p>
+                <p className="text-sm mt-1">{projectsLockedReason}</p>
+                <p className="text-xs mt-2 opacity-80">
+                  Next step: use Admin → Workspace → Projects if available, or
+                  enable job-role projects server-side.
+                </p>
+              </div>
+            )}
 
             {projectMode === "list" ? (
               projects.length === 0 ? (

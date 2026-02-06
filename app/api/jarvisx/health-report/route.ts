@@ -14,7 +14,7 @@ export const runtime = "nodejs";
 
 export async function GET(req: Request) {
   const backend = getBackendBase();
-  const url = `${backend}/api/jarvisx/write/health`;
+  const url = `${backend}/api/jarvisx/admin/health`;
 
   const headers: Record<string, string> = {};
 
@@ -38,21 +38,32 @@ export async function GET(req: Request) {
     );
   }
 
+  const contentType = upstream.headers.get("content-type") || "";
   const raw = await upstream.text();
+
   let payload: any = null;
-  try {
-    payload = raw ? JSON.parse(raw) : null;
-  } catch {
-    payload = null;
+  if (contentType.includes("application/json")) {
+    try {
+      payload = raw ? JSON.parse(raw) : null;
+    } catch {
+      payload = null;
+    }
   }
 
-  // Backend shape: { provider, model, configured, ... }
-  const provider = String(payload?.provider || "groq");
-  const model = String(payload?.model || "");
-  const configured = Boolean(payload?.configured);
+  if (!upstream.ok) {
+    return NextResponse.json(
+      payload || { message: raw || "Health report unavailable" },
+      { status: upstream.status, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
+  const generatedAt = String(payload?.timestamp || new Date().toISOString());
+  const provider = String(payload?.llm?.provider || "");
+  const model = String(payload?.llm?.model || "");
+  const configured = Boolean(payload?.llm?.configured);
 
   return NextResponse.json(
-    { llm: { configured, provider, model } },
+    { generatedAt, llm: { configured, provider, model } },
     { status: 200, headers: { "Cache-Control": "no-store" } },
   );
 }

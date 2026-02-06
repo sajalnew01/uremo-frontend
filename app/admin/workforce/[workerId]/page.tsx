@@ -616,10 +616,19 @@ export default function Worker360Page() {
   const handleUnlockScreening = async () => {
     if (!worker) return;
 
+    const positionId = worker.position?._id;
+    if (!positionId) {
+      toast(
+        "LOCKED: Cannot unlock screening because this worker is not linked to a Work Position. Required: assign/link a Work Position (job role) in Workspace.",
+        "error",
+      );
+      return;
+    }
+
     setActionLoading("unlock");
     try {
       await apiRequest(
-        `/api/admin/workspace/job/${worker.position?._id}/unlock-screening`,
+        `/api/admin/workspace/job/${positionId}/unlock-screening`,
         "PUT",
         { applicantId: worker._id },
         true,
@@ -770,6 +779,8 @@ export default function Worker360Page() {
   // Identity validation - BLOCK actions if user data is missing
   const hasValidIdentity =
     worker?.user?._id && worker?.user?.email && worker?.user?.firstName;
+
+  const hasWorkPositionLink = Boolean(worker?.position?._id);
 
   if (loading) {
     return (
@@ -970,6 +981,29 @@ export default function Worker360Page() {
                   worker.status,
                 )}
               </p>
+
+              {!hasValidIdentity && (
+                <div className="mt-3 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+                  <p className="font-semibold">Locked: Identity Missing</p>
+                  <p className="mt-1 text-red-100/90">
+                    Required to take actions: worker user id, email, and first
+                    name. Next step: fix the user profile data and reload.
+                  </p>
+                </div>
+              )}
+
+              {hasValidIdentity && !hasWorkPositionLink && (
+                <div className="mt-3 rounded-lg border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                  <p className="font-semibold">
+                    Visibility: Work Position Not Linked
+                  </p>
+                  <p className="mt-1 text-amber-100/90">
+                    Some lifecycle actions (e.g. unlocking screening) require a
+                    Work Position link. Next step: link a Work Position (job
+                    role) for this worker in Workspace.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* PRIMARY ACTION BUTTONS - Only ONE based on status */}
@@ -1009,8 +1043,14 @@ export default function Worker360Page() {
                 hasValidIdentity && (
                   <button
                     onClick={() => handleUnlockScreening()}
-                    disabled={actionLoading === "unlock"}
-                    title="Unlocks training and screening test access (Applied → Screening Unlocked)"
+                    disabled={
+                      actionLoading === "unlock" || !hasWorkPositionLink
+                    }
+                    title={
+                      hasWorkPositionLink
+                        ? "Unlocks training and screening test access (Applied → Screening Unlocked)"
+                        : "LOCKED: Worker is not linked to a Work Position. Required: link a Work Position (job role) in Workspace to unlock screening."
+                    }
                     className="px-6 py-3 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-medium transition disabled:opacity-50 flex items-center gap-2"
                   >
                     {actionLoading === "unlock"
@@ -1080,7 +1120,7 @@ export default function Worker360Page() {
                       const reason = prompt("Rejection reason:");
                       if (reason) handleRejectApplication(reason);
                     }}
-                    title="Permanently rejects this worker - they cannot apply again"
+                    title="Admin override: this rejection uses the legacy applications endpoint. It permanently rejects this worker."
                     className="px-4 py-3 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition"
                   >
                     Reject Permanently
@@ -1101,17 +1141,23 @@ export default function Worker360Page() {
 
               {/* Assigned/Working → View Project */}
               {(worker.workerStatus === "assigned" ||
-                worker.workerStatus === "working") && (
-                <Link
-                  href={
-                    worker.currentProject ? `/admin/workspace/projects` : "#"
-                  }
-                  title="View the project this worker is currently assigned to"
-                  className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-medium transition flex items-center gap-2"
-                >
-                  👁️ View Active Project
-                </Link>
-              )}
+                worker.workerStatus === "working") &&
+                (worker.currentProject ? (
+                  <Link
+                    href={`/admin/workspace/projects`}
+                    title="View the project this worker is currently assigned to"
+                    className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-medium transition flex items-center gap-2"
+                  >
+                    👁️ View Active Project
+                  </Link>
+                ) : (
+                  <div
+                    title="Locked: No active project is recorded for this worker yet. Next step: assign a project first."
+                    className="px-6 py-3 bg-slate-700/50 text-slate-300 rounded-lg flex items-center gap-2 opacity-70 cursor-not-allowed"
+                  >
+                    👁️ View Active Project
+                  </div>
+                ))}
 
               {/* Proof Submitted → Approve & Credit */}
               {(worker.workerStatus === "proof_submitted" ||

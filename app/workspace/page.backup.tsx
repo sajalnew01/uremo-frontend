@@ -1,5 +1,15 @@
 "use client";
 
+/**
+ * LEGACY / BACKUP (Phase 4)
+ *
+ * Backup snapshot of Workspace page. Canonical route is `app/workspace/page.tsx`.
+ *
+ * Deprecation notes:
+ * - Do not link to or import this file.
+ * - Keep for reference only until safe removal is explicitly approved.
+ */
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiRequest } from "@/lib/api";

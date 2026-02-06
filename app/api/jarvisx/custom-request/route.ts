@@ -14,7 +14,7 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   const backend = getBackendBase();
-  const url = `${backend}/api/jarvisx/custom-request`;
+  const url = `${backend}/api/jarvisx/request-service`;
 
   const bodyText = await req.text();
 

@@ -242,6 +242,10 @@ export default function WorkforceControlCenterPage() {
               { applicantId: workerId },
               true,
             );
+            toast(
+              "Application approved (workspace). Next: worker proceeds to screening/training.",
+              "success",
+            );
           } else {
             // Fallback to apply-work admin endpoint
             await apiRequest(
@@ -250,8 +254,11 @@ export default function WorkforceControlCenterPage() {
               { status: "approved" },
               true,
             );
+            toast(
+              "Admin override applied: approved via legacy applications endpoint because worker is not linked to a Work Position. Next: open Worker Profile and link a Work Position for lifecycle actions.",
+              "success",
+            );
           }
-          toast("Application approved!", "success");
           break;
 
         case "reject":
@@ -272,6 +279,7 @@ export default function WorkforceControlCenterPage() {
               },
               true,
             );
+            toast("Application rejected (workspace).", "success");
           } else {
             await apiRequest(
               `/api/apply-work/admin/${workerId}`,
@@ -279,8 +287,11 @@ export default function WorkforceControlCenterPage() {
               { status: "rejected" },
               true,
             );
+            toast(
+              "Admin override applied: rejected via legacy applications endpoint because worker is not linked to a Work Position.",
+              "success",
+            );
           }
-          toast("Application rejected", "success");
           break;
 
         case "mark_passed":
@@ -292,15 +303,20 @@ export default function WorkforceControlCenterPage() {
           const passPositionId =
             passWorker?.jobId?._id || passWorker?.position?._id;
 
-          if (passPositionId) {
-            await apiRequest(
-              `/api/admin/workspace/job/${passPositionId}/set-status`,
-              "PUT",
-              { applicantId: workerId, workerStatus: "ready_to_work" },
-              true,
+          if (!passPositionId) {
+            toast(
+              "LOCKED: Cannot mark screening passed because worker is not linked to a Work Position. Required: link the worker to a job role/position in Workspace.",
+              "error",
             );
+            return;
           }
-          toast("Screening passed! Worker is ready to work.", "success");
+          await apiRequest(
+            `/api/admin/workspace/job/${passPositionId}/set-status`,
+            "PUT",
+            { applicantId: workerId, workerStatus: "ready_to_work" },
+            true,
+          );
+          toast("Screening passed. Next: assign a project.", "success");
           break;
 
         case "mark_failed":
@@ -311,19 +327,27 @@ export default function WorkforceControlCenterPage() {
           const failPositionId =
             failWorker?.jobId?._id || failWorker?.position?._id;
 
-          if (failPositionId) {
-            await apiRequest(
-              `/api/admin/workspace/job/${failPositionId}/set-status`,
-              "PUT",
-              {
-                applicantId: workerId,
-                workerStatus: "failed",
-                adminNotes: data?.reason,
-              },
-              true,
+          if (!failPositionId) {
+            toast(
+              "LOCKED: Cannot mark failed because worker is not linked to a Work Position. Required: link the worker to a job role/position in Workspace.",
+              "error",
             );
+            return;
           }
-          toast("Screening marked as failed", "success");
+          await apiRequest(
+            `/api/admin/workspace/job/${failPositionId}/set-status`,
+            "PUT",
+            {
+              applicantId: workerId,
+              workerStatus: "failed",
+              adminNotes: data?.reason,
+            },
+            true,
+          );
+          toast(
+            "Marked as failed. Next: allow retry or reject permanently.",
+            "success",
+          );
           break;
 
         case "reset_attempts":
@@ -333,19 +357,24 @@ export default function WorkforceControlCenterPage() {
           const resetPositionId =
             resetWorker?.jobId?._id || resetWorker?.position?._id;
 
-          if (resetPositionId) {
-            await apiRequest(
-              `/api/admin/workspace/job/${resetPositionId}/set-status`,
-              "PUT",
-              {
-                applicantId: workerId,
-                workerStatus: "screening_unlocked",
-                resetAttempts: true,
-              },
-              true,
+          if (!resetPositionId) {
+            toast(
+              "LOCKED: Cannot reset attempts because worker is not linked to a Work Position. Required: link the worker to a job role/position in Workspace.",
+              "error",
             );
+            return;
           }
-          toast("Attempts reset. Worker can retry screening.", "success");
+          await apiRequest(
+            `/api/admin/workspace/job/${resetPositionId}/set-status`,
+            "PUT",
+            {
+              applicantId: workerId,
+              workerStatus: "screening_unlocked",
+              resetAttempts: true,
+            },
+            true,
+          );
+          toast("Attempts reset. Next: worker can retry screening.", "success");
           break;
 
         case "reset_to_ready":
@@ -356,18 +385,23 @@ export default function WorkforceControlCenterPage() {
           const resetToReadyPositionId =
             resetToReadyWorker?.jobId?._id || resetToReadyWorker?.position?._id;
 
-          if (resetToReadyPositionId) {
-            await apiRequest(
-              `/api/admin/workspace/job/${resetToReadyPositionId}/set-status`,
-              "PUT",
-              {
-                applicantId: workerId,
-                workerStatus: "ready_to_work",
-              },
-              true,
+          if (!resetToReadyPositionId) {
+            toast(
+              "LOCKED: Cannot reset worker status because worker is not linked to a Work Position. Required: link the worker to a job role/position in Workspace.",
+              "error",
             );
+            return;
           }
-          toast("Worker reset to Ready to Work status.", "success");
+          await apiRequest(
+            `/api/admin/workspace/job/${resetToReadyPositionId}/set-status`,
+            "PUT",
+            {
+              applicantId: workerId,
+              workerStatus: "ready_to_work",
+            },
+            true,
+          );
+          toast("Reset to Ready to Work. Next: assign a project.", "success");
           break;
 
         case "assign_project":
@@ -417,9 +451,20 @@ export default function WorkforceControlCenterPage() {
                 true,
               );
             }
+            if (creditAmt > 0) {
+              toast("Proof approved and earnings credited.", "success");
+            } else {
+              toast(
+                "Proof approved. Earnings credit skipped (missing or zero amount). Next: set project pay rate and credit manually if needed.",
+                "success",
+              );
+            }
+          } else {
+            toast(
+              "Proof approved. Earnings credit skipped (proof is not linked to a project). Next: review proof details and ensure it references a project before crediting.",
+              "success",
+            );
           }
-
-          toast("Proof approved and earnings credited!", "success");
           break;
 
         case "reject_proof":
@@ -430,6 +475,13 @@ export default function WorkforceControlCenterPage() {
 
         case "credit_earnings":
           // Credit earnings for a project
+          if (!data?.amount || Number(data.amount) <= 0) {
+            toast(
+              "LOCKED: Credit amount must be greater than 0. Required: enter an earnings amount to credit.",
+              "error",
+            );
+            return;
+          }
           await apiRequest(
             `/api/admin/workspace/project/${workerId}/credit`,
             "PUT",
@@ -446,15 +498,20 @@ export default function WorkforceControlCenterPage() {
           const suspendPositionId =
             suspendWorker?.jobId?._id || suspendWorker?.position?._id;
 
-          if (suspendPositionId) {
-            await apiRequest(
-              `/api/admin/workspace/job/${suspendPositionId}/set-status`,
-              "PUT",
-              { applicantId: workerId, workerStatus: "suspended" },
-              true,
+          if (!suspendPositionId) {
+            toast(
+              "LOCKED: Cannot suspend because worker is not linked to a Work Position. Required: link the worker to a job role/position in Workspace.",
+              "error",
             );
+            return;
           }
-          toast("Worker suspended", "success");
+          await apiRequest(
+            `/api/admin/workspace/job/${suspendPositionId}/set-status`,
+            "PUT",
+            { applicantId: workerId, workerStatus: "suspended" },
+            true,
+          );
+          toast("Worker suspended. Next: reactivate when ready.", "success");
           break;
 
         case "reactivate":
@@ -464,15 +521,20 @@ export default function WorkforceControlCenterPage() {
           const reactivatePositionId =
             reactivateWorker?.jobId?._id || reactivateWorker?.position?._id;
 
-          if (reactivatePositionId) {
-            await apiRequest(
-              `/api/admin/workspace/job/${reactivatePositionId}/set-status`,
-              "PUT",
-              { applicantId: workerId, workerStatus: "ready_to_work" },
-              true,
+          if (!reactivatePositionId) {
+            toast(
+              "LOCKED: Cannot reactivate because worker is not linked to a Work Position. Required: link the worker to a job role/position in Workspace.",
+              "error",
             );
+            return;
           }
-          toast("Worker reactivated", "success");
+          await apiRequest(
+            `/api/admin/workspace/job/${reactivatePositionId}/set-status`,
+            "PUT",
+            { applicantId: workerId, workerStatus: "ready_to_work" },
+            true,
+          );
+          toast("Worker reactivated. Next: assign a project.", "success");
           break;
 
         case "set_ready":
@@ -482,15 +544,23 @@ export default function WorkforceControlCenterPage() {
           const readyPositionId =
             readyWorker?.jobId?._id || readyWorker?.position?._id;
 
-          if (readyPositionId) {
-            await apiRequest(
-              `/api/admin/workspace/job/${readyPositionId}/set-status`,
-              "PUT",
-              { applicantId: workerId, workerStatus: "ready_to_work" },
-              true,
+          if (!readyPositionId) {
+            toast(
+              "LOCKED: Cannot mark Ready to Work because worker is not linked to a Work Position. Required: link the worker to a job role/position in Workspace.",
+              "error",
             );
+            return;
           }
-          toast("Worker marked as ready to work", "success");
+          await apiRequest(
+            `/api/admin/workspace/job/${readyPositionId}/set-status`,
+            "PUT",
+            { applicantId: workerId, workerStatus: "ready_to_work" },
+            true,
+          );
+          toast(
+            "Worker marked Ready to Work. Next: assign a project.",
+            "success",
+          );
           break;
 
         default:

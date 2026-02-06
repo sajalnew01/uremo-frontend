@@ -18,6 +18,23 @@ type RouteContext = { params: Promise<RouteParams> };
 async function proxyWrite(req: Request, params: RouteParams) {
   const backend = getBackendBase();
   const tail = Array.isArray(params?.path) ? params.path.join("/") : "";
+
+  // Canonical System Truth Lock: deployed backend only implements /api/jarvisx/write/execute.
+  const head = Array.isArray(params?.path) ? params.path[0] : "";
+  const allowed = new Set(["execute"]);
+  if (!head || !allowed.has(String(head))) {
+    return NextResponse.json(
+      {
+        ok: false,
+        notImplemented: true,
+        message:
+          "NOT IMPLEMENTED: JarvisX write proposals/memory routes are disabled in the deployed backend. Only /api/jarvisx/write/execute is available.",
+        allowed: ["execute"],
+        requested: tail,
+      },
+      { status: 501, headers: { "Cache-Control": "no-store" } },
+    );
+  }
   const url = `${backend}/api/jarvisx/write/${tail}`.replace(/\/+$/, "");
 
   const headers: Record<string, string> = {

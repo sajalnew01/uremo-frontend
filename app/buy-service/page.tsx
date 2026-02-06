@@ -1,5 +1,14 @@
 "use client";
 
+/**
+ * DEPRECATED COMPATIBILITY ROUTE (Phase 4)
+ *
+ * Kept for backwards-compatible links/bookmarks.
+ * Canonical destination: `/explore-services`.
+ *
+ * Do not create new links to `/buy-service`.
+ */
+
 // PATCH_38: Redirect old /buy-service to /explore-services
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
