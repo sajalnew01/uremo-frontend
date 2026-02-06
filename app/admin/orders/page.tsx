@@ -67,6 +67,7 @@ function AdminOrdersContent() {
     action: string;
     newStatus?: string;
     variant: "danger" | "warning" | "info" | "success";
+    inputValue?: string;
   }>({
     open: false,
     title: "",
@@ -74,6 +75,7 @@ function AdminOrdersContent() {
     orderId: "",
     action: "",
     variant: "warning",
+    inputValue: "",
   });
   const [confirmLoading, setConfirmLoading] = useState(false);
 
@@ -121,20 +123,28 @@ function AdminOrdersContent() {
   const updateStatus = async (id: string, nextStatus: string) => {
     // PATCH_66: Show confirmation modal instead of immediate update
     const order = orders.find((o) => o._id === id);
+    const requiresInput =
+      nextStatus === "completed" || nextStatus === "cancelled";
     setConfirmModal({
       open: true,
       title: `Change Order Status`,
       description: `You are about to change this order from "${order?.status || "current"}" to "${nextStatus}". ${
         nextStatus === "completed"
-          ? "This will notify the user that their order is complete."
+          ? "Please provide a completion note describing the deliverable."
           : nextStatus === "cancelled"
-            ? "This will cancel the order and notify the user."
+            ? "Please provide a reason for cancellation."
             : "The user will be notified of this change."
       }`,
       orderId: id,
       action: "updateStatus",
       newStatus: nextStatus,
-      variant: nextStatus === "cancelled" ? "danger" : "warning",
+      variant:
+        nextStatus === "cancelled"
+          ? "danger"
+          : requiresInput
+            ? "success"
+            : "warning",
+      inputValue: "",
     });
   };
 
@@ -142,10 +152,21 @@ function AdminOrdersContent() {
     if (!confirmModal.orderId || !confirmModal.newStatus) return;
     setConfirmLoading(true);
     try {
+      const payload: { status: string; note?: string; reason?: string } = {
+        status: confirmModal.newStatus,
+      };
+      // Add note for completed, reason for cancelled
+      if (confirmModal.newStatus === "completed") {
+        payload.note = confirmModal.inputValue?.trim();
+      }
+      if (confirmModal.newStatus === "cancelled") {
+        payload.reason = confirmModal.inputValue?.trim();
+      }
+
       await apiRequest(
         `/api/admin/orders/${confirmModal.orderId}`,
         "PUT",
-        { status: confirmModal.newStatus },
+        payload,
         true,
       );
       toast("Order updated", "success");
@@ -254,7 +275,33 @@ function AdminOrdersContent() {
         confirmLabel={
           confirmModal.action === "verifyPayment"
             ? "Verify Payment"
-            : "Confirm Change"
+            : confirmModal.newStatus === "completed"
+              ? "Complete Order"
+              : confirmModal.newStatus === "cancelled"
+                ? "Cancel Order"
+                : "Confirm Change"
+        }
+        inputLabel={
+          confirmModal.newStatus === "completed"
+            ? "Completion Note"
+            : confirmModal.newStatus === "cancelled"
+              ? "Cancellation Reason"
+              : undefined
+        }
+        inputPlaceholder={
+          confirmModal.newStatus === "completed"
+            ? "e.g., Deliverables sent. Logo files provided via chat."
+            : confirmModal.newStatus === "cancelled"
+              ? "e.g., Client requested refund. Payment not received."
+              : undefined
+        }
+        inputValue={confirmModal.inputValue}
+        onInputChange={(val) =>
+          setConfirmModal({ ...confirmModal, inputValue: val })
+        }
+        inputRequired={
+          confirmModal.newStatus === "completed" ||
+          confirmModal.newStatus === "cancelled"
         }
       />
 

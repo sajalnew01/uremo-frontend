@@ -18,6 +18,12 @@ interface ConfirmModalProps {
   cancelLabel?: string;
   variant?: "danger" | "warning" | "info" | "success";
   loading?: boolean;
+  // Optional input field for note/reason
+  inputLabel?: string;
+  inputPlaceholder?: string;
+  inputValue?: string;
+  onInputChange?: (value: string) => void;
+  inputRequired?: boolean;
 }
 
 const variantStyles = {
@@ -58,6 +64,11 @@ export default function ConfirmModal({
   cancelLabel = "Cancel",
   variant = "warning",
   loading = false,
+  inputLabel,
+  inputPlaceholder,
+  inputValue,
+  onInputChange,
+  inputRequired = false,
 }: ConfirmModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const style = variantStyles[variant];
@@ -119,6 +130,23 @@ export default function ConfirmModal({
           </div>
         )}
 
+        {/* Optional Input Field */}
+        {inputLabel && onInputChange && (
+          <div className="mx-6 mb-4">
+            <label className="block text-sm text-slate-400 mb-2">
+              {inputLabel}
+              {inputRequired && <span className="text-red-400 ml-1">*</span>}
+            </label>
+            <textarea
+              className="w-full rounded-lg border border-white/10 bg-[#020617] px-3 py-2 text-sm text-white placeholder:text-[#64748B] min-h-[80px] focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              placeholder={inputPlaceholder}
+              value={inputValue || ""}
+              onChange={(e) => onInputChange(e.target.value)}
+              autoFocus
+            />
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex items-center justify-end gap-3 p-6 pt-2 border-t border-white/5">
           <button
@@ -130,7 +158,7 @@ export default function ConfirmModal({
           </button>
           <button
             onClick={onConfirm}
-            disabled={loading}
+            disabled={loading || (inputRequired && !inputValue?.trim())}
             className={`px-4 py-2 rounded-lg text-sm font-medium text-white ${style.confirmBg} transition-colors disabled:opacity-50 flex items-center gap-2`}
           >
             {loading && (

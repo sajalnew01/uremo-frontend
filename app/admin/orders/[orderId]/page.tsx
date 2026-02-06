@@ -61,6 +61,13 @@ export default function AdminOrderDetailPage() {
   } | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
 
+  // Status modal state for completion/cancellation
+  const [statusModal, setStatusModal] = useState<{
+    open: boolean;
+    status: string;
+    inputValue: string;
+  }>({ open: false, status: "", inputValue: "" });
+
   // Socket.io realtime chat
   const {
     connected,
@@ -199,16 +206,28 @@ export default function AdminOrderDetailPage() {
     return map[status] || "bg-gray-600";
   };
 
-  const updateStatus = async (status: string) => {
+  const updateStatus = async (status: string, noteOrReason?: string) => {
     if (!order) return;
     const previousStatus = order.status;
+
+    // If completing or cancelling without note/reason, open modal
+    if (status === "completed" && !noteOrReason) {
+      setStatusModal({ open: true, status: "completed", inputValue: "" });
+      return;
+    }
+    if (status === "cancelled" && !noteOrReason) {
+      setStatusModal({ open: true, status: "cancelled", inputValue: "" });
+      return;
+    }
+
     try {
-      await apiRequest(
-        `/api/admin/orders/${order._id}`,
-        "PUT",
-        { status },
-        true,
-      );
+      const payload: { status: string; note?: string; reason?: string } = {
+        status,
+      };
+      if (status === "completed") payload.note = noteOrReason;
+      if (status === "cancelled") payload.reason = noteOrReason;
+
+      await apiRequest(`/api/admin/orders/${order._id}`, "PUT", payload, true);
       await loadOrder();
       toast("Status updated", "success");
 
@@ -233,6 +252,21 @@ export default function AdminOrderDetailPage() {
       console.warn("[admin order] updateStatus failed:", apiErr?.message);
       toast("Failed to update status", "error");
     }
+  };
+
+  // Handle modal confirmation
+  const handleStatusModalConfirm = () => {
+    if (!statusModal.inputValue.trim()) {
+      toast(
+        statusModal.status === "completed"
+          ? "Completion note required"
+          : "Cancellation reason required",
+        "error",
+      );
+      return;
+    }
+    updateStatus(statusModal.status, statusModal.inputValue.trim());
+    setStatusModal({ open: false, status: "", inputValue: "" });
   };
 
   const sendReply = () => {
@@ -551,6 +585,60 @@ export default function AdminOrderDetailPage() {
         onUndo={undoToast.handleUndo}
         onExpire={undoToast.handleExpire}
       />
+
+      {/* Status Modal for Completion/Cancellation */}
+      {statusModal.open && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-[#0F172A] border border-[#1F2937] rounded-lg p-6 max-w-md w-full mx-4 space-y-4">
+            <h3 className="text-lg font-semibold text-white">
+              {statusModal.status === "completed"
+                ? "Complete Order"
+                : "Cancel Order"}
+            </h3>
+            <p className="text-sm text-[#9CA3AF]">
+              {statusModal.status === "completed"
+                ? "Please add a completion note describing the deliverable or outcome:"
+                : "Please provide a reason for cancelling this order:"}
+            </p>
+            <textarea
+              className="w-full rounded-lg border border-white/10 bg-[#020617] px-3 py-2 text-sm text-white placeholder:text-[#64748B] min-h-[100px]"
+              placeholder={
+                statusModal.status === "completed"
+                  ? "e.g., Deliverables sent via chat. Logo files provided."
+                  : "e.g., Client requested refund. Payment not received."
+              }
+              value={statusModal.inputValue}
+              onChange={(e) =>
+                setStatusModal((prev) => ({
+                  ...prev,
+                  inputValue: e.target.value,
+                }))
+              }
+              autoFocus
+            />
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() =>
+                  setStatusModal({ open: false, status: "", inputValue: "" })
+                }
+                className="px-4 py-2 rounded-lg border border-white/10 text-[#9CA3AF] text-sm hover:bg-white/5"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleStatusModalConfirm}
+                className={`px-4 py-2 rounded-lg text-white text-sm ${statusModal.status === "completed" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}`}
+              >
+                {statusModal.status === "completed"
+                  ? "Complete Order"
+                  : "Cancel Order"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

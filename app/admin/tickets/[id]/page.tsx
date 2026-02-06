@@ -459,17 +459,27 @@ export default function AdminTicketViewPage() {
             >
               {ticket.status.replace(/_/g, " ").toUpperCase()}
             </span>
-            <select
-              value={ticket.status}
-              onChange={(e) => updateStatus(e.target.value)}
-              disabled={updatingStatus}
-              className="u-select text-xs"
-            >
-              <option value="open">Open</option>
-              <option value="in_progress">In Progress</option>
-              <option value="waiting_user">Waiting on User</option>
-              <option value="closed">Closed</option>
-            </select>
+            {ticket.status === "closed" ? (
+              <div className="text-xs text-[#9CA3AF] bg-[#1F2937] rounded px-3 py-2 border border-[#374151]">
+                <span className="text-red-400">🔒 Ticket Closed</span>
+                <p className="mt-1 opacity-75">
+                  This ticket has been resolved. Create a new ticket for
+                  follow-up issues.
+                </p>
+              </div>
+            ) : (
+              <select
+                value={ticket.status}
+                onChange={(e) => updateStatus(e.target.value)}
+                disabled={updatingStatus}
+                className="u-select text-xs"
+              >
+                <option value="open">Open</option>
+                <option value="in_progress">In Progress</option>
+                <option value="waiting_user">Waiting on User</option>
+                <option value="closed">Closed</option>
+              </select>
+            )}
             <select
               value={ticket.assignedAdmin?._id || ""}
               onChange={(e) => assignTicket(e.target.value)}
