@@ -801,9 +801,14 @@ export default function AdminJarvisXCommandCenter() {
             </div>
 
             {!health ? (
-              <p className="mt-3 text-sm text-[#9CA3AF]">
-                No health report yet.
-              </p>
+              <div className="mt-3 text-sm text-[#9CA3AF] space-y-2">
+                <p>No health report generated yet.</p>
+                <p className="text-xs text-slate-500">
+                  Click <strong>Refresh</strong> above to run your first system
+                  check. This shows order, worker, and service status for the
+                  last 24 hours.
+                </p>
+              </div>
             ) : (
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-slate-200">
                 <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">

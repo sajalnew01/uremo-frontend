@@ -356,7 +356,20 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                             <span>{item.label}</span>
                           </div>
                           {badgeCount !== undefined && badgeCount > 0 && (
-                            <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
+                            <span
+                              className="px-2 py-0.5 text-xs font-bold rounded-full bg-red-500/20 text-red-400 border border-red-500/30 cursor-help"
+                              title={
+                                item.badge === "orders"
+                                  ? "Orders needing attention"
+                                  : item.badge === "tickets"
+                                    ? "Open support tickets"
+                                    : item.badge === "proofs"
+                                      ? "Proofs awaiting review"
+                                      : item.badge === "applications"
+                                        ? "New applications pending"
+                                        : "Items requiring action"
+                              }
+                            >
                               {badgeCount > 99 ? "99+" : badgeCount}
                             </span>
                           )}
