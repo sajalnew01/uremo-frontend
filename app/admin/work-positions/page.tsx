@@ -425,6 +425,49 @@ export default function AdminWorkPositionsPage() {
                 </div>
               </div>
 
+              {/* PATCH_66: Position Stats Panel */}
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                <div className="bg-white/5 border border-white/10 rounded-lg p-2 text-center">
+                  <div className="text-xs text-slate-500">Screening</div>
+                  <div className="text-sm font-medium text-white mt-0.5">
+                    {(p as any).hasScreening ? (
+                      <span className="text-emerald-400">✓ Configured</span>
+                    ) : (
+                      <Link
+                        href={`/admin/workspace/screenings?position=${p._id}`}
+                        className="text-amber-400 hover:underline"
+                      >
+                        ⚠️ Not Set
+                      </Link>
+                    )}
+                  </div>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-lg p-2 text-center">
+                  <div className="text-xs text-slate-500">Applicants</div>
+                  <div className="text-sm font-medium text-white mt-0.5">
+                    {(p as any).applicantCount || 0}
+                  </div>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-lg p-2 text-center">
+                  <div className="text-xs text-slate-500">Active Workers</div>
+                  <div className="text-sm font-medium text-white mt-0.5">
+                    {(p as any).activeWorkerCount || 0}
+                  </div>
+                </div>
+              </div>
+
+              {/* View Pipeline Button */}
+              <div className="mt-3">
+                <Link
+                  href={`/admin/workforce?position=${p._id}`}
+                  className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 text-sm bg-blue-500/10 border border-blue-500/30 text-blue-300 rounded-lg hover:bg-blue-500/20 transition-colors"
+                >
+                  <span>📊</span>
+                  View Pipeline: Applicants → Screening → Test → Approved →
+                  Assigned
+                </Link>
+              </div>
+
               {p.description ? (
                 <p className="mt-3 text-sm text-slate-200">{p.description}</p>
               ) : null}

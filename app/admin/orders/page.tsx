@@ -9,12 +9,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { maskEmail } from "@/lib/maskEmail";
 import PageHeader from "@/components/ui/PageHeader";
 import { getStatusColor, getStatusLabel } from "@/lib/statusConfig";
+import ConfirmModal from "@/components/admin/v2/ConfirmModal";
 
 interface Order {
   _id: string;
   status: string;
+  amount?: number;
   isRejectedArchive?: boolean;
-  userId?: { email: string };
+  createdAt?: string;
+  userId?: { email: string; name?: string };
   serviceId?: { title: string };
   payment?: {
     methodId?: {
@@ -54,6 +57,25 @@ function AdminOrdersContent() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // PATCH_66: Confirmation modals
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    orderId: string;
+    action: string;
+    newStatus?: string;
+    variant: "danger" | "warning" | "info" | "success";
+  }>({
+    open: false,
+    title: "",
+    description: "",
+    orderId: "",
+    action: "",
+    variant: "warning",
+  });
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
   const status = useMemo(() => {
     const v = String(searchParams.get("status") || "all")
@@ -97,24 +119,64 @@ function AdminOrdersContent() {
   };
 
   const updateStatus = async (id: string, nextStatus: string) => {
+    // PATCH_66: Show confirmation modal instead of immediate update
+    const order = orders.find((o) => o._id === id);
+    setConfirmModal({
+      open: true,
+      title: `Change Order Status`,
+      description: `You are about to change this order from "${order?.status || "current"}" to "${nextStatus}". ${
+        nextStatus === "completed"
+          ? "This will notify the user that their order is complete."
+          : nextStatus === "cancelled"
+            ? "This will cancel the order and notify the user."
+            : "The user will be notified of this change."
+      }`,
+      orderId: id,
+      action: "updateStatus",
+      newStatus: nextStatus,
+      variant: nextStatus === "cancelled" ? "danger" : "warning",
+    });
+  };
+
+  const executeStatusUpdate = async () => {
+    if (!confirmModal.orderId || !confirmModal.newStatus) return;
+    setConfirmLoading(true);
     try {
       await apiRequest(
-        `/api/admin/orders/${id}`,
+        `/api/admin/orders/${confirmModal.orderId}`,
         "PUT",
-        { status: nextStatus },
+        { status: confirmModal.newStatus },
         true,
       );
       toast("Order updated", "success");
       load(status);
+      setConfirmModal({ ...confirmModal, open: false });
     } catch (err: any) {
       toast(err?.message || "Failed to update status", "error");
+    } finally {
+      setConfirmLoading(false);
     }
   };
 
   const verifyPayment = async (id: string) => {
+    // PATCH_66: Show confirmation modal
+    const order = orders.find((o) => o._id === id);
+    setConfirmModal({
+      open: true,
+      title: `Verify Payment`,
+      description: `You are about to verify the payment for this order. This will move the order to "In Progress" and notify the user that their payment was received.`,
+      orderId: id,
+      action: "verifyPayment",
+      variant: "success",
+    });
+  };
+
+  const executeVerifyPayment = async () => {
+    if (!confirmModal.orderId) return;
+    setConfirmLoading(true);
     try {
       await apiRequest(
-        `/api/admin/orders/${id}/verify-payment`,
+        `/api/admin/orders/${confirmModal.orderId}/verify-payment`,
         "PUT",
         {},
         true,
@@ -122,8 +184,19 @@ function AdminOrdersContent() {
 
       toast("Payment verified. Order moved to in progress.", "success");
       load(status);
+      setConfirmModal({ ...confirmModal, open: false });
     } catch (err: any) {
       toast(err?.message || "Failed to verify payment", "error");
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
+
+  const handleConfirmAction = () => {
+    if (confirmModal.action === "updateStatus") {
+      executeStatusUpdate();
+    } else if (confirmModal.action === "verifyPayment") {
+      executeVerifyPayment();
     }
   };
 
@@ -145,8 +218,46 @@ function AdminOrdersContent() {
     load(status);
   }, [status]);
 
+  // PATCH_66: Order flow stages for timeline display
+  const orderFlowStages = [
+    { key: "created", label: "Created", icon: "📝" },
+    { key: "payment_pending", label: "Payment Pending", icon: "💳" },
+    { key: "payment_submitted", label: "Proof Submitted", icon: "📤" },
+    { key: "in_progress", label: "Verified", icon: "✓" },
+    { key: "completed", label: "Completed", icon: "✅" },
+  ];
+
+  const getOrderStageIndex = (orderStatus: string) => {
+    const stageMap: Record<string, number> = {
+      pending: 0,
+      payment_pending: 1,
+      payment_submitted: 2,
+      waiting_user: 2,
+      in_progress: 3,
+      completed: 4,
+      cancelled: -1,
+    };
+    return stageMap[orderStatus] ?? 0;
+  };
+
   return (
     <div className="space-y-6">
+      {/* PATCH_66: Confirmation Modal */}
+      <ConfirmModal
+        open={confirmModal.open}
+        onClose={() => setConfirmModal({ ...confirmModal, open: false })}
+        onConfirm={handleConfirmAction}
+        title={confirmModal.title}
+        description={confirmModal.description}
+        variant={confirmModal.variant}
+        loading={confirmLoading}
+        confirmLabel={
+          confirmModal.action === "verifyPayment"
+            ? "Verify Payment"
+            : "Confirm Change"
+        }
+      />
+
       <PageHeader
         title="Orders"
         description="Review payments and update order status"

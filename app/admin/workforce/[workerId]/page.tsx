@@ -225,6 +225,10 @@ export default function Worker360Page() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showCreditModal, setShowCreditModal] = useState(false);
   const [showNotesModal, setShowNotesModal] = useState(false);
+  // PATCH_66: Suspend modal with reason and end date
+  const [showSuspendModal, setShowSuspendModal] = useState(false);
+  const [suspendReason, setSuspendReason] = useState("");
+  const [suspendEndDate, setSuspendEndDate] = useState("");
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null,
   );
@@ -703,6 +707,58 @@ export default function Worker360Page() {
     } finally {
       setActionLoading(null);
     }
+  };
+
+  // PATCH_66: Suspend worker with reason and optional end date
+  const handleSuspendWorker = async () => {
+    if (!worker || !suspendReason.trim()) {
+      toast("Suspension reason is required", "error");
+      return;
+    }
+
+    showConfirmation({
+      actionType: "worker_suspend" as ActionType,
+      title: "Suspend Worker",
+      description: `You are about to SUSPEND this worker. They will lose access to projects and earnings until unsuspended.`,
+      details: {
+        workerName:
+          `${worker.user?.firstName || ""} ${worker.user?.lastName || ""}`.trim(),
+        workerEmail: worker.user?.email,
+        currentState: worker.workerStatus,
+        targetState: "suspended",
+        suspendReason: suspendReason,
+        suspendEndDate: suspendEndDate || "Indefinite",
+      },
+      warningMessage:
+        "⚠️ DANGER: This action will immediately block the worker from all platform activities.",
+      confirmButtonText: "Suspend Worker",
+      isDangerous: true,
+      onConfirm: async () => {
+        setActionLoading("suspend");
+        try {
+          await apiRequest(
+            `/api/admin/workspace/worker/${worker._id}/status`,
+            "PUT",
+            {
+              workerStatus: "suspended",
+              suspensionReason: suspendReason,
+              suspensionEndDate: suspendEndDate || null,
+              adminNotes: `${adminNotes ? adminNotes + "\n" : ""}[${new Date().toISOString()}] SUSPENDED: ${suspendReason}${suspendEndDate ? ` (until ${suspendEndDate})` : ""}`,
+            },
+            true,
+          );
+          toast("Worker suspended successfully", "success");
+          setShowSuspendModal(false);
+          setSuspendReason("");
+          setSuspendEndDate("");
+          loadWorkerData();
+        } catch (error: any) {
+          toast(error.message || "Failed to suspend worker", "error");
+        } finally {
+          setActionLoading(null);
+        }
+      },
+    });
   };
 
   // PATCH_62: Helper to get primary action description
@@ -1245,6 +1301,15 @@ export default function Worker360Page() {
             >
               📝 Admin Notes
             </button>
+            {/* PATCH_66: Suspend Worker Button with reason and end date */}
+            {worker.workerStatus !== "suspended" && hasValidIdentity && (
+              <button
+                onClick={() => setShowSuspendModal(true)}
+                className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded text-sm transition"
+              >
+                🚫 Suspend Worker
+              </button>
+            )}
             {worker.resumeUrl && (
               <a
                 href={worker.resumeUrl}
@@ -2107,6 +2172,123 @@ export default function Worker360Page() {
                 className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition disabled:opacity-50"
               >
                 {actionLoading === "notes" ? "Saving..." : "Save Notes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PATCH_66: Suspend Worker Modal with reason and end date */}
+      {showSuspendModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-lg w-full border border-red-500/30">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                <span className="text-red-400 text-xl">🚫</span>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">
+                  Suspend Worker
+                </h3>
+                <p className="text-sm text-slate-400">
+                  This action will block the worker from all activities
+                </p>
+              </div>
+            </div>
+
+            {/* Warning Banner */}
+            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-4">
+              <p className="text-red-300 text-sm">
+                ⚠️ <strong>DANGER:</strong> Suspending a worker will:
+              </p>
+              <ul className="text-red-200 text-sm mt-2 space-y-1">
+                <li>• Block access to all assigned projects</li>
+                <li>• Freeze pending earnings</li>
+                <li>• Remove from active workforce</li>
+              </ul>
+            </div>
+
+            {/* Suspension Reason - REQUIRED */}
+            <div className="mb-4">
+              <label className="block text-sm text-slate-400 mb-2">
+                Suspension Reason <span className="text-red-400">*</span>
+              </label>
+              <textarea
+                value={suspendReason}
+                onChange={(e) => setSuspendReason(e.target.value)}
+                placeholder="Enter the reason for suspension (required)..."
+                rows={3}
+                className="w-full bg-slate-900 text-white rounded-lg px-4 py-3 border border-red-500/30 focus:border-red-500 outline-none resize-none"
+              />
+              {!suspendReason.trim() && (
+                <p className="text-red-400 text-xs mt-1">
+                  ⚠️ Reason is required to suspend
+                </p>
+              )}
+            </div>
+
+            {/* Suspension End Date - OPTIONAL */}
+            <div className="mb-6">
+              <label className="block text-sm text-slate-400 mb-2">
+                Suspension End Date{" "}
+                <span className="text-slate-500">(optional)</span>
+              </label>
+              <input
+                type="date"
+                value={suspendEndDate}
+                onChange={(e) => setSuspendEndDate(e.target.value)}
+                min={new Date().toISOString().split("T")[0]}
+                className="w-full bg-slate-900 text-white rounded-lg px-4 py-3 border border-slate-700 focus:border-cyan-500 outline-none"
+              />
+              <p className="text-slate-500 text-xs mt-1">
+                Leave empty for indefinite suspension
+              </p>
+            </div>
+
+            {/* Preview of Changes */}
+            <div className="bg-slate-900/50 rounded-lg p-4 mb-6 border border-slate-700">
+              <div className="text-xs text-slate-400 uppercase tracking-wider mb-2">
+                Preview of Changes
+              </div>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Current Status:</span>
+                  <span className="text-white">{worker?.workerStatus}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">New Status:</span>
+                  <span className="text-red-400 font-medium">Suspended</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Duration:</span>
+                  <span className="text-amber-400">
+                    {suspendEndDate
+                      ? `Until ${new Date(suspendEndDate).toLocaleDateString()}`
+                      : "Indefinite"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowSuspendModal(false);
+                  setSuspendReason("");
+                  setSuspendEndDate("");
+                }}
+                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSuspendWorker}
+                disabled={!suspendReason.trim() || actionLoading === "suspend"}
+                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg transition disabled:opacity-50"
+              >
+                {actionLoading === "suspend"
+                  ? "Suspending..."
+                  : "🚫 Suspend Worker"}
               </button>
             </div>
           </div>

@@ -717,6 +717,25 @@ export default function AdminJarvisXCommandCenter() {
 
   return (
     <div className="max-w-5xl space-y-6">
+      {/* PATCH_66: Safety Banner */}
+      <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">⚠️</span>
+          <div>
+            <div className="font-semibold text-amber-300">
+              JarvisX Performs REAL System Actions
+            </div>
+            <p className="text-sm text-amber-200/80 mt-1">
+              Commands sent here will affect actual data. All write operations
+              require confirmation before execution. Use natural language to
+              query data safely, or prefix with{" "}
+              <code className="bg-amber-500/20 px-1 rounded">!</code> for write
+              operations.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">JarvisX Command Center</h1>
@@ -1302,4 +1321,3 @@ export default function AdminJarvisXCommandCenter() {
     </div>
   );
 }
-

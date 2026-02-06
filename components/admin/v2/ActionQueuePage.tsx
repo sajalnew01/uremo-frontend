@@ -2,6 +2,7 @@
 
 /**
  * PATCH_63: MASTER ADMIN REBUILD
+ * PATCH_66: UX CLARITY IMPROVEMENTS
  * ActionQueue - The DEFAULT admin landing view
  *
  * Aggregates ALL pending actions sorted by:
@@ -26,6 +27,11 @@ interface ActionItem {
     | "application";
   title: string;
   subtitle: string;
+  details: {
+    what: string;
+    who: string;
+    action: string;
+  };
   priority: "critical" | "high" | "medium" | "low";
   revenueImpact: number;
   blockedHours: number;
@@ -38,8 +44,11 @@ interface SystemHealth {
   totalUsers: number;
   activeWorkers: number;
   ordersToday: number;
+  ordersTarget: number;
   revenueToday: number;
+  revenueAvg: number;
   avgResolutionTime: string;
+  resolutionGoal: string;
 }
 
 export default function ActionQueuePage() {
@@ -98,7 +107,12 @@ export default function ActionQueuePage() {
               id: `order-payment-${order._id}`,
               type: "payment",
               title: `Payment Verification Required`,
-              subtitle: `Order #${order._id.slice(-6)} - ${order.serviceId?.title?.slice(0, 30) || "Service"} - $${order.amount || 0}`,
+              subtitle: `Order #${order._id.slice(-6)}`,
+              details: {
+                what: `Service: ${order.serviceId?.title || "Unknown"} • Amount: $${order.amount || 0}`,
+                who: `User: ${order.userId?.email || "Unknown"}`,
+                action: "Verify payment proof and confirm receipt",
+              },
               priority:
                 blockedHours > 24
                   ? "critical"
@@ -116,7 +130,12 @@ export default function ActionQueuePage() {
               id: `order-pending-${order._id}`,
               type: "order",
               title: `Order Pending Action`,
-              subtitle: `Order #${order._id.slice(-6)} - ${order.serviceId?.title?.slice(0, 30) || "Service"}`,
+              subtitle: `Order #${order._id.slice(-6)}`,
+              details: {
+                what: `Service: ${order.serviceId?.title || "Unknown"}`,
+                who: `User: ${order.userId?.email || "Unknown"}`,
+                action: "Review order and update status",
+              },
               priority: blockedHours > 48 ? "high" : "medium",
               revenueImpact: order.amount || 0,
               blockedHours,
@@ -162,8 +181,11 @@ export default function ActionQueuePage() {
           totalUsers,
           activeWorkers,
           ordersToday,
+          ordersTarget: 15, // Target per day
           revenueToday,
+          revenueAvg: 1200, // Average per day
           avgResolutionTime: calculateAvgResolution(orders),
+          resolutionGoal: "24h",
         });
       }
 
@@ -182,8 +204,13 @@ export default function ActionQueuePage() {
             actionItems.push({
               id: `proof-${proof._id}`,
               type: "proof",
-              title: `Worker Proof Pending`,
-              subtitle: `${proof.workerId?.userId?.email || "Worker"} - ${proof.projectId?.title?.slice(0, 30) || "Project"}`,
+              title: `Worker Proof Pending Review`,
+              subtitle: `Project: ${proof.projectId?.title?.slice(0, 30) || "Unknown"}`,
+              details: {
+                what: `Work proof submitted for review`,
+                who: `Worker: ${proof.workerId?.userId?.email || "Unknown"}`,
+                action: "Verify work quality and approve/reject proof",
+              },
               priority:
                 blockedHours > 72
                   ? "critical"
@@ -216,6 +243,11 @@ export default function ActionQueuePage() {
               type: "ticket",
               title: `Support Ticket Open`,
               subtitle: ticket.subject?.slice(0, 50) || "Support request",
+              details: {
+                what: `Support request needs response`,
+                who: `From: ${ticket.userId?.email || "User"}`,
+                action: "Read ticket and provide response",
+              },
               priority:
                 ticket.priority === "urgent"
                   ? "critical"
@@ -248,8 +280,13 @@ export default function ActionQueuePage() {
             actionItems.push({
               id: `app-${app._id}`,
               type: "application",
-              title: `Job Application Pending`,
-              subtitle: `${app.userId?.email || "User"} - ${app.positionId?.title || "Position"}`,
+              title: `Job Application Pending Review`,
+              subtitle: `Position: ${app.positionId?.title || "Unknown"}`,
+              details: {
+                what: `New application submitted for review`,
+                who: `Applicant: ${app.userId?.email || "Unknown"}`,
+                action: "Review application and approve/reject",
+              },
               priority: blockedHours > 48 ? "high" : "medium",
               revenueImpact: 0,
               blockedHours,
@@ -272,8 +309,13 @@ export default function ActionQueuePage() {
             actionItems.push({
               id: `screening-${screening._id}`,
               type: "screening",
-              title: `Invalid Screening (0 Questions)`,
-              subtitle: `${screening.name || screening.title} - Category: ${screening.category || "Unknown"}`,
+              title: `⚠️ Screening Missing Questions (Admin Action Required)`,
+              subtitle: `${screening.name || screening.title}`,
+              details: {
+                what: `Screening has 0 questions - workers cannot complete it`,
+                who: `Category: ${screening.category || "Unknown"}`,
+                action: "Add questions to this screening or delete it",
+              },
               priority: "critical",
               revenueImpact: 0,
               blockedHours: 999, // Always critical
@@ -301,8 +343,13 @@ export default function ActionQueuePage() {
             actionItems.push({
               id: `withdrawal-${withdrawal._id}`,
               type: "withdrawal",
-              title: `Affiliate Withdrawal Pending`,
-              subtitle: `${withdrawal.userId?.email || "User"} - $${withdrawal.amount || 0}`,
+              title: `Affiliate Withdrawal Request`,
+              subtitle: `Amount: $${withdrawal.amount || 0}`,
+              details: {
+                what: `Affiliate requesting withdrawal of earnings`,
+                who: `User: ${withdrawal.userId?.email || "Unknown"}`,
+                action: "Process withdrawal payment to user",
+              },
               priority: blockedHours > 48 ? "high" : "medium",
               revenueImpact: -(withdrawal.amount || 0),
               blockedHours,
@@ -399,17 +446,22 @@ export default function ActionQueuePage() {
             label="Orders Today"
             value={health.ordersToday}
             icon="📦"
+            target={`Target: ${health.ordersTarget}/day`}
+            isGood={health.ordersToday >= health.ordersTarget}
           />
           <HealthCard
             label="Revenue Today"
             value={`$${health.revenueToday}`}
             icon="💰"
             color="emerald"
+            target={`Avg: $${health.revenueAvg}/day`}
+            isGood={health.revenueToday >= health.revenueAvg}
           />
           <HealthCard
             label="Avg Resolution"
             value={health.avgResolutionTime}
             icon="⏱️"
+            target={`Goal: <${health.resolutionGoal}`}
           />
         </div>
       )}
@@ -509,11 +561,15 @@ function HealthCard({
   value,
   icon,
   color = "blue",
+  target,
+  isGood,
 }: {
   label: string;
   value: string | number;
   icon: string;
   color?: string;
+  target?: string;
+  isGood?: boolean;
 }) {
   const colorClasses: Record<string, string> = {
     blue: "from-blue-500/10 to-blue-500/5 border-blue-500/20",
@@ -527,8 +583,18 @@ function HealthCard({
       <div className="flex items-center gap-2">
         <span className="text-lg">{icon}</span>
         <div>
-          <div className="text-white font-semibold">{value}</div>
+          <div className="text-white font-semibold flex items-center gap-1">
+            {value}
+            {isGood !== undefined && (
+              <span className={isGood ? "text-emerald-400" : "text-amber-400"}>
+                {isGood ? "✓" : "↓"}
+              </span>
+            )}
+          </div>
           <div className="text-slate-500 text-xs">{label}</div>
+          {target && (
+            <div className="text-slate-600 text-[10px] mt-0.5">{target}</div>
+          )}
         </div>
       </div>
     </div>
@@ -642,46 +708,71 @@ function ActionRow({ action }: { action: ActionItem }) {
 
   const style = priorityStyles[action.priority];
 
+  const formatWaitTime = (hours: number) => {
+    if (hours >= 999) return "⚠️ Invalid";
+    if (hours < 1) return "Just now";
+    if (hours < 24) return `Waiting: ${hours}h`;
+    const days = Math.floor(hours / 24);
+    return `Waiting: ${days}d ${hours % 24}h`;
+  };
+
   return (
     <Link
       href={action.href}
-      className={`flex items-center gap-4 p-4 border-l-4 ${style.border} ${style.bg} transition-colors`}
+      className={`block p-4 border-l-4 ${style.border} ${style.bg} transition-colors`}
     >
-      {/* Priority Dot */}
-      <div className={`w-2 h-2 rounded-full ${style.dot} flex-shrink-0`} />
+      <div className="flex items-start gap-4">
+        {/* Priority Dot */}
+        <div
+          className={`w-2 h-2 rounded-full ${style.dot} flex-shrink-0 mt-2`}
+        />
 
-      {/* Type Icon */}
-      <div className="text-xl flex-shrink-0">{typeIcons[action.type]}</div>
+        {/* Type Icon */}
+        <div className="text-xl flex-shrink-0">{typeIcons[action.type]}</div>
 
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <div className="text-white font-medium truncate">{action.title}</div>
-        <div className="text-slate-500 text-sm truncate">{action.subtitle}</div>
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <div className="text-white font-medium">{action.title}</div>
+            <span className="text-xs text-slate-500 flex-shrink-0">
+              {formatWaitTime(action.blockedHours)}
+            </span>
+          </div>
+          <div className="text-slate-400 text-sm mb-2">{action.subtitle}</div>
+
+          {/* Details Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+            <div className="bg-white/5 rounded px-2 py-1">
+              <span className="text-slate-500">What: </span>
+              <span className="text-slate-300">{action.details.what}</span>
+            </div>
+            <div className="bg-white/5 rounded px-2 py-1">
+              <span className="text-slate-500">Who: </span>
+              <span className="text-slate-300">{action.details.who}</span>
+            </div>
+            <div className="bg-blue-500/10 rounded px-2 py-1">
+              <span className="text-blue-400">→ {action.details.action}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Revenue Impact & Action Button */}
+        <div className="flex flex-col items-end gap-2 flex-shrink-0">
+          {action.revenueImpact !== 0 && (
+            <span
+              className={`text-sm font-medium ${
+                action.revenueImpact > 0 ? "text-emerald-400" : "text-red-400"
+              }`}
+            >
+              {action.revenueImpact > 0 ? "+" : ""}$
+              {Math.abs(action.revenueImpact)}
+            </span>
+          )}
+          <button className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors">
+            {action.actionLabel}
+          </button>
+        </div>
       </div>
-
-      {/* Meta */}
-      <div className="hidden sm:flex items-center gap-4 text-sm text-slate-500 flex-shrink-0">
-        {action.revenueImpact !== 0 && (
-          <span
-            className={
-              action.revenueImpact > 0 ? "text-emerald-400" : "text-red-400"
-            }
-          >
-            {action.revenueImpact > 0 ? "+" : ""}$
-            {Math.abs(action.revenueImpact)}
-          </span>
-        )}
-        <span>
-          {action.blockedHours < 999
-            ? `${action.blockedHours}h ago`
-            : "Invalid"}
-        </span>
-      </div>
-
-      {/* Action Button */}
-      <button className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors flex-shrink-0">
-        {action.actionLabel}
-      </button>
     </Link>
   );
 }

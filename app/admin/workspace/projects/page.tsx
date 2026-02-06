@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useEffect, useState, Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { apiRequest } from "@/lib/api";
+import ConfirmModal from "@/components/admin/v2/ConfirmModal";
 
 /**
  * PATCH_44: Admin Projects Management Page
  * PATCH_64: Enhanced with linked screenings, execution state, and controls
+ * PATCH_66: Added confirmation modals for all actions
  * Create, view, assign, and manage work projects
  */
 
@@ -82,6 +84,8 @@ function ProjectsContent() {
   // Assign modal state
   const [assignModal, setAssignModal] = useState<Project | null>(null);
   const [selectedWorker, setSelectedWorker] = useState<string>("");
+  const [assignConfirmOpen, setAssignConfirmOpen] = useState(false);
+  const [assigning, setAssigning] = useState(false);
 
   // PATCH_57: Filter workers by category when assigning
   const [assignableWorkers, setAssignableWorkers] = useState<Worker[]>([]);
@@ -265,6 +269,12 @@ function ProjectsContent() {
 
   const handleAssign = async () => {
     if (!assignModal || !selectedWorker) return;
+    setAssignConfirmOpen(true);
+  };
+
+  const executeAssign = async () => {
+    if (!assignModal || !selectedWorker) return;
+    setAssigning(true);
 
     try {
       await apiRequest(
@@ -273,12 +283,15 @@ function ProjectsContent() {
         { workerId: selectedWorker },
         true,
       );
-      setSuccess("Project assigned successfully!");
+      setSuccess("Project assigned successfully! The worker will be notified.");
       setAssignModal(null);
       setSelectedWorker("");
+      setAssignConfirmOpen(false);
       loadProjects();
     } catch (e: any) {
       setError(e.message || "Failed to assign project");
+    } finally {
+      setAssigning(false);
     }
   };
 
@@ -976,6 +989,20 @@ function ProjectsContent() {
               )}
             </div>
 
+            {/* PATCH_66: Preview of what will happen */}
+            {selectedWorker && (
+              <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <div className="text-xs text-blue-400 uppercase tracking-wider mb-2">
+                  What will happen:
+                </div>
+                <ul className="text-sm text-blue-200 space-y-1">
+                  <li>✓ Project status will change to "Assigned"</li>
+                  <li>✓ Worker will be notified of new assignment</li>
+                  <li>✓ Worker status will update to "Working"</li>
+                </ul>
+              </div>
+            )}
+
             <div className="flex gap-3">
               <button
                 type="button"
@@ -992,12 +1019,42 @@ function ProjectsContent() {
                 disabled={!selectedWorker || assignableWorkers.length === 0}
                 className="btn-primary flex-1 disabled:opacity-50"
               >
-                Assign
+                Assign Worker
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* PATCH_66: Confirm Assignment Modal */}
+      <ConfirmModal
+        open={assignConfirmOpen}
+        onClose={() => setAssignConfirmOpen(false)}
+        onConfirm={executeAssign}
+        title="Confirm Worker Assignment"
+        description={`You are about to assign "${assignModal?.title || "this project"}" to the selected worker. The worker will be notified immediately.`}
+        variant="info"
+        loading={assigning}
+        confirmLabel="Confirm Assignment"
+        preview={
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-slate-400">Project:</span>
+              <span className="text-white">{assignModal?.title}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400">Earnings:</span>
+              <span className="text-emerald-400">
+                ${assignModal?.earnings || 0}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400">New Status:</span>
+              <span className="text-blue-400">Assigned → Working</span>
+            </div>
+          </div>
+        }
+      />
 
       {/* PATCH_48: Credit Earnings Modal */}
       {creditModal && (

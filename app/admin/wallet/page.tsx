@@ -386,11 +386,16 @@ export default function AdminWalletPage() {
           </div>
         </div>
 
-        {/* Adjust Modal */}
+        {/* Adjust Modal - PATCH_66: Enhanced with Preview */}
         {showAdjust && selectedUser && (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
             <div className="bg-slate-900 rounded-xl p-6 w-full max-w-md border border-slate-700">
-              <h2 className="text-xl font-semibold mb-4">Adjust Balance</h2>
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <span className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                  ⚠️
+                </span>
+                Adjust Balance
+              </h2>
               <p className="text-slate-400 text-sm mb-4">
                 Adjusting wallet for: <strong>{selectedUser.email}</strong>
               </p>
@@ -436,16 +441,61 @@ export default function AdminWalletPage() {
 
               <div className="mb-4">
                 <label className="block text-sm text-slate-300 mb-2">
-                  Description (optional)
+                  Reason (Required)
                 </label>
                 <input
                   type="text"
                   value={adjustDescription}
                   onChange={(e) => setAdjustDescription(e.target.value)}
-                  placeholder="Reason for adjustment"
+                  placeholder="Why are you making this adjustment?"
                   className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-3 text-white"
                 />
               </div>
+
+              {/* PATCH_66: Preview of Change */}
+              {adjustAmount && parseFloat(adjustAmount) > 0 && (
+                <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 mb-4">
+                  <div className="text-xs text-slate-500 uppercase tracking-wider mb-2">
+                    Preview of Changes
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">User:</span>
+                      <span className="text-white">{selectedUser.name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Current Balance:</span>
+                      <span className="text-white">
+                        ${(selectedUser.walletBalance || 0).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Change:</span>
+                      <span
+                        className={
+                          adjustType === "credit"
+                            ? "text-emerald-400"
+                            : "text-red-400"
+                        }
+                      >
+                        {adjustType === "credit" ? "+" : "-"}$
+                        {parseFloat(adjustAmount).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="border-t border-slate-600 pt-2 flex justify-between font-semibold">
+                      <span className="text-slate-300">New Balance:</span>
+                      <span className="text-white">
+                        $
+                        {(
+                          (selectedUser.walletBalance || 0) +
+                          (adjustType === "credit" ? 1 : -1) *
+                            parseFloat(adjustAmount)
+                        ).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-3">
                 <button
@@ -460,7 +510,7 @@ export default function AdminWalletPage() {
                 </button>
                 <button
                   onClick={handleAdjust}
-                  disabled={adjustLoading}
+                  disabled={adjustLoading || !adjustDescription.trim()}
                   className={`flex-1 rounded-lg py-3 font-medium disabled:opacity-50 ${
                     adjustType === "credit"
                       ? "bg-emerald-600 hover:bg-emerald-500"
@@ -470,10 +520,15 @@ export default function AdminWalletPage() {
                   {adjustLoading
                     ? "Processing..."
                     : adjustType === "credit"
-                      ? "Credit Balance"
-                      : "Debit Balance"}
+                      ? "Confirm Credit"
+                      : "Confirm Debit"}
                 </button>
               </div>
+              {!adjustDescription.trim() && (
+                <p className="text-xs text-amber-400 mt-2 text-center">
+                  ⚠️ Reason is required for audit trail
+                </p>
+              )}
             </div>
           </div>
         )}
