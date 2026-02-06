@@ -5,6 +5,13 @@ import { useEffect, useState, Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 import ConfirmModal from "@/components/admin/v2/ConfirmModal";
+import {
+  ActionBar,
+  AuditTrail,
+  StatusTooltip,
+  UndoToast,
+  useUndoToast,
+} from "@/components/admin/v2";
 
 /**
  * PATCH_44: Admin Projects Management Page
@@ -58,6 +65,7 @@ function ProjectsContent() {
   const searchParams = useSearchParams();
   const showCreate = searchParams.get("action") === "create";
   const categoryParam = searchParams.get("category");
+  const undoToast = useUndoToast();
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [workers, setWorkers] = useState<Worker[]>([]);
@@ -66,6 +74,10 @@ function ProjectsContent() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(showCreate);
+  const [lastAssignedData, setLastAssignedData] = useState<{
+    projectId: string;
+    previousAssignee: string | null;
+  } | null>(null);
   const [filter, setFilter] = useState<string>("all");
   const [showLinkedScreenings, setShowLinkedScreenings] = useState(false); // PATCH_64
 
@@ -276,6 +288,9 @@ function ProjectsContent() {
     if (!assignModal || !selectedWorker) return;
     setAssigning(true);
 
+    const previousAssignee = assignModal.assignedTo?._id || null;
+    const projectId = assignModal._id;
+
     try {
       await apiRequest(
         `/api/admin/workspace/project/${assignModal._id}/assign`,
@@ -284,10 +299,24 @@ function ProjectsContent() {
         true,
       );
       setSuccess("Project assigned successfully! The worker will be notified.");
+      setLastAssignedData({ projectId, previousAssignee });
       setAssignModal(null);
       setSelectedWorker("");
       setAssignConfirmOpen(false);
       loadProjects();
+
+      // PATCH_67: Show undo toast for assignment
+      undoToast.showUndo("Project assigned", async () => {
+        // Unassign by setting status back to pending
+        await apiRequest(
+          `/api/admin/workspace/project/${projectId}`,
+          "PUT",
+          { status: "pending", assignedTo: null },
+          true,
+        );
+        setSuccess("Assignment undone");
+        loadProjects();
+      });
     } catch (e: any) {
       setError(e.message || "Failed to assign project");
     } finally {
@@ -648,13 +677,15 @@ function ProjectsContent() {
                     <h3 className="font-semibold text-white">
                       {project.title}
                     </h3>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs ${getStatusBadge(
-                        project.status,
-                      )}`}
-                    >
-                      {project.status}
-                    </span>
+                    <StatusTooltip status={project.status}>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs ${getStatusBadge(
+                          project.status,
+                        )}`}
+                      >
+                        {project.status}
+                      </span>
+                    </StatusTooltip>
                     <span
                       className={`text-xs ${getPriorityBadge(project.priority)}`}
                     >
@@ -1162,11 +1193,15 @@ function ProjectsContent() {
                     {viewData.project?.title}
                   </h3>
                   <div className="flex gap-2 mt-2">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs ${getStatusBadge(viewData.project?.status)}`}
+                    <StatusTooltip
+                      status={viewData.project?.status || "unknown"}
                     >
-                      {viewData.project?.status}
-                    </span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs ${getStatusBadge(viewData.project?.status)}`}
+                      >
+                        {viewData.project?.status}
+                      </span>
+                    </StatusTooltip>
                     <span className="px-2 py-0.5 rounded-full text-xs bg-slate-700 text-slate-300">
                       {viewData.project?.category}
                     </span>
@@ -1512,6 +1547,14 @@ function ProjectsContent() {
           </div>
         </div>
       )}
+
+      {/* PATCH_67: UndoToast for assignment actions */}
+      <UndoToast
+        show={undoToast.show}
+        message={undoToast.message}
+        onUndo={undoToast.handleUndo}
+        onExpire={undoToast.handleExpire}
+      />
     </div>
   );
 }

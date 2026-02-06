@@ -17,6 +17,16 @@ import {
   ProjectCompletionConfirmation,
   deriveCompletionData,
 } from "@/components/workforce";
+// PATCH_67: Import safety layer components
+import {
+  ActionBar,
+  AuditTrail,
+  StatusTooltip,
+  NextStepPanel,
+  getWorkerNextStep,
+  UndoToast,
+  useUndoToast,
+} from "@/components/admin/v2";
 
 /**
  * PATCH_62: Worker Command Center
@@ -235,6 +245,12 @@ export default function Worker360Page() {
   const [newStatus, setNewStatus] = useState("");
   const [adminNotes, setAdminNotes] = useState("");
   const [creditAmount, setCreditAmount] = useState(0);
+
+  // PATCH_67: Undo toast hook for suspension
+  const undoToast = useUndoToast();
+  const [lastSuspendedData, setLastSuspendedData] = useState<{
+    previousStatus: string;
+  } | null>(null);
 
   // PATCH-64: Confirmation modal state
   const [confirmModal, setConfirmModal] = useState<{
@@ -709,12 +725,32 @@ export default function Worker360Page() {
     }
   };
 
+  // PATCH_67: Undo suspension function
+  const undoSuspension = async () => {
+    if (!worker || !lastSuspendedData) return;
+    try {
+      await apiRequest(
+        `/api/admin/workspace/worker/${worker._id}/status`,
+        "PUT",
+        { workerStatus: lastSuspendedData.previousStatus },
+        true,
+      );
+      toast("Suspension undone", "success");
+      setLastSuspendedData(null);
+      loadWorkerData();
+    } catch (error: any) {
+      toast(error.message || "Failed to undo suspension", "error");
+    }
+  };
+
   // PATCH_66: Suspend worker with reason and optional end date
   const handleSuspendWorker = async () => {
     if (!worker || !suspendReason.trim()) {
       toast("Suspension reason is required", "error");
       return;
     }
+
+    const previousStatus = worker.workerStatus;
 
     showConfirmation({
       actionType: "worker_suspend" as ActionType,
@@ -747,7 +783,13 @@ export default function Worker360Page() {
             },
             true,
           );
-          toast("Worker suspended successfully", "success");
+          // PATCH_67: Show undo toast for suspension
+          setLastSuspendedData({ previousStatus });
+          undoToast.showUndo(
+            `Worker suspended: ${worker.user?.firstName || "Worker"}`,
+            undoSuspension,
+            () => setLastSuspendedData(null),
+          );
           setShowSuspendModal(false);
           setSuspendReason("");
           setSuspendEndDate("");
@@ -974,13 +1016,15 @@ export default function Worker360Page() {
                 </div>
               </div>
 
-              {/* Current Status Badge */}
+              {/* Current Status Badge - PATCH_67: Wrapped with StatusTooltip */}
               <div className="flex flex-col items-start lg:items-end gap-2">
-                <span
-                  className={`px-4 py-2 rounded-full border text-sm font-medium ${STATUS_COLORS[worker.workerStatus] || STATUS_COLORS.applied}`}
-                >
-                  {STATUS_LABELS[worker.workerStatus] || worker.workerStatus}
-                </span>
+                <StatusTooltip status={worker.workerStatus}>
+                  <span
+                    className={`px-4 py-2 rounded-full border text-sm font-medium cursor-help ${STATUS_COLORS[worker.workerStatus] || STATUS_COLORS.applied}`}
+                  >
+                    {STATUS_LABELS[worker.workerStatus] || worker.workerStatus}
+                  </span>
+                </StatusTooltip>
                 <p className="text-sm text-slate-400 max-w-[250px] text-left lg:text-right">
                   {STATUS_DESCRIPTIONS[worker.workerStatus] || "Status unknown"}
                 </p>
@@ -1022,6 +1066,81 @@ export default function Worker360Page() {
           />
         </div>
       </div>
+
+      {/* PATCH_67: ActionBar - Persistent actions for Worker 360 */}
+      <div className="max-w-7xl mx-auto px-4 pt-4">
+        <ActionBar
+          actions={[
+            {
+              key: "approve",
+              label: "Approve",
+              icon: "✅",
+              variant: "success",
+              disabled:
+                worker.workerStatus !== "applied" ||
+                worker.status !== "pending" ||
+                !hasValidIdentity,
+              onClick: handleApproveApplication,
+            },
+            {
+              key: "assign",
+              label: "Assign Project",
+              icon: "📦",
+              variant: "primary",
+              disabled:
+                worker.workerStatus !== "ready_to_work" || !hasValidIdentity,
+              onClick: () => setShowAssignModal(true),
+            },
+            {
+              key: "notes",
+              label: "Admin Notes",
+              icon: "📝",
+              variant: "ghost",
+              onClick: () => setShowNotesModal(true),
+            },
+            {
+              key: "suspend",
+              label: "Suspend",
+              icon: "🚫",
+              variant: "danger",
+              disabled:
+                worker.workerStatus === "suspended" || !hasValidIdentity,
+              onClick: () => setShowSuspendModal(true),
+            },
+          ]}
+        />
+      </div>
+
+      {/* PATCH_67: NextStepPanel - Show recommended action */}
+      {worker &&
+        hasValidIdentity &&
+        (() => {
+          const nextStep = getWorkerNextStep(worker.workerStatus);
+          if (nextStep) {
+            return (
+              <div className="max-w-7xl mx-auto px-4 pt-4">
+                <NextStepPanel
+                  title={nextStep.title}
+                  description={nextStep.description}
+                  actionLabel={nextStep.actionLabel}
+                  variant={nextStep.variant}
+                  icon={nextStep.icon}
+                  onAction={() => {
+                    if (nextStep.action === "approve")
+                      handleApproveApplication();
+                    else if (nextStep.action === "assign_project")
+                      setShowAssignModal(true);
+                    else if (nextStep.action === "reinstate") {
+                      setNewStatus("ready_to_work");
+                      handleStatusChange();
+                    } else toast(`Action: ${nextStep.action}`, "info");
+                  }}
+                />
+              </div>
+            );
+          }
+          return null;
+        })()}
 
       {/* SECTION 3: PRIMARY ACTION PANEL */}
       <div className="max-w-7xl mx-auto px-4 py-6">
@@ -1991,48 +2110,71 @@ export default function Worker360Page() {
                 </div>
               )}
 
-              {/* Activity Log Tab */}
+              {/* Activity Log Tab - PATCH_67: Add AuditTrail component */}
               {activeTab === "activity" && (
-                <div className="bg-slate-800/50 rounded-xl border border-slate-700/50">
-                  <div className="p-6 border-b border-slate-700/50">
-                    <h2 className="text-lg font-semibold text-white">
-                      Activity Timeline
-                    </h2>
-                  </div>
-                  <div className="p-6">
-                    {activities.length > 0 ? (
-                      <div className="space-y-4">
-                        {activities.map((event, i) => (
-                          <div key={event._id} className="flex gap-4">
-                            <div className="flex flex-col items-center">
-                              <div
-                                className={`w-3 h-3 rounded-full ${
-                                  event.type.includes("completed") ||
-                                  event.type.includes("passed")
-                                    ? "bg-emerald-500"
-                                    : event.type.includes("failed")
-                                      ? "bg-red-500"
-                                      : "bg-cyan-500"
-                                }`}
-                              />
-                              {i < activities.length - 1 && (
-                                <div className="w-0.5 h-full bg-slate-700 mt-1" />
-                              )}
+                <div className="space-y-6">
+                  {/* PATCH_67: AuditTrail component for structured activity log */}
+                  <AuditTrail
+                    events={activities.map((event) => ({
+                      id: event._id,
+                      action: event.type
+                        .replace(/_/g, " ")
+                        .replace(/\b\w/g, (c) => c.toUpperCase()),
+                      actor: "System",
+                      timestamp: event.timestamp,
+                      details: event.description,
+                      entityType: "worker",
+                      entityId: worker?._id,
+                    }))}
+                    title="Worker Activity Log"
+                    maxVisible={15}
+                    loading={loading}
+                  />
+
+                  {/* Legacy Timeline View */}
+                  <div className="bg-slate-800/50 rounded-xl border border-slate-700/50">
+                    <div className="p-6 border-b border-slate-700/50">
+                      <h2 className="text-lg font-semibold text-white">
+                        Activity Timeline
+                      </h2>
+                    </div>
+                    <div className="p-6">
+                      {activities.length > 0 ? (
+                        <div className="space-y-4">
+                          {activities.map((event, i) => (
+                            <div key={event._id} className="flex gap-4">
+                              <div className="flex flex-col items-center">
+                                <div
+                                  className={`w-3 h-3 rounded-full ${
+                                    event.type.includes("completed") ||
+                                    event.type.includes("passed")
+                                      ? "bg-emerald-500"
+                                      : event.type.includes("failed")
+                                        ? "bg-red-500"
+                                        : "bg-cyan-500"
+                                  }`}
+                                />
+                                {i < activities.length - 1 && (
+                                  <div className="w-0.5 h-full bg-slate-700 mt-1" />
+                                )}
+                              </div>
+                              <div className="pb-4">
+                                <p className="text-white">
+                                  {event.description}
+                                </p>
+                                <p className="text-sm text-slate-400">
+                                  {new Date(event.timestamp).toLocaleString()}
+                                </p>
+                              </div>
                             </div>
-                            <div className="pb-4">
-                              <p className="text-white">{event.description}</p>
-                              <p className="text-sm text-slate-400">
-                                {new Date(event.timestamp).toLocaleString()}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-slate-400">
-                        No activity recorded yet
-                      </div>
-                    )}
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-slate-400">
+                          No activity recorded yet
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -2307,6 +2449,14 @@ export default function Worker360Page() {
         warningMessage={confirmModal.warningMessage}
         confirmButtonText={confirmModal.confirmButtonText}
         isDangerous={confirmModal.isDangerous}
+      />
+
+      {/* PATCH_67: Undo Toast for suspension */}
+      <UndoToast
+        show={undoToast.show}
+        message={undoToast.message}
+        onUndo={undoToast.handleUndo}
+        onExpire={undoToast.handleExpire}
       />
     </div>
   );

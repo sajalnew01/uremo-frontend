@@ -14,6 +14,13 @@ import {
   MessageStatus,
 } from "@/hooks/useChatSocket";
 import { clearAdminSupportUnreadForOrder } from "@/lib/supportUnread";
+import {
+  ActionBar,
+  AuditTrail,
+  StatusTooltip,
+  UndoToast,
+  useUndoToast,
+} from "@/components/admin/v2";
 
 type StatusLogItem = { text: string; at: string };
 
@@ -41,12 +48,17 @@ export default function AdminOrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const { toast } = useToast();
   const { ready: authReady, isAuthenticated } = useAuth();
+  const undoToast = useUndoToast();
 
   const [order, setOrder] = useState<Order | null>(null);
   const [orderLoading, setOrderLoading] = useState(true);
   const [orderError, setOrderError] = useState<string | null>(null);
   const [reply, setReply] = useState("");
   const [sendError, setSendError] = useState<string | null>(null);
+  const [lastVerifiedData, setLastVerifiedData] = useState<{
+    orderId: string;
+    previousStatus: string;
+  } | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
 
   // Socket.io realtime chat
@@ -189,6 +201,7 @@ export default function AdminOrderDetailPage() {
 
   const updateStatus = async (status: string) => {
     if (!order) return;
+    const previousStatus = order.status;
     try {
       await apiRequest(
         `/api/admin/orders/${order._id}`,
@@ -198,6 +211,23 @@ export default function AdminOrderDetailPage() {
       );
       await loadOrder();
       toast("Status updated", "success");
+
+      // If verifying payment, show undo toast
+      if (status === "in_progress" && previousStatus === "pending") {
+        setLastVerifiedData({ orderId: order._id, previousStatus });
+        undoToast.showUndo("Payment verified", async () => {
+          if (lastVerifiedData) {
+            await apiRequest(
+              `/api/admin/orders/${lastVerifiedData.orderId}`,
+              "PUT",
+              { status: lastVerifiedData.previousStatus },
+              true,
+            );
+            await loadOrder();
+            toast("Verification undone", "info");
+          }
+        });
+      }
     } catch (err) {
       const apiErr = err as ApiError;
       console.warn("[admin order] updateStatus failed:", apiErr?.message);
@@ -249,9 +279,11 @@ export default function AdminOrderDetailPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Admin — Order</h1>
-        <span className={`text-xs px-2 py-1 rounded ${badge(order.status)}`}>
-          {order.status.replace(/_/g, " ")}
-        </span>
+        <StatusTooltip status={order.status}>
+          <span className={`text-xs px-2 py-1 rounded ${badge(order.status)}`}>
+            {order.status.replace(/_/g, " ")}
+          </span>
+        </StatusTooltip>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -321,6 +353,60 @@ export default function AdminOrderDetailPage() {
           </div>
         </Card>
       </div>
+
+      {/* Safety Layer: ActionBar */}
+      <ActionBar>
+        <button
+          onClick={() => updateStatus("in_progress")}
+          disabled={order.status !== "pending"}
+          className="px-4 py-2 rounded bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/30 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+        >
+          ✓ Verify Payment
+        </button>
+        <button
+          onClick={() => updateStatus("completed")}
+          disabled={
+            order.status === "completed" || order.status === "cancelled"
+          }
+          className="px-4 py-2 rounded bg-green-600/20 text-green-400 border border-green-500/30 hover:bg-green-600/30 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+        >
+          ✓ Complete Order
+        </button>
+        <button
+          onClick={() => updateStatus("waiting_user")}
+          disabled={
+            order.status === "completed" || order.status === "cancelled"
+          }
+          className="px-4 py-2 rounded bg-yellow-600/20 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-600/30 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+        >
+          ⏳ Awaiting User
+        </button>
+        <button
+          onClick={() => updateStatus("cancelled")}
+          disabled={
+            order.status === "completed" || order.status === "cancelled"
+          }
+          className="px-4 py-2 rounded bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600/30 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+        >
+          ✕ Cancel Order
+        </button>
+      </ActionBar>
+
+      {/* Safety Layer: AuditTrail */}
+      <Card>
+        <h3 className="font-semibold text-lg mb-3">Audit Trail</h3>
+        <AuditTrail
+          events={
+            order.statusLog?.map((entry, idx) => ({
+              id: `order-log-${idx}`,
+              action: entry.text,
+              timestamp: entry.at,
+              actor: "System",
+              details: `Order status change`,
+            })) || []
+          }
+        />
+      </Card>
 
       <Card>
         <div className="flex items-center justify-between">
@@ -454,6 +540,14 @@ export default function AdminOrderDetailPage() {
           </button>
         </div>
       </Card>
+
+      {/* Safety Layer: UndoToast */}
+      <UndoToast
+        show={undoToast.show}
+        message={undoToast.message}
+        onUndo={undoToast.handleUndo}
+        onExpire={undoToast.handleExpire}
+      />
     </div>
   );
 }

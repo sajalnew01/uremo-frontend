@@ -5,6 +5,12 @@ import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  ActionBar,
+  AuditTrail,
+  UndoToast,
+  useUndoToast,
+} from "@/components/admin/v2";
 
 interface User {
   _id: string;
@@ -33,8 +39,14 @@ export default function AdminWalletPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { ready, isAdmin } = useAuth();
+  const undoToast = useUndoToast();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [lastAdjustment, setLastAdjustment] = useState<{
+    userId: string;
+    amount: number;
+    type: "credit" | "debit";
+  } | null>(null);
 
   // Search
   const [searchQuery, setSearchQuery] = useState("");
@@ -150,6 +162,9 @@ export default function AdminWalletPage() {
 
     if (!selectedUser) return;
 
+    const userId = selectedUser._id;
+    const currentType = adjustType;
+
     setAdjustLoading(true);
     try {
       const res = await apiRequest("/api/admin/wallet/adjust", "POST", {
@@ -159,11 +174,30 @@ export default function AdminWalletPage() {
         description: adjustDescription,
       });
       toast(res.message || "Balance adjusted", "success");
+      setLastAdjustment({ userId, amount, type: currentType });
       setShowAdjust(false);
       setAdjustAmount("");
       setAdjustDescription("");
       selectUser(selectedUser); // Refresh user data
       fetchStats(); // Refresh stats
+
+      // PATCH_67: Show undo toast for wallet adjustment
+      undoToast.showUndo(
+        `${currentType === "credit" ? "Credited" : "Debited"} $${amount.toFixed(2)}`,
+        async () => {
+          // Reverse the adjustment
+          const reverseType = currentType === "credit" ? "debit" : "credit";
+          await apiRequest("/api/admin/wallet/adjust", "POST", {
+            userId,
+            amount,
+            type: reverseType,
+            description: `Undo: ${adjustDescription}`,
+          });
+          toast("Adjustment undone", "info");
+          selectUser(selectedUser);
+          fetchStats();
+        },
+      );
     } catch (err: any) {
       toast(err.message || "Adjustment failed", "error");
     } finally {
@@ -381,6 +415,26 @@ export default function AdminWalletPage() {
                     ))}
                   </div>
                 )}
+
+                {/* PATCH_67: AuditTrail for wallet transactions */}
+                {userTransactions.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-slate-700">
+                    <h4 className="text-sm font-semibold mb-2 text-slate-300">
+                      Audit Trail
+                    </h4>
+                    <AuditTrail
+                      events={userTransactions.map((tx) => ({
+                        id: tx._id,
+                        action: `${tx.type === "credit" ? "Credit" : "Debit"}: $${tx.amount.toFixed(2)}`,
+                        timestamp: tx.createdAt,
+                        actor: getSourceLabel(tx.source),
+                        details:
+                          tx.description ||
+                          `Balance after: $${tx.balanceAfter.toFixed(2)}`,
+                      }))}
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -532,6 +586,14 @@ export default function AdminWalletPage() {
             </div>
           </div>
         )}
+
+        {/* PATCH_67: UndoToast for wallet adjustments */}
+        <UndoToast
+          show={undoToast.show}
+          message={undoToast.message}
+          onUndo={undoToast.handleUndo}
+          onExpire={undoToast.handleExpire}
+        />
       </div>
     </div>
   );
