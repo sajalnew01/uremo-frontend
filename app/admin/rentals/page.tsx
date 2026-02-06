@@ -193,7 +193,21 @@ export default function AdminRentalsPage() {
         </div>
       ) : rentals.length === 0 ? (
         <div className="card text-center py-12">
-          <p className="text-white">No rentals found</p>
+          <div className="text-5xl mb-4">🔑</div>
+          <h3 className="text-lg font-semibold text-white mb-2">
+            No Rentals Yet
+          </h3>
+          <p className="text-slate-400 mb-2">
+            Rentals appear here when users purchase time-based access to your
+            services.
+          </p>
+          <p className="text-xs text-slate-500">
+            Tip: Add a rental-type service in{" "}
+            <a href="/admin/services" className="text-cyan-400 hover:underline">
+              Services
+            </a>{" "}
+            to enable rental purchases.
+          </p>
         </div>
       ) : (
         <div className="space-y-4">

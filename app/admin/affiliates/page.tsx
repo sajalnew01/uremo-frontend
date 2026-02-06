@@ -303,7 +303,18 @@ export default function AdminAffiliatesPage() {
             </div>
           ) : affiliates.length === 0 ? (
             <div className="card text-center py-12">
-              <p className="text-white">No affiliates found</p>
+              <div className="text-5xl mb-4">🤝</div>
+              <h3 className="text-lg font-semibold text-white mb-2">
+                No Affiliates Yet
+              </h3>
+              <p className="text-slate-400 mb-2">
+                Affiliates are users who refer others to your platform and earn
+                commission.
+              </p>
+              <p className="text-xs text-slate-500">
+                Users can apply for affiliate status from their dashboard.
+                Approved affiliates appear here.
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">

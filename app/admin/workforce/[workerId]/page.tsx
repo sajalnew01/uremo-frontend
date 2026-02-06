@@ -498,7 +498,10 @@ export default function Worker360Page() {
         { workerId: worker.user._id },
         true,
       );
-      toast("Project assigned successfully", "success");
+      toast(
+        "Project assigned! Worker will be notified and can start working.",
+        "success",
+      );
       setShowAssignModal(false);
       setSelectedProjectId(null);
       loadWorkerData();
@@ -1080,6 +1083,14 @@ export default function Worker360Page() {
                 worker.workerStatus !== "applied" ||
                 worker.status !== "pending" ||
                 !hasValidIdentity,
+              tooltip:
+                worker.workerStatus !== "applied"
+                  ? "Already approved or processed"
+                  : worker.status !== "pending"
+                    ? "Application not pending"
+                    : !hasValidIdentity
+                      ? "Worker identity not verified"
+                      : undefined,
               onClick: handleApproveApplication,
             },
             {
@@ -1089,6 +1100,12 @@ export default function Worker360Page() {
               variant: "primary",
               disabled:
                 worker.workerStatus !== "ready_to_work" || !hasValidIdentity,
+              tooltip:
+                worker.workerStatus !== "ready_to_work"
+                  ? `Worker must be "Ready to Work" first (currently: ${STATUS_LABELS[worker.workerStatus] || worker.workerStatus})`
+                  : !hasValidIdentity
+                    ? "Worker identity not verified"
+                    : undefined,
               onClick: () => setShowAssignModal(true),
             },
             {
@@ -1105,6 +1122,12 @@ export default function Worker360Page() {
               variant: "danger",
               disabled:
                 worker.workerStatus === "suspended" || !hasValidIdentity,
+              tooltip:
+                worker.workerStatus === "suspended"
+                  ? "Worker is already suspended"
+                  : !hasValidIdentity
+                    ? "Worker identity not verified"
+                    : undefined,
               onClick: () => setShowSuspendModal(true),
             },
           ]}

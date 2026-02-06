@@ -783,7 +783,9 @@ function ProjectsContent() {
             No Projects Yet
           </h3>
           <p className="text-slate-400 mb-4 max-w-md mx-auto">
-            Projects are work tasks that get assigned to qualified workers.
+            Projects are paid work tasks assigned to qualified workers. Create a
+            project, then assign it to a worker who has passed their screening
+            test.
           </p>
           <button
             onClick={() => setShowModal(true)}

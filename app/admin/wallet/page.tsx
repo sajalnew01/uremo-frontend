@@ -360,8 +360,15 @@ export default function AdminWalletPage() {
             </div>
 
             {!selectedUser ? (
-              <div className="p-8 text-center text-slate-500">
-                Search and select a user to view their wallet
+              <div className="p-8 text-center">
+                <div className="text-4xl mb-3">👛</div>
+                <p className="text-slate-400 mb-2">
+                  Search and select a user to view their wallet
+                </p>
+                <p className="text-xs text-slate-500">
+                  Use the search box or quick filters on the left to find a
+                  user, then click to see their balance and transaction history.
+                </p>
               </div>
             ) : userLoading ? (
               <div className="p-8 text-center text-slate-400">Loading...</div>
@@ -385,7 +392,15 @@ export default function AdminWalletPage() {
                 {/* Transaction History */}
                 <h3 className="font-medium mb-2">Recent Transactions</h3>
                 {userTransactions.length === 0 ? (
-                  <p className="text-sm text-slate-500">No transactions</p>
+                  <div className="text-center py-4">
+                    <p className="text-sm text-slate-500">
+                      No transactions yet
+                    </p>
+                    <p className="text-xs text-slate-600 mt-1">
+                      Transactions appear when you adjust this user's balance or
+                      when they make purchases.
+                    </p>
+                  </div>
                 ) : (
                   <div className="space-y-2 max-h-64 overflow-y-auto">
                     {userTransactions.slice(0, 10).map((tx) => (

@@ -949,6 +949,10 @@ export default function AdminJarvisXCommandCenter() {
                   Send
                 </button>
               </div>
+              <p className="text-xs text-slate-500 mt-2">
+                Try: "How many orders today?" • "List pending proofs" • "Show
+                worker stats" • "What services are active?"
+              </p>
             </div>
           </Card>
         </>
