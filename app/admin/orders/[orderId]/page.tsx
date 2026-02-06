@@ -355,42 +355,45 @@ export default function AdminOrderDetailPage() {
       </div>
 
       {/* Safety Layer: ActionBar */}
-      <ActionBar>
-        <button
-          onClick={() => updateStatus("in_progress")}
-          disabled={order.status !== "pending"}
-          className="px-4 py-2 rounded bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/30 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-        >
-          ✓ Verify Payment
-        </button>
-        <button
-          onClick={() => updateStatus("completed")}
-          disabled={
-            order.status === "completed" || order.status === "cancelled"
-          }
-          className="px-4 py-2 rounded bg-green-600/20 text-green-400 border border-green-500/30 hover:bg-green-600/30 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-        >
-          ✓ Complete Order
-        </button>
-        <button
-          onClick={() => updateStatus("waiting_user")}
-          disabled={
-            order.status === "completed" || order.status === "cancelled"
-          }
-          className="px-4 py-2 rounded bg-yellow-600/20 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-600/30 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-        >
-          ⏳ Awaiting User
-        </button>
-        <button
-          onClick={() => updateStatus("cancelled")}
-          disabled={
-            order.status === "completed" || order.status === "cancelled"
-          }
-          className="px-4 py-2 rounded bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600/30 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-        >
-          ✕ Cancel Order
-        </button>
-      </ActionBar>
+      <ActionBar
+        actions={[
+          {
+            key: "verify",
+            label: "Verify Payment",
+            icon: "✓",
+            variant: "success",
+            disabled: order.status !== "pending",
+            onClick: () => updateStatus("in_progress"),
+          },
+          {
+            key: "complete",
+            label: "Complete Order",
+            icon: "✓",
+            variant: "success",
+            disabled:
+              order.status === "completed" || order.status === "cancelled",
+            onClick: () => updateStatus("completed"),
+          },
+          {
+            key: "waiting",
+            label: "Awaiting User",
+            icon: "⏳",
+            variant: "warning",
+            disabled:
+              order.status === "completed" || order.status === "cancelled",
+            onClick: () => updateStatus("waiting_user"),
+          },
+          {
+            key: "cancel",
+            label: "Cancel Order",
+            icon: "✕",
+            variant: "danger",
+            disabled:
+              order.status === "completed" || order.status === "cancelled",
+            onClick: () => updateStatus("cancelled"),
+          },
+        ]}
+      />
 
       {/* Safety Layer: AuditTrail */}
       <Card>
