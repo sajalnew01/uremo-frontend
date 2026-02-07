@@ -167,7 +167,8 @@ interface Transaction {
   balanceAfter: number;
   createdAt: string;
   // PATCH_80: Transaction status
-  status?: "initiated" | "pending" | "success" | "failed";
+  // PATCH_82: Added paid_unverified for PayPal
+  status?: "initiated" | "pending" | "paid_unverified" | "success" | "failed";
   provider?: string;
   failureReason?: string;
 }
@@ -188,6 +189,9 @@ export default function WalletPage() {
   const [showTopUp, setShowTopUp] = useState(false);
   const [topUpAmount, setTopUpAmount] = useState("");
   const [topUpLoading, setTopUpLoading] = useState(false);
+  // PATCH_82: PayPal state
+  const [paypalAvailable, setPaypalAvailable] = useState(false);
+  const [paypalLoading, setPaypalLoading] = useState(false);
   const [stats, setStats] = useState<WalletStats>({
     totalCredits: 0,
     totalDebits: 0,
@@ -201,7 +205,55 @@ export default function WalletPage() {
       return;
     }
     fetchData();
+    checkPayPalAvailability(); // PATCH_82
+    handlePayPalReturn(); // PATCH_82
   }, [ready, isAuthenticated, router]);
+
+  // PATCH_82: Check if PayPal is available
+  const checkPayPalAvailability = async () => {
+    try {
+      const res = await apiRequest("/api/wallet/topup/paypal/available", "GET");
+      setPaypalAvailable(res.available || false);
+    } catch {
+      setPaypalAvailable(false);
+    }
+  };
+
+  // PATCH_82: Handle PayPal return URL params
+  const handlePayPalReturn = async () => {
+    const params = new URLSearchParams(window.location.search);
+    const paypalStatus = params.get("paypal");
+    const token = params.get("token"); // PayPal order ID in URL
+
+    if (paypalStatus === "success" && token) {
+      toast("Confirming PayPal payment...", "info");
+      try {
+        const res = await apiRequest(
+          "/api/wallet/topup/paypal/confirm",
+          "POST",
+          {
+            paypalOrderId: token,
+          },
+        );
+        if (res.alreadyConfirmed || res.alreadyProcessed) {
+          toast("Payment already processed", "info");
+        } else {
+          toast(
+            "PayPal payment confirmed! Awaiting admin verification.",
+            "success",
+          );
+        }
+        fetchData();
+      } catch (err: any) {
+        toast(err.message || "Failed to confirm PayPal payment", "error");
+      }
+      // Clear URL params
+      window.history.replaceState({}, "", "/wallet");
+    } else if (paypalStatus === "cancelled") {
+      toast("PayPal payment was cancelled", "info");
+      window.history.replaceState({}, "", "/wallet");
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -272,6 +324,42 @@ export default function WalletPage() {
     }
   };
 
+  // PATCH_82: Handle PayPal top-up
+  const handlePayPalTopUp = async () => {
+    const amount = parseFloat(topUpAmount);
+    if (!amount || amount < 1) {
+      toast("Minimum top-up amount is $1", "error");
+      return;
+    }
+
+    if (paypalLoading) return;
+
+    setPaypalLoading(true);
+    try {
+      const res = await apiRequest("/api/wallet/topup/paypal/create", "POST", {
+        amount,
+      });
+
+      if (res.approvalUrl) {
+        toast("Redirecting to PayPal...", "info");
+        // Redirect to PayPal approval page
+        window.location.href = res.approvalUrl;
+      } else {
+        toast("Failed to get PayPal approval URL", "error");
+      }
+    } catch (err: any) {
+      if (err.retryAfter) {
+        toast("Request already submitted - please wait", "info");
+        setShowTopUp(false);
+        fetchData();
+      } else {
+        toast(err.message || "PayPal top-up failed", "error");
+      }
+    } finally {
+      setPaypalLoading(false);
+    }
+  };
+
   const getSourceLabel = (source: string) => {
     const labels: Record<string, string> = {
       topup: "Wallet Top-up",
@@ -293,7 +381,8 @@ export default function WalletPage() {
   };
 
   // PATCH_80: Get status badge for transaction
-  const getStatusBadge = (status?: string) => {
+  // PATCH_82: Added paid_unverified for PayPal
+  const getStatusBadge = (status?: string, provider?: string) => {
     if (!status || status === "success") {
       return null; // No badge needed for completed transactions
     }
@@ -306,6 +395,10 @@ export default function WalletPage() {
       pending: {
         label: "Processing",
         className: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+      },
+      paid_unverified: {
+        label: "Paid - Awaiting Verification",
+        className: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
       },
       failed: {
         label: "Failed",
@@ -571,6 +664,49 @@ export default function WalletPage() {
                     )}
                   </button>
                 </div>
+
+                {/* PATCH_82: PayPal Top-up Option */}
+                {paypalAvailable && (
+                  <div className="mt-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="flex-1 h-px bg-slate-700"></div>
+                      <span className="text-xs text-slate-500">
+                        or pay with
+                      </span>
+                      <div className="flex-1 h-px bg-slate-700"></div>
+                    </div>
+                    <button
+                      onClick={handlePayPalTopUp}
+                      disabled={
+                        paypalLoading ||
+                        !topUpAmount ||
+                        parseFloat(topUpAmount) < 1
+                      }
+                      className="w-full bg-[#0070BA] hover:bg-[#005EA6] rounded-xl py-3 font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 text-white"
+                    >
+                      {paypalLoading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Connecting to PayPal...
+                        </>
+                      ) : (
+                        <>
+                          <svg
+                            className="w-5 h-5"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                          >
+                            <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.788.788 0 0 1 .778-.656h6.669c2.22 0 3.987.6 5.067 1.726 1.006 1.05 1.37 2.51 1.08 4.336-.018.115-.038.23-.06.345-.5 2.6-2.11 4.5-4.625 5.467a9.02 9.02 0 0 1-3.24.487H8.74l-.614 4.07a.641.641 0 0 1-.633.54l-.417.002zm1.445-9.143h1.937c2.152 0 3.612-1.295 3.973-3.517.18-1.1-.02-1.984-.576-2.564-.545-.568-1.417-.839-2.584-.839H8.81l-.72 4.786.43 2.134z" />
+                          </svg>
+                          Pay with PayPal
+                        </>
+                      )}
+                    </button>
+                    <p className="text-xs text-slate-500 text-center mt-2">
+                      International payments accepted
+                    </p>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-center gap-2 mt-4 text-xs text-slate-500">
                   <IconLock />

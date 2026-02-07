@@ -28,7 +28,8 @@ interface Transaction {
   balanceAfter: number;
   createdAt: string;
   // PATCH_80: New fields
-  status?: "initiated" | "pending" | "success" | "failed";
+  // PATCH_82: Added paid_unverified for PayPal
+  status?: "initiated" | "pending" | "paid_unverified" | "success" | "failed";
   provider?: string;
   failureReason?: string;
   user?: { _id: string; name: string; email: string };
@@ -368,16 +369,26 @@ export default function AdminWalletPage() {
                         <p className="text-2xl font-bold text-emerald-400">
                           ${topup.amount.toFixed(2)}
                         </p>
+                        {/* PATCH_82: Show provider (PayPal badge) */}
+                        {topup.provider === "paypal" && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-600/20 text-blue-400 mr-1">
+                            PayPal
+                          </span>
+                        )}
                         <span
                           className={`text-xs px-2 py-0.5 rounded-full ${
-                            topup.status === "initiated"
-                              ? "bg-yellow-500/20 text-yellow-400"
-                              : "bg-blue-500/20 text-blue-400"
+                            topup.status === "paid_unverified"
+                              ? "bg-emerald-500/20 text-emerald-400"
+                              : topup.status === "initiated"
+                                ? "bg-yellow-500/20 text-yellow-400"
+                                : "bg-blue-500/20 text-blue-400"
                           }`}
                         >
-                          {topup.status === "initiated"
-                            ? "Awaiting Review"
-                            : "Processing"}
+                          {topup.status === "paid_unverified"
+                            ? "✓ Paid - Verify"
+                            : topup.status === "initiated"
+                              ? "Awaiting Review"
+                              : "Processing"}
                         </span>
                       </div>
                     </div>
