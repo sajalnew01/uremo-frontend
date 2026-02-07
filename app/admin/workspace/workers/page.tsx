@@ -230,17 +230,21 @@ export default function AdminWorkersPage() {
                         >
                           👁️ View
                         </button>
-                        <button
-                          onClick={() => {
-                            setSelectedWorker(worker);
-                            setShowTaskModal(true);
-                            setTaskDescription("");
-                          }}
-                          className="px-3 py-2 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 rounded-lg text-sm font-medium transition"
-                          title="Assign a specialized task"
-                        >
-                          ✅ Task
-                        </button>
+                        {/* PATCH_73: Only show Task button for ready_to_work workers */}
+                        {(worker.workerStatus === "ready_to_work" ||
+                          worker.status === "ready_to_work") && (
+                          <button
+                            onClick={() => {
+                              setSelectedWorker(worker);
+                              setShowTaskModal(true);
+                              setTaskDescription("");
+                            }}
+                            className="px-3 py-2 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 rounded-lg text-sm font-medium transition"
+                            title="Assign a specialized task"
+                          >
+                            ✅ Task
+                          </button>
+                        )}
                       </div>
                     </div>
 

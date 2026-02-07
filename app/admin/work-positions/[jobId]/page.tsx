@@ -900,18 +900,20 @@ export default function AdminJobRolePage() {
                             🔄 Allow Retry
                           </button>
                         )}
+                        {/* PATCH_73: Hide 'Skip → Ready' when job has screening - flow must go through test */}
                         {(worker.workerStatus === "screening_unlocked" ||
-                          worker.workerStatus === "training_viewed") && (
-                          <button
-                            onClick={() =>
-                              setWorkerStatus(worker._id, "ready_to_work")
-                            }
-                            disabled={saving}
-                            className="px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-300 text-sm hover:bg-emerald-500/30 disabled:opacity-50"
-                          >
-                            Skip → Ready
-                          </button>
-                        )}
+                          worker.workerStatus === "training_viewed") &&
+                          !job?.hasScreening && (
+                            <button
+                              onClick={() =>
+                                setWorkerStatus(worker._id, "ready_to_work")
+                              }
+                              disabled={saving}
+                              className="px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-300 text-sm hover:bg-emerald-500/30 disabled:opacity-50"
+                            >
+                              Skip → Ready
+                            </button>
+                          )}
                         <Link
                           href={`/admin/workforce/${worker._id}`}
                           className="px-3 py-2 rounded-lg bg-white/5 text-slate-300 text-sm hover:bg-white/10"
@@ -979,15 +981,14 @@ export default function AdminJobRolePage() {
                         </div>
                       </div>
                     </div>
+                    {/* PATCH_73: Removed 'Mark Assigned (status only)' - assignment must go through project flow */}
                     <div className="flex gap-2 mt-4 pt-4 border-t border-white/10">
-                      <button
-                        onClick={() => setWorkerStatus(worker._id, "assigned")}
-                        disabled={saving}
-                        title="Visibility: this button only updates the worker status to Assigned. It does NOT pick a project. Next step: assign a project in Workforce Control Center or Workspace → Projects."
-                        className="flex-1 px-4 py-2 rounded-lg bg-blue-500/20 text-blue-300 text-sm hover:bg-blue-500/30 disabled:opacity-50 font-medium"
+                      <Link
+                        href="/admin/workspace/projects"
+                        className="flex-1 px-4 py-2 rounded-lg bg-blue-500/20 text-blue-300 text-sm hover:bg-blue-500/30 text-center font-medium"
                       >
-                        📦 Mark Assigned (status only)
-                      </button>
+                        📦 Assign via Projects
+                      </Link>
                       <Link
                         href={`/admin/workforce/${worker._id}`}
                         className="px-4 py-2 rounded-lg bg-white/5 text-slate-300 text-sm hover:bg-white/10"

@@ -2213,21 +2213,50 @@ export default function Worker360Page() {
             <h3 className="text-lg font-semibold text-white mb-4">
               Change Worker Status
             </h3>
+            {/* PATCH_73: Filtered status dropdown - only valid next-step transitions */}
             <select
               value={newStatus}
               onChange={(e) => setNewStatus(e.target.value)}
               className="w-full bg-slate-900 text-white rounded-lg px-4 py-3 mb-4 border border-slate-700 focus:border-cyan-500 outline-none"
             >
               <option value="">Select new status...</option>
-              <option value="applied">Applied</option>
-              <option value="screening_unlocked">Screening Unlocked</option>
-              <option value="training_viewed">Training Viewed</option>
-              <option value="test_submitted">Test Submitted</option>
-              <option value="failed">Failed</option>
-              <option value="ready_to_work">Ready to Work</option>
-              <option value="assigned">Assigned</option>
-              <option value="working">Working</option>
-              <option value="suspended">Suspended</option>
+              {/* Applied can go to screening_unlocked */}
+              {worker.workerStatus === "applied" && (
+                <option value="screening_unlocked">Screening Unlocked</option>
+              )}
+              {/* screening_unlocked can go to training_viewed */}
+              {worker.workerStatus === "screening_unlocked" && (
+                <option value="training_viewed">Training Viewed</option>
+              )}
+              {/* training_viewed can go to test_submitted */}
+              {worker.workerStatus === "training_viewed" && (
+                <option value="test_submitted">Test Submitted</option>
+              )}
+              {/* test_submitted can go to screening_passed or failed */}
+              {worker.workerStatus === "test_submitted" && (
+                <>
+                  <option value="screening_passed">Screening Passed</option>
+                  <option value="failed">Failed</option>
+                </>
+              )}
+              {/* screening_passed can go to ready_to_work */}
+              {worker.workerStatus === "screening_passed" && (
+                <option value="ready_to_work">Ready to Work</option>
+              )}
+              {/* failed can retry → screening_unlocked */}
+              {worker.workerStatus === "failed" && (
+                <option value="screening_unlocked">
+                  Screening Unlocked (Retry)
+                </option>
+              )}
+              {/* Suspended option available from most states except completed */}
+              {!["suspended", "completed"].includes(worker.workerStatus) && (
+                <option value="suspended">Suspended</option>
+              )}
+              {/* Suspended can be unsuspended to applied */}
+              {worker.workerStatus === "suspended" && (
+                <option value="applied">Unsuspend (→ Applied)</option>
+              )}
             </select>
             <div className="flex justify-end gap-3">
               <button

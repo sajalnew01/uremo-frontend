@@ -36,6 +36,7 @@ interface Project {
   earnings: number;
   earningsCredited?: number; // PATCH_48: Track if earnings were credited
   completionNotes?: string; // PATCH_48: Worker's completion notes
+  proofApproved?: boolean; // PATCH_73: Track if proof was approved
   deadline?: string;
   createdAt: string;
 }
@@ -753,8 +754,10 @@ function ProjectsContent() {
                     </button>
                   )}
                   {/* PATCH_48: Credit button for completed projects */}
+                  {/* PATCH_73: Only show credit if proof was approved */}
                   {project.status === "completed" &&
-                    !project.earningsCredited && (
+                    !project.earningsCredited &&
+                    (project as any).proofApproved && (
                       <button
                         onClick={() => {
                           setCreditModal(project);
@@ -1423,6 +1426,7 @@ function ProjectsContent() {
                   <label className="block text-sm text-slate-400 mb-1">
                     Status
                   </label>
+                  {/* PATCH_73: Removed 'completed' - completion must occur via proof approval */}
                   <select
                     value={editForm.status}
                     onChange={(e) =>
@@ -1434,7 +1438,6 @@ function ProjectsContent() {
                     <option value="open">Open</option>
                     <option value="assigned">Assigned</option>
                     <option value="in_progress">In Progress</option>
-                    <option value="completed">Completed</option>
                     <option value="cancelled">Cancelled</option>
                   </select>
                 </div>
