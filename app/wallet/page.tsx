@@ -239,6 +239,11 @@ export default function WalletPage() {
       return;
     }
 
+    // PATCH_81: Prevent double-click
+    if (topUpLoading) {
+      return;
+    }
+
     setTopUpLoading(true);
     try {
       const res = await apiRequest("/api/wallet/topup", "POST", { amount });
@@ -254,7 +259,14 @@ export default function WalletPage() {
       setTopUpAmount("");
       fetchData(); // Refresh to show pending transaction
     } catch (err: any) {
-      toast(err.message || "Top-up failed", "error");
+      // PATCH_81: Handle duplicate request gracefully
+      if (err.retryAfter) {
+        toast("Request already submitted - please wait", "info");
+        setShowTopUp(false);
+        fetchData();
+      } else {
+        toast(err.message || "Top-up failed", "error");
+      }
     } finally {
       setTopUpLoading(false);
     }

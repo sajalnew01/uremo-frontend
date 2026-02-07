@@ -113,11 +113,18 @@ export default function AdminWalletPage() {
   };
 
   // PATCH_80: Verify (approve/reject) a pending topup
+  // PATCH_81: Enhanced with double-click protection and already-processed handling
   const handleVerifyTopup = async (
     transactionId: string,
     action: "approve" | "reject",
     reason?: string,
   ) => {
+    // PATCH_81: Prevent double-click by checking if already verifying
+    if (verifyingId) {
+      toast("Please wait - another action is in progress", "info");
+      return;
+    }
+
     setVerifyingId(transactionId);
     try {
       const res = await apiRequest("/api/admin/wallet/verify-topup", "POST", {
@@ -129,7 +136,13 @@ export default function AdminWalletPage() {
       fetchPendingTopups(); // Refresh the list
       fetchStats(); // Refresh stats
     } catch (err: any) {
-      toast(err.message || `Failed to ${action} topup`, "error");
+      // PATCH_81: Handle already-processed case gracefully
+      if (err.alreadyProcessed) {
+        toast("This topup was already processed by another admin", "info");
+        fetchPendingTopups(); // Remove from list
+      } else {
+        toast(err.message || `Failed to ${action} topup`, "error");
+      }
     } finally {
       setVerifyingId(null);
     }
