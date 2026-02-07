@@ -166,6 +166,10 @@ interface Transaction {
   description: string;
   balanceAfter: number;
   createdAt: string;
+  // PATCH_80: Transaction status
+  status?: "initiated" | "pending" | "success" | "failed";
+  provider?: string;
+  failureReason?: string;
 }
 
 interface WalletStats {
@@ -238,11 +242,17 @@ export default function WalletPage() {
     setTopUpLoading(true);
     try {
       const res = await apiRequest("/api/wallet/topup", "POST", { amount });
-      toast(res.message || "Balance added!", "success");
-      setBalance(res.balance || 0);
+      // PATCH_80: Topup now creates pending transaction, not instant credit
+      if (res.status === "initiated") {
+        toast("Top-up request submitted. Pending verification.", "info");
+      } else {
+        toast(res.message || "Top-up submitted!", "success");
+      }
+      // Balance doesn't change immediately - keep current balance
+      setBalance(res.currentBalance || balance);
       setShowTopUp(false);
       setTopUpAmount("");
-      fetchData();
+      fetchData(); // Refresh to show pending transaction
     } catch (err: any) {
       toast(err.message || "Top-up failed", "error");
     } finally {
@@ -268,6 +278,39 @@ export default function WalletPage() {
       return <IconArrowDown />;
     }
     return <IconArrowUp />;
+  };
+
+  // PATCH_80: Get status badge for transaction
+  const getStatusBadge = (status?: string) => {
+    if (!status || status === "success") {
+      return null; // No badge needed for completed transactions
+    }
+
+    const badges: Record<string, { label: string; className: string }> = {
+      initiated: {
+        label: "Pending",
+        className: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+      },
+      pending: {
+        label: "Processing",
+        className: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+      },
+      failed: {
+        label: "Failed",
+        className: "bg-red-500/20 text-red-400 border-red-500/30",
+      },
+    };
+
+    const badge = badges[status];
+    if (!badge) return null;
+
+    return (
+      <span
+        className={`px-2 py-0.5 text-xs font-medium rounded-full border ${badge.className}`}
+      >
+        {badge.label}
+      </span>
+    );
   };
 
   if (loading) {
@@ -579,24 +622,36 @@ export default function WalletPage() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="p-4 flex items-center justify-between hover:bg-slate-800/30 transition-colors"
+                  className={`p-4 flex items-center justify-between hover:bg-slate-800/30 transition-colors ${
+                    tx.status && tx.status !== "success" ? "opacity-75" : ""
+                  }`}
                 >
                   <div className="flex items-center gap-4">
                     <div
                       className={`w-11 h-11 rounded-xl flex items-center justify-center ${
-                        tx.type === "credit"
-                          ? "bg-emerald-500/20 text-emerald-400"
-                          : "bg-orange-500/20 text-orange-400"
+                        tx.status === "failed"
+                          ? "bg-red-500/20 text-red-400"
+                          : tx.status === "initiated" || tx.status === "pending"
+                            ? "bg-yellow-500/20 text-yellow-400"
+                            : tx.type === "credit"
+                              ? "bg-emerald-500/20 text-emerald-400"
+                              : "bg-orange-500/20 text-orange-400"
                       }`}
                     >
                       {getSourceIcon(tx.source, tx.type)}
                     </div>
                     <div>
-                      <p className="font-medium text-white">
-                        {getSourceLabel(tx.source)}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-white">
+                          {getSourceLabel(tx.source)}
+                        </p>
+                        {/* PATCH_80: Show status badge for non-success transactions */}
+                        {getStatusBadge(tx.status)}
+                      </div>
                       <p className="text-sm text-slate-400">
-                        {tx.description || getSourceLabel(tx.source)}
+                        {tx.status === "failed" && tx.failureReason
+                          ? tx.failureReason
+                          : tx.description || getSourceLabel(tx.source)}
                       </p>
                       <p className="text-xs text-slate-500 mt-0.5">
                         {new Date(tx.createdAt).toLocaleDateString("en-US", {
@@ -612,16 +667,29 @@ export default function WalletPage() {
                   <div className="text-right">
                     <p
                       className={`text-lg font-bold ${
-                        tx.type === "credit"
-                          ? "text-emerald-400"
-                          : "text-orange-400"
+                        tx.status === "failed"
+                          ? "text-red-400 line-through"
+                          : tx.status === "initiated" || tx.status === "pending"
+                            ? "text-yellow-400"
+                            : tx.type === "credit"
+                              ? "text-emerald-400"
+                              : "text-orange-400"
                       }`}
                     >
                       {tx.type === "credit" ? "+" : "-"}${tx.amount.toFixed(2)}
                     </p>
-                    <p className="text-xs text-slate-500">
-                      Bal: ${tx.balanceAfter.toFixed(2)}
-                    </p>
+                    {/* PATCH_80: Only show balance after if transaction is complete */}
+                    {tx.status === "success" || !tx.status ? (
+                      <p className="text-xs text-slate-500">
+                        Bal: ${(tx.balanceAfter || 0).toFixed(2)}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-slate-500">
+                        {tx.status === "failed"
+                          ? "Not applied"
+                          : "Processing..."}
+                      </p>
+                    )}
                   </div>
                 </motion.div>
               ))}

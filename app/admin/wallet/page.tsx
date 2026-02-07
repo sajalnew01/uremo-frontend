@@ -27,6 +27,11 @@ interface Transaction {
   description: string;
   balanceAfter: number;
   createdAt: string;
+  // PATCH_80: New fields
+  status?: "initiated" | "pending" | "success" | "failed";
+  provider?: string;
+  failureReason?: string;
+  user?: { _id: string; name: string; email: string };
 }
 
 interface Stats {
@@ -68,6 +73,11 @@ export default function AdminWalletPage() {
   const [adjustDescription, setAdjustDescription] = useState("");
   const [adjustLoading, setAdjustLoading] = useState(false);
 
+  // PATCH_80: Pending topups
+  const [pendingTopups, setPendingTopups] = useState<Transaction[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
+
   useEffect(() => {
     if (!ready) return;
     if (!isAdmin) {
@@ -75,6 +85,7 @@ export default function AdminWalletPage() {
       return;
     }
     fetchStats();
+    fetchPendingTopups(); // PATCH_80: Fetch pending topups on load
   }, [ready, isAdmin, router]);
 
   const fetchStats = async () => {
@@ -85,6 +96,42 @@ export default function AdminWalletPage() {
       toast(err.message || "Failed to load stats", "error");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // PATCH_80: Fetch pending topups
+  const fetchPendingTopups = async () => {
+    setPendingLoading(true);
+    try {
+      const res = await apiRequest("/api/admin/wallet/pending-topups", "GET");
+      setPendingTopups(res.pendingTopups || []);
+    } catch (err: any) {
+      console.error("Failed to fetch pending topups:", err);
+    } finally {
+      setPendingLoading(false);
+    }
+  };
+
+  // PATCH_80: Verify (approve/reject) a pending topup
+  const handleVerifyTopup = async (
+    transactionId: string,
+    action: "approve" | "reject",
+    reason?: string,
+  ) => {
+    setVerifyingId(transactionId);
+    try {
+      const res = await apiRequest("/api/admin/wallet/verify-topup", "POST", {
+        transactionId,
+        action,
+        reason,
+      });
+      toast(res.message || `Topup ${action}d successfully`, "success");
+      fetchPendingTopups(); // Refresh the list
+      fetchStats(); // Refresh stats
+    } catch (err: any) {
+      toast(err.message || `Failed to ${action} topup`, "error");
+    } finally {
+      setVerifyingId(null);
     }
   };
 
@@ -264,6 +311,82 @@ export default function AdminWalletPage() {
               <p className="text-xs text-slate-500">
                 {stats.debits.count} transactions
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* PATCH_80: Pending Topups Section */}
+        {pendingTopups.length > 0 && (
+          <div className="bg-slate-900 rounded-xl border border-amber-500/50 mb-8">
+            <div className="p-4 border-b border-amber-500/30 bg-amber-500/10 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-amber-400 text-xl">⏳</span>
+                <h2 className="text-lg font-semibold text-amber-400">
+                  Pending Topup Verifications
+                </h2>
+              </div>
+              <span className="bg-amber-500 text-black text-xs font-bold px-2 py-1 rounded-full">
+                {pendingTopups.length} Pending
+              </span>
+            </div>
+            <div className="p-4 space-y-3 max-h-80 overflow-y-auto">
+              {pendingLoading ? (
+                <p className="text-slate-400 text-center py-4">Loading...</p>
+              ) : (
+                pendingTopups.map((topup) => (
+                  <div
+                    key={topup._id}
+                    className="bg-slate-800 rounded-lg p-4 border border-slate-700"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">
+                          {topup.user?.name || "Unknown User"}
+                        </p>
+                        <p className="text-sm text-slate-400">
+                          {topup.user?.email || "No email"}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          Requested:{" "}
+                          {new Date(topup.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-emerald-400">
+                          ${topup.amount.toFixed(2)}
+                        </p>
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full ${
+                            topup.status === "initiated"
+                              ? "bg-yellow-500/20 text-yellow-400"
+                              : "bg-blue-500/20 text-blue-400"
+                          }`}
+                        >
+                          {topup.status === "initiated"
+                            ? "Awaiting Review"
+                            : "Processing"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex gap-2 justify-end">
+                      <button
+                        onClick={() => handleVerifyTopup(topup._id, "reject")}
+                        disabled={verifyingId === topup._id}
+                        className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 text-red-400 rounded-lg text-sm font-medium disabled:opacity-50"
+                      >
+                        {verifyingId === topup._id ? "..." : "Reject"}
+                      </button>
+                      <button
+                        onClick={() => handleVerifyTopup(topup._id, "approve")}
+                        disabled={verifyingId === topup._id}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+                      >
+                        {verifyingId === topup._id ? "..." : "✓ Approve"}
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
