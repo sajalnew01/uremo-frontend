@@ -896,6 +896,19 @@ export default function AdminJarvisXCommandCenter() {
           <Card title="Chat">
             <div className="space-y-4">
               <div className="space-y-3 max-h-[420px] overflow-y-auto pr-2">
+                {/* PATCH_76: Welcome state when no messages yet */}
+                {messages.length === 0 && (
+                  <div className="text-center py-6">
+                    <div className="text-3xl mb-3">🤖</div>
+                    <p className="text-slate-200 font-medium">JarvisX Ready</p>
+                    <p className="text-sm text-slate-400 mt-1 max-w-sm mx-auto">
+                      Ask questions about your platform data, services, orders, or workers.
+                    </p>
+                    <p className="text-xs text-slate-500 mt-3">
+                      Try: "How many orders are pending?" or "Show service stats"
+                    </p>
+                  </div>
+                )}
                 {messages.map((m) => (
                   <div key={m.id}>
                     <p className="text-xs text-slate-500">
