@@ -433,15 +433,23 @@ export default function AdminTicketViewPage() {
             </div>
 
             {/* User Info */}
+            {/* PATCH_72: Fixed name fallback and Order # link */}
             <div className="p-3 rounded-lg bg-[#1F2937] text-sm">
               <p className="font-medium">
-                {ticket.user?.firstName || "Unknown"}{" "}
-                {ticket.user?.lastName || "User"}
+                {ticket.user?.firstName && ticket.user?.lastName
+                  ? `${ticket.user.firstName} ${ticket.user.lastName}`
+                  : ticket.user?.firstName
+                    ? ticket.user.firstName
+                    : ticket.user?.name
+                      ? ticket.user.name
+                      : ticket.user?.email
+                        ? ticket.user.email.split("@")[0]
+                        : "Anonymous User"}
               </p>
               <p className="text-[#9CA3AF]">
-                {ticket.user?.email || "No email"}
+                {ticket.user?.email || "No email on file"}
               </p>
-              {ticket.order && (
+              {ticket.order && ticket.order.orderNumber && (
                 <Link
                   href={`/admin/orders/${ticket.order._id}`}
                   className="text-emerald-400 hover:underline mt-1 block"

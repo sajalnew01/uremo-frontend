@@ -93,3 +93,30 @@ export function getShortCategoryLabel(category: string | undefined): string {
 
   return shortLabels[category] || getCategoryLabel(category);
 }
+
+// PATCH_72: Job Role / Project Category Labels
+export const JOB_ROLE_CATEGORY_LABELS: Record<string, string> = {
+  data_entry: "Data Entry",
+  screener: "Screener",
+  customer_support: "Customer Support",
+  operations_support: "Operations Support",
+  marketing: "Marketing",
+  social_media: "Social Media",
+  content_writing: "Content Writing",
+  general: "General",
+};
+
+/**
+ * Get user-friendly job role category label
+ * PATCH_72: Converts "data_entry" → "Data Entry"
+ */
+export function getJobRoleCategoryLabel(category: string | undefined): string {
+  if (!category) return "General";
+  const label = JOB_ROLE_CATEGORY_LABELS[category];
+  if (label) return label;
+  // Fallback: convert snake_case to Title Case
+  return category
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}

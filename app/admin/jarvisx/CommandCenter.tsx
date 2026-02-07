@@ -200,11 +200,12 @@ export default function AdminJarvisXCommandCenter() {
   const [loadingHealth, setLoadingHealth] = useState(false);
 
   // Chat
+  // PATCH_72: Improved greeting with clear action categories
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
     {
       id: uuid(),
       role: "assistant",
-      text: "Yes boss ✅ I’m listening. What should I check?",
+      text: "Hello Admin! 👋 I can help you with:\n\n• **Orders & Payments** — Check status, verify proofs\n• **Worker Management** — Screening, assignments, earnings\n• **Projects** — Track progress, assign workers\n• **Support Tickets** — Review open issues\n\nWhat would you like to check?",
     },
   ]);
   const [input, setInput] = useState("");

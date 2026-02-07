@@ -278,10 +278,18 @@ export default function AdminTicketsPage() {
                     </div>
                   </td>
                   <td className="py-3 px-4">
+                    {/* PATCH_72: Fixed name fallback logic */}
                     <div className="text-xs">
                       <p>
-                        {ticket.user?.firstName || "Unknown"}{" "}
-                        {ticket.user?.lastName || "User"}
+                        {ticket.user?.firstName && ticket.user?.lastName
+                          ? `${ticket.user.firstName} ${ticket.user.lastName}`
+                          : ticket.user?.firstName
+                            ? ticket.user.firstName
+                            : ticket.user?.name
+                              ? ticket.user.name
+                              : ticket.user?.email
+                                ? ticket.user.email.split("@")[0]
+                                : "Anonymous"}
                       </p>
                       <p className="text-[#6B7280]">
                         {ticket.user?.email || "No email"}

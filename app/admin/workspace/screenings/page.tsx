@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useEffect, useState, Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { apiRequest } from "@/lib/api";
+import { getJobRoleCategoryLabel } from "@/lib/categoryLabels"; // PATCH_72
 
 /**
  * PATCH_44: Admin Screenings Management Page
  * PATCH_64: Enhanced with status lifecycle, validation state, and project linkage
+ * PATCH_72: Human-readable category labels
  * Create and manage screening tests for job roles
  */
 
@@ -457,8 +459,9 @@ function ScreeningsContent() {
                           : "⚠ " + validation.reason}
                       </span>
                       {/* PATCH_64: Category Badge */}
+                      {/* PATCH_72: Human-readable category label */}
                       <span className="px-2 py-0.5 rounded-full text-xs bg-purple-500/20 text-purple-400">
-                        {screening.category}
+                        {getJobRoleCategoryLabel(screening.category)}
                       </span>
                     </div>
                     <p className="text-sm text-slate-400 line-clamp-2">

@@ -25,19 +25,27 @@ export const STATUS_MAP: Record<string, StatusConfig> = {
   expired: { label: "Expired", color: "gray" },
   renewed: { label: "Renewed", color: "blue" },
 
-  // Worker/Application statuses
-  fresh: { label: "Fresh Applicant", color: "gray" },
-  screening_available: { label: "Screening Available", color: "yellow" },
-  screening_in_progress: { label: "Screening In Progress", color: "blue" },
+  // Worker/Application statuses - PATCH_72: Enhanced with flow descriptions
+  fresh: { label: "New Applicant", color: "gray" },
+  applied: { label: "Application Submitted", color: "yellow" },
+  screening_available: { label: "Screening Unlocked", color: "yellow" },
+  screening_unlocked: { label: "Screening Unlocked", color: "yellow" },
+  screening_in_progress: { label: "Taking Test", color: "blue" },
+  training_viewed: { label: "Training Completed", color: "blue" },
+  test_submitted: { label: "Test Submitted", color: "purple" },
   screening_passed: { label: "Screening Passed", color: "green" },
-  screening_failed: { label: "Screening Failed", color: "red" },
-  ready_to_work: { label: "Ready To Work", color: "green" },
-  assigned: { label: "Assigned", color: "blue" },
-  project_in_progress: { label: "Working", color: "purple" },
+  screening_failed: { label: "Test Failed", color: "red" },
+  failed: { label: "Test Failed", color: "red" },
+  ready_to_work: { label: "Ready to Work", color: "green" },
+  assigned: { label: "Project Assigned", color: "blue" },
+  working: { label: "Working on Project", color: "purple" },
+  project_in_progress: { label: "Working on Project", color: "purple" },
+  proof_submitted: { label: "Proof Awaiting Review", color: "orange" },
   under_review: { label: "Under Review", color: "orange" },
   // rejected already defined above in order statuses
   approved: { label: "Approved", color: "green" },
   inactive: { label: "Inactive", color: "gray" },
+  suspended: { label: "Suspended", color: "red" },
 
   // Ticket statuses
   open: { label: "Open", color: "blue" },

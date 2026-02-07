@@ -342,14 +342,25 @@ export default function AdminOrderDetailPage() {
           </div>
 
           <div className="mt-5 space-y-2">
-            <p className="text-xs text-slate-500">Quick status change — or use action buttons on this page for guided workflow</p>
+            <p className="text-xs text-slate-500">
+              Quick status change — or use action buttons on this page for
+              guided workflow
+            </p>
             <div className="flex gap-2 flex-wrap">
               <select
                 className="px-3 py-2 text-sm rounded bg-[#020617] border border-[#1F2937] text-white"
                 value={order.status}
                 onChange={(e) => updateStatus(e.target.value)}
-                disabled={order.status === "completed" || order.status === "cancelled"}
-                title={order.status === "completed" ? "Order complete. No further changes." : order.status === "cancelled" ? "Order cancelled. No changes allowed." : "Change order status"}
+                disabled={
+                  order.status === "completed" || order.status === "cancelled"
+                }
+                title={
+                  order.status === "completed"
+                    ? "Order complete. No further changes."
+                    : order.status === "cancelled"
+                      ? "Order cancelled. No changes allowed."
+                      : "Change order status"
+                }
               >
                 <option value="pending">pending</option>
                 <option value="waiting_user">waiting user</option>
@@ -359,20 +370,19 @@ export default function AdminOrderDetailPage() {
               </select>
             </div>
             {(order.status === "completed" || order.status === "cancelled") && (
-              <p className="text-xs text-amber-400/80">🔒 This order is finalized. Status cannot be changed.</p>
+              <p className="text-xs text-amber-400/80">
+                🔒 This order is finalized. Status cannot be changed.
+              </p>
             )}
           </div>
 
-            {order.payment?.proofUrl && (
-              <FilePreview
-                url={order.payment.proofUrl}
-                label="View proof"
-                type={
-                  order.payment.proofResourceType === "raw" ? "raw" : "image"
-                }
-              />
-            )}
-          </div>
+          {order.payment?.proofUrl && (
+            <FilePreview
+              url={order.payment.proofUrl}
+              label="View proof"
+              type={order.payment.proofResourceType === "raw" ? "raw" : "image"}
+            />
+          )}
         </Card>
 
         <Card>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { apiRequest } from "@/lib/api";
+import { getJobRoleCategoryLabel } from "@/lib/categoryLabels"; // PATCH_72
 import ConfirmModal from "@/components/admin/v2/ConfirmModal";
 import {
   ActionBar,
@@ -525,7 +526,9 @@ function ProjectsContent() {
                   </div>
                   <div className="text-xs text-slate-500 mt-1">
                     Category:{" "}
-                    <span className="text-purple-400">{s.category}</span>
+                    <span className="text-purple-400">
+                      {getJobRoleCategoryLabel(s.category)}
+                    </span>
                   </div>
                 </Link>
               ))}
@@ -992,7 +995,8 @@ function ProjectsContent() {
               Assign &quot;{assignModal.title}&quot; to a worker
             </p>
             <p className="text-xs text-blue-400 mb-4">
-              📁 Project Category: {assignModal.category}
+              📁 Project Category:{" "}
+              {getJobRoleCategoryLabel(assignModal.category)}
             </p>
 
             <div className="mb-4">
@@ -1205,7 +1209,7 @@ function ProjectsContent() {
                       </span>
                     </StatusTooltip>
                     <span className="px-2 py-0.5 rounded-full text-xs bg-slate-700 text-slate-300">
-                      {viewData.project?.category}
+                      {getJobRoleCategoryLabel(viewData.project?.category)}
                     </span>
                   </div>
                 </div>
