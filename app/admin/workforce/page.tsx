@@ -243,7 +243,7 @@ export default function WorkforceControlCenterPage() {
               true,
             );
             toast(
-              "Application approved (workspace). Next: worker proceeds to screening/training.",
+              "Application approved. Worker can now access screening. Next: review their test submission.",
               "success",
             );
           } else {
@@ -316,7 +316,10 @@ export default function WorkforceControlCenterPage() {
             { applicantId: workerId, workerStatus: "ready_to_work" },
             true,
           );
-          toast("Screening passed. Next: assign a project.", "success");
+          toast(
+            "Screening passed! Worker is now Ready to Work. Next: assign them a project.",
+            "success",
+          );
           break;
 
         case "mark_failed":
@@ -452,7 +455,10 @@ export default function WorkforceControlCenterPage() {
               );
             }
             if (creditAmt > 0) {
-              toast("Proof approved and earnings credited.", "success");
+              toast(
+                "Proof approved and earnings credited! Worker is now available for new projects.",
+                "success",
+              );
             } else {
               toast(
                 "Proof approved. Earnings credit skipped (missing or zero amount). Next: set project pay rate and credit manually if needed.",
@@ -511,7 +517,10 @@ export default function WorkforceControlCenterPage() {
             { applicantId: workerId, workerStatus: "suspended" },
             true,
           );
-          toast("Worker suspended. Next: reactivate when ready.", "success");
+          toast(
+            "Worker suspended. This flow is now paused. Reactivate when ready.",
+            "success",
+          );
           break;
 
         case "reactivate":
@@ -534,7 +543,10 @@ export default function WorkforceControlCenterPage() {
             { applicantId: workerId, workerStatus: "ready_to_work" },
             true,
           );
-          toast("Worker reactivated. Next: assign a project.", "success");
+          toast(
+            "Worker reactivated and ready for work. Next: assign them a project.",
+            "success",
+          );
           break;
 
         case "set_ready":
@@ -593,7 +605,10 @@ export default function WorkforceControlCenterPage() {
         true,
       );
 
-      toast("Project assigned successfully!", "success");
+      toast(
+        "Project assigned! Worker has been notified. Next: wait for proof submission.",
+        "success",
+      );
       setShowAssignModal(false);
       setSelectedWorker(null);
       await loadData();
@@ -669,6 +684,10 @@ export default function WorkforceControlCenterPage() {
             </h1>
             <p className="text-slate-400 text-sm">
               Manage applications, screenings, projects, and payouts
+            </p>
+            {/* PATCH_74: Confidence spine - single line flow guidance */}
+            <p className="text-xs text-cyan-400/70 mt-1">
+              Workers must complete screening before project assignment.
             </p>
           </div>
         </div>

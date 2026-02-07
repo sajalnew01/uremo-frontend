@@ -300,7 +300,9 @@ function ProjectsContent() {
         { workerId: selectedWorker },
         true,
       );
-      setSuccess("Project assigned successfully! The worker will be notified.");
+      setSuccess(
+        "Project assigned! Worker has been notified. Next: wait for proof submission.",
+      );
       setLastAssignedData({ projectId, previousAssignee });
       setAssignModal(null);
       setSelectedWorker("");
@@ -338,7 +340,9 @@ function ProjectsContent() {
         { amount: creditAmount, rating: creditRating },
         true,
       );
-      setSuccess(`$${creditAmount.toFixed(2)} credited to worker!`);
+      setSuccess(
+        `$${creditAmount.toFixed(2)} credited! Project is now complete. Worker is available for new assignments.`,
+      );
       setCreditModal(null);
       setCreditAmount(0);
       setCreditRating(5);
@@ -470,6 +474,11 @@ function ProjectsContent() {
                     (Category: {categoryParam})
                   </span>
                 )}
+              </p>
+              {/* PATCH_74: Confidence spine */}
+              <p className="text-xs text-cyan-400/70 mt-1">
+                Only Ready workers appear for assignment. Proof approval enables
+                completion.
               </p>
             </div>
           </div>
@@ -774,6 +783,18 @@ function ProjectsContent() {
                         ✅ Credited
                       </span>
                     )}
+                  {/* PATCH_74: Terminal state finality indicators */}
+                  {project.status === "completed" &&
+                    project.earningsCredited && (
+                      <span className="text-xs text-slate-500 ml-2">
+                        🔒 Final
+                      </span>
+                    )}
+                  {project.status === "cancelled" && (
+                    <span className="text-xs text-slate-500 ml-2">
+                      🔒 Cancelled
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

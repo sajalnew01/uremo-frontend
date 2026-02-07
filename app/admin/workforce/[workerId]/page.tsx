@@ -499,7 +499,7 @@ export default function Worker360Page() {
         true,
       );
       toast(
-        "Project assigned! Worker will be notified and can start working.",
+        "Project assigned! Worker has been notified. Next: wait for proof submission.",
         "success",
       );
       setShowAssignModal(false);
@@ -531,7 +531,10 @@ export default function Worker360Page() {
         );
       }
 
-      toast("Proof approved and earnings credited", "success");
+      toast(
+        "Proof approved and earnings credited! Project complete. Worker is available for new assignments.",
+        "success",
+      );
       loadWorkerData();
     } catch (error: any) {
       toast(error.message || "Failed to approve proof", "error");
@@ -604,7 +607,10 @@ export default function Worker360Page() {
             { status: "approved", workerStatus: "screening_unlocked" },
             true,
           );
-          toast("Application approved, screening unlocked", "success");
+          toast(
+            "Application approved! Screening is now unlocked. Next: wait for test submission.",
+            "success",
+          );
           loadWorkerData();
         } catch (error: any) {
           toast(error.message || "Failed to approve application", "error");
@@ -656,7 +662,10 @@ export default function Worker360Page() {
         { applicantId: worker._id },
         true,
       );
-      toast("Screening unlocked successfully", "success");
+      toast(
+        "Screening unlocked! Worker can now view training and submit test.",
+        "success",
+      );
       loadWorkerData();
     } catch (error: any) {
       toast(error.message || "Failed to unlock screening", "error");
@@ -676,7 +685,10 @@ export default function Worker360Page() {
         { workerStatus: "ready_to_work" },
         true,
       );
-      toast("Worker passed screening - Ready to work!", "success");
+      toast(
+        "Screening passed! Worker is now Ready to Work. Next: assign a project.",
+        "success",
+      );
       loadWorkerData();
     } catch (error: any) {
       toast(error.message || "Failed to update status", "error");
@@ -696,7 +708,10 @@ export default function Worker360Page() {
         { workerStatus: "failed" },
         true,
       );
-      toast("Worker failed screening", "success");
+      toast(
+        "Screening failed. Worker cannot be assigned projects until retry is allowed.",
+        "success",
+      );
       loadWorkerData();
     } catch (error: any) {
       toast(error.message || "Failed to update status", "error");
@@ -719,7 +734,10 @@ export default function Worker360Page() {
         },
         true,
       );
-      toast("Worker can now retry screening", "success");
+      toast(
+        "Retry allowed! Worker can now retake the screening test.",
+        "success",
+      );
       loadWorkerData();
     } catch (error: any) {
       toast(error.message || "Failed to allow retry", "error");
@@ -1031,6 +1049,13 @@ export default function Worker360Page() {
                 <p className="text-sm text-slate-400 max-w-[250px] text-left lg:text-right">
                   {STATUS_DESCRIPTIONS[worker.workerStatus] || "Status unknown"}
                 </p>
+                {/* PATCH_74: Terminal state finality indicator */}
+                {(worker.workerStatus === "suspended" ||
+                  worker.workerStatus === "failed") && (
+                  <p className="text-xs text-slate-500 mt-1">
+                    🔒 Flow paused — action required to continue
+                  </p>
+                )}
 
                 {/* PATCH-65: Risk Indicators */}
                 <div className="mt-2">

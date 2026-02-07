@@ -110,7 +110,10 @@ export default function AdminProofsPage() {
         {},
         true,
       );
-      toast("Proof approved! Go to Projects to credit earnings.", "success");
+      toast(
+        "Proof approved! Project marked complete. Next: credit earnings in Projects.",
+        "success",
+      );
       loadProofs();
     } catch (e: any) {
       toast(e?.message || "Failed to approve", "error");
@@ -132,7 +135,10 @@ export default function AdminProofsPage() {
         { rejectionReason },
         true,
       );
-      toast("Proof rejected", "success");
+      toast(
+        "Proof rejected. Worker has been notified and can resubmit.",
+        "success",
+      );
       setShowRejectModal(false);
       setSelectedProof(null);
       setRejectionReason("");
@@ -164,6 +170,10 @@ export default function AdminProofsPage() {
         title="Project Proofs Review"
         description="Approve or reject completed project work submissions from workers"
       />
+      {/* PATCH_74: Confidence spine */}
+      <p className="text-xs text-cyan-400/70 mb-4 -mt-4">
+        Proof approval enables project completion and wallet credit.
+      </p>
 
       {/* PATCH_63: Contextual Guidance Banner for Proofs */}
       {!loading && (
@@ -418,6 +428,23 @@ export default function AdminProofsPage() {
                   >
                     ❌ Reject Work
                   </button>
+                </div>
+              )}
+              {/* PATCH_74: Terminal state finality indicators */}
+              {proof.status === "approved" && (
+                <div className="flex items-center gap-2 pt-4 border-t border-white/10 text-slate-500 text-sm">
+                  <span>🔒 Approved & Final</span>
+                  <span className="text-emerald-400/70">
+                    — Credit earnings in Projects if not done
+                  </span>
+                </div>
+              )}
+              {proof.status === "rejected" && (
+                <div className="flex items-center gap-2 pt-4 border-t border-white/10 text-slate-500 text-sm">
+                  <span>🔒 Rejected</span>
+                  <span className="text-red-400/70">
+                    — Worker can resubmit new proof
+                  </span>
                 </div>
               )}
             </div>
