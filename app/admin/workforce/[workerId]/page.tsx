@@ -955,7 +955,7 @@ export default function Worker360Page() {
             <span className="text-cyan-400">Worker Command Center</span>
           </div>
 
-          {/* SECTION 1: IDENTITY BLOCK */}
+          {/* SECTION 1: IDENTITY BLOCK - PATCH_79: Enhanced */}
           <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-700/50">
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
               <div className="flex items-start gap-4">
@@ -967,16 +967,15 @@ export default function Worker360Page() {
                 </div>
 
                 <div className="flex-1">
-                  {/* Page Title */}
+                  {/* Page Title - PATCH_79: Single question focus */}
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-2xl">🧭</span>
                     <h1 className="text-2xl font-bold text-white">
-                      Worker Command Center
+                      Worker 360°
                     </h1>
                   </div>
                   <p className="text-sm text-slate-400 mb-4">
-                    All actions, history, and decisions for this worker — in one
-                    place.
+                    This page answers ONE question: <span className="text-cyan-400 font-medium">"Where is this worker right now?"</span>
                   </p>
 
                   {/* Worker Name */}
@@ -1190,13 +1189,64 @@ export default function Worker360Page() {
           return null;
         })()}
 
-      {/* SECTION 3: PRIMARY ACTION PANEL */}
+      {/* SECTION 3: PRIMARY ACTION PANEL - PATCH_79: ONE action focus */}
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="bg-gradient-to-r from-cyan-500/10 via-slate-800/50 to-purple-500/10 rounded-xl p-6 border border-cyan-500/20 mb-6">
+          {/* PATCH_79: Current State Banner */}
+          <div className="mb-6 p-4 rounded-lg bg-slate-900/50 border border-slate-700/50">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-slate-500 uppercase tracking-wider">Current Status</span>
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-medium ${STATUS_COLORS[worker.workerStatus] || STATUS_COLORS.applied}`}
+              >
+                {STATUS_LABELS[worker.workerStatus] || worker.workerStatus}
+              </span>
+            </div>
+            <p className="text-sm text-slate-300">
+              {STATUS_DESCRIPTIONS[worker.workerStatus] || "Status unknown"}
+            </p>
+            {/* PATCH_79: What unlocks next state */}
+            {worker.workerStatus === "applied" && worker.status === "pending" && (
+              <p className="mt-2 text-xs text-cyan-400">
+                💡 What unlocks next: <span className="text-white">Admin approval</span> → Screening Unlocked
+              </p>
+            )}
+            {worker.workerStatus === "screening_unlocked" && (
+              <p className="mt-2 text-xs text-cyan-400">
+                💡 What unlocks next: <span className="text-white">Worker views training</span> → Training Viewed
+              </p>
+            )}
+            {worker.workerStatus === "training_viewed" && (
+              <p className="mt-2 text-xs text-cyan-400">
+                💡 What unlocks next: <span className="text-white">Worker submits test</span> → Test Submitted
+              </p>
+            )}
+            {worker.workerStatus === "test_submitted" && (
+              <p className="mt-2 text-xs text-cyan-400">
+                💡 What unlocks next: <span className="text-white">Admin grades test (Pass)</span> → Ready to Work
+              </p>
+            )}
+            {worker.workerStatus === "ready_to_work" && (
+              <p className="mt-2 text-xs text-cyan-400">
+                💡 What unlocks next: <span className="text-white">Admin assigns project</span> → Assigned
+              </p>
+            )}
+            {(worker.workerStatus === "assigned" || worker.workerStatus === "working") && (
+              <p className="mt-2 text-xs text-cyan-400">
+                💡 What unlocks next: <span className="text-white">Worker submits proof</span> → Proof Submitted
+              </p>
+            )}
+            {worker.workerStatus === "proof_submitted" && (
+              <p className="mt-2 text-xs text-cyan-400">
+                💡 What unlocks next: <span className="text-white">Admin approves proof</span> → Wallet credited, Completed
+              </p>
+            )}
+          </div>
+
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                ⚡ Next Action Required
+                ⚡ ONE Action Required
               </h3>
               <p className="text-sm text-slate-400 mt-1">
                 {getPrimaryActionDescription(

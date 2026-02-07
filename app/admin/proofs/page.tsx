@@ -165,64 +165,40 @@ export default function AdminProofsPage() {
 
   return (
     <div className="u-container max-w-6xl">
-      {/* Header - PATCH_55: Clear semantics - this is PROJECT proofs, not screening tests */}
+      {/* PATCH_79: Header with Clear Purpose */}
       <PageHeader
         title="Project Proofs Review"
-        description="Approve or reject completed project work submissions from workers"
+        description="Verify work completion before crediting worker wallets"
       />
-      {/* PATCH_74: Confidence spine */}
-      <p className="text-xs text-cyan-400/70 mb-4 -mt-4">
-        Proof approval enables project completion and wallet credit.
-      </p>
 
-      {/* PATCH_63: Contextual Guidance Banner for Proofs */}
-      {!loading && (
-        <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 via-slate-800/50 to-amber-500/10 border border-emerald-500/20">
-          <div className="flex items-start gap-3">
-            <span className="text-2xl">✅</span>
-            <div className="flex-1">
-              <h3 className="text-sm font-semibold text-white mb-1">
-                Proof Review Process:
-              </h3>
-              <ul className="text-sm text-slate-300 space-y-1">
-                {stats.pending > 0 ? (
-                  <>
-                    <li>
-                      •{" "}
-                      <span className="text-amber-400 font-medium">
-                        {stats.pending} proof{stats.pending > 1 ? "s" : ""}
-                      </span>{" "}
-                      waiting for your review
-                    </li>
-                    <li>
-                      • Review attachments & notes →{" "}
-                      <span className="text-emerald-400">Approve</span> quality
-                      work or <span className="text-red-400">Reject</span> with
-                      reason
-                    </li>
-                    <li className="text-slate-400">
-                      • After approval, credit earnings in{" "}
-                      <Link
-                        href="/admin/workspace/projects"
-                        className="text-cyan-400 hover:underline"
-                      >
-                        Projects
-                      </Link>
-                    </li>
-                  </>
-                ) : (
-                  <li className="text-emerald-400">
-                    ✓ All proofs reviewed! No pending submissions.
-                  </li>
-                )}
-              </ul>
+      {/* PATCH_79: Wallet Credit Explanation */}
+      <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 via-slate-800/50 to-cyan-500/10 border border-emerald-500/20">
+        <div className="flex items-start gap-3">
+          <span className="text-2xl">💰</span>
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-white mb-1">What happens when you approve:</h3>
+            <ul className="text-sm text-slate-300 space-y-1">
+              <li>• <span className="text-emerald-400 font-medium">Approve</span> → Project marked complete → <span className="text-cyan-400">Wallet credit unlocked</span></li>
+              <li>• <span className="text-red-400 font-medium">Reject</span> → Worker notified → Can resubmit proof</li>
+              <li>• After approval, go to <Link href="/admin/workspace/projects" className="text-cyan-400 hover:underline">Projects</Link> to credit the worker's wallet</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* PATCH_79: What to do next */}
+      {!loading && stats.pending > 0 && (
+        <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">⚡</span>
+            <div>
+              <p className="text-sm text-white font-medium">
+                {stats.pending} proof{stats.pending > 1 ? 's' : ''} waiting for your review
+              </p>
+              <p className="text-xs text-slate-400 mt-1">
+                Review attachments → Click <span className="text-emerald-400">Approve</span> or <span className="text-red-400">Reject</span>
+              </p>
             </div>
-            <Link
-              href="/admin/workforce"
-              className="text-xs text-slate-400 hover:text-white whitespace-nowrap"
-            >
-              → Worker Pipeline
-            </Link>
           </div>
         </div>
       )}

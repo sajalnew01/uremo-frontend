@@ -454,7 +454,7 @@ function ProjectsContent() {
 
   return (
     <div className="u-container max-w-6xl">
-      {/* Header */}
+      {/* PATCH_79: Header with Clear Purpose */}
       <div className="mb-6">
         <Link
           href="/admin/workspace/master"
@@ -468,31 +468,35 @@ function ProjectsContent() {
             <div>
               <h1 className="text-2xl font-bold">Projects</h1>
               <p className="text-slate-400 text-sm">
-                Create and manage work projects
+                Manage actual paid work assigned to workers
                 {categoryParam && (
                   <span className="ml-2 text-purple-400">
-                    (Category: {categoryParam})
+                    (Category: {getJobRoleCategoryLabel(categoryParam)})
                   </span>
                 )}
-              </p>
-              {/* PATCH_74: Confidence spine */}
-              <p className="text-xs text-cyan-400/70 mt-1">
-                Only Ready workers appear for assignment. Proof approval enables
-                completion.
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* PATCH_64: Linked Screenings Toggle */}
-            <button
-              onClick={() => setShowLinkedScreenings(!showLinkedScreenings)}
-              className={`btn-secondary text-sm ${showLinkedScreenings ? "ring-2 ring-cyan-500" : ""}`}
-            >
-              🔗 Linked Screenings
-            </button>
             <button onClick={() => setShowModal(true)} className="btn-primary">
               + Create Project
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* PATCH_79: Flow Rules Banner */}
+      <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-cyan-500/10 via-slate-800/50 to-purple-500/10 border border-cyan-500/20">
+        <div className="flex items-start gap-3">
+          <span className="text-2xl">🔒</span>
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-white mb-1">Project Flow Rules (Cannot Be Skipped):</h3>
+            <ul className="text-sm text-slate-300 space-y-1">
+              <li>• <span className="text-emerald-400">Assign Worker:</span> Only workers with <span className="font-medium">"Ready to Work"</span> status can be assigned</li>
+              <li>• <span className="text-amber-400">Proof Required:</span> Worker must submit proof of work before project can be marked complete</li>
+              <li>• <span className="text-cyan-400">Credit Wallet:</span> Only visible after proof is approved → Credits worker's wallet</li>
+              <li>• <span className="text-slate-400">🔒 Completed:</span> Once credited, project is locked (cannot be undone)</li>
+            </ul>
           </div>
         </div>
       </div>

@@ -226,22 +226,42 @@ export default function AdminWorkPositionsPage() {
 
   return (
     <div className="u-container max-w-6xl space-y-6">
+      {/* PATCH_79: Job Roles Header - Clear purpose and guidance */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold">Work Positions</h1>
-          <p className="text-sm text-[#9CA3AF] mt-1">
-            Manage positions shown on the Apply-to-work page.
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-3xl">💼</span>
+            <div>
+              <h1 className="text-3xl font-bold">Job Roles</h1>
+              <p className="text-sm text-[#9CA3AF] mt-1">
+                Define WHAT type of work exists and WHO can do it.
+              </p>
+            </div>
+          </div>
+          {/* PATCH_79: Flow guidance */}
+          <p className="text-xs text-cyan-400/70 mt-2">
+            Job Roles → Screenings → Workers. Each role defines eligibility requirements.
           </p>
-          {categories.length > 0 && (
-            <p className="text-xs text-[#9CA3AF] mt-2">
-              Categories: {categories.join(", ")}
-            </p>
-          )}
         </div>
 
         <button type="button" onClick={openCreate} className="btn-primary">
-          + New position
+          + New Job Role
         </button>
+      </div>
+
+      {/* PATCH_79: What is this page for? */}
+      <div className="p-4 rounded-xl bg-gradient-to-r from-blue-500/10 via-slate-800/50 to-cyan-500/10 border border-blue-500/20">
+        <div className="flex items-start gap-3">
+          <span className="text-2xl">ℹ️</span>
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-white mb-1">About Job Roles</h3>
+            <ul className="text-sm text-slate-300 space-y-1">
+              <li>• Job Roles define <span className="text-cyan-400">types of work</span> available on your platform</li>
+              <li>• Each role can have a <span className="text-amber-400">screening test</span> workers must pass before working</li>
+              <li>• Workers apply for roles → Pass screening → Get assigned projects</li>
+            </ul>
+          </div>
+        </div>
       </div>
 
       <div className="card">
@@ -306,73 +326,20 @@ export default function AdminWorkPositionsPage() {
           <div className="mx-auto w-16 h-16 rounded-2xl border border-blue-500/20 bg-blue-500/10 flex items-center justify-center text-3xl text-blue-300 mb-4">
             💼
           </div>
-          <h3 className="text-lg font-semibold text-white">No positions yet</h3>
+          <h3 className="text-lg font-semibold text-white">No Job Roles Yet</h3>
           <p className="text-sm text-slate-400 mt-2 max-w-md mx-auto">
-            Create work positions that will appear on the Apply-to-Work page for
-            candidates.
+            Job Roles define the types of work available on your platform.
+            Workers will apply for these roles.
           </p>
+          {/* PATCH_79: Clear next step */}
+          <div className="mt-4 p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/20 inline-block">
+            <p className="text-sm text-cyan-300">
+              👉 <span className="font-medium">Next Step:</span> Create your first job role to start accepting worker applications
+            </p>
+          </div>
           <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
             <button type="button" onClick={openCreate} className="btn-primary">
-              + New Position
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                const defaultPositions = [
-                  {
-                    title: "KYC / Onboarding Assistant",
-                    category: "operations_support",
-                    description:
-                      "Help verify customer documents and assist with onboarding processes.",
-                    requirements:
-                      "• Detail-oriented\n• Good communication\n• Experience with document verification",
-                    active: true,
-                    sortOrder: 1,
-                  },
-                  {
-                    title: "Customer Support Agent",
-                    category: "customer_support",
-                    description:
-                      "Provide friendly and efficient support to customers via chat and email.",
-                    requirements:
-                      "• Excellent written communication\n• Problem-solving skills\n• Available for flexible hours",
-                    active: true,
-                    sortOrder: 2,
-                  },
-                  {
-                    title: "Social Media Manager",
-                    category: "marketing",
-                    description:
-                      "Manage social media accounts and create engaging content.",
-                    requirements:
-                      "• Creative mindset\n• Social media expertise\n• Basic design skills",
-                    active: true,
-                    sortOrder: 3,
-                  },
-                ];
-
-                for (const pos of defaultPositions) {
-                  try {
-                    await apiRequest(
-                      "/api/admin/work-positions",
-                      "POST",
-                      pos,
-                      true,
-                    );
-                  } catch (e: any) {
-                    console.error(
-                      "Failed to create position:",
-                      pos.title,
-                      e?.message,
-                    );
-                  }
-                }
-                toast("Default positions created!", "success");
-                await load();
-              }}
-              className="btn-secondary"
-            >
-              Create Default Positions
+              + Create Job Role
             </button>
           </div>
         </div>
@@ -386,97 +353,121 @@ export default function AdminWorkPositionsPage() {
         <div className="grid gap-4 md:grid-cols-2">
           {visiblePositions.map((p) => (
             <div key={p._id} className="card">
+              {/* PATCH_79: Job Role Header with Clear Status */}
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="font-semibold text-white">{p.title}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-white">{p.title}</p>
+                    {p.active === false ? (
+                      <span className="px-2 py-0.5 text-xs rounded-full bg-slate-500/20 text-slate-400">Inactive</span>
+                    ) : (
+                      <span className="px-2 py-0.5 text-xs rounded-full bg-emerald-500/20 text-emerald-400">Active</span>
+                    )}
+                  </div>
                   <p className="text-xs text-[#9CA3AF] mt-1">
-                    {p.category} • sort {p.sortOrder ?? 0} •{" "}
-                    {p.active === false ? "Inactive" : "Active"}
+                    Category: {p.category}
                   </p>
                 </div>
-                <div className="flex gap-2 flex-wrap">
-                  <Link
-                    href={`/admin/work-positions/${p._id}`}
-                    className="btn-primary"
-                  >
-                    Manage
-                  </Link>
+                <Link
+                  href={`/admin/work-positions/${p._id}`}
+                  className="btn-primary text-sm"
+                >
+                  Manage Role →
+                </Link>
+              </div>
+
+              {/* PATCH_79: Key Info Panel - What admin needs to know */}
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                {/* Screening Required? */}
+                <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+                  <div className="text-xs text-slate-500 mb-1">Screening Required?</div>
+                  {(p as any).hasScreening ? (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-emerald-400 text-lg">✓</span>
+                      <span className="text-sm font-medium text-emerald-400">Yes</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-amber-400 text-lg">⚠️</span>
+                      <Link
+                        href={`/admin/workspace/screenings?category=${p.category}`}
+                        className="text-sm font-medium text-amber-400 hover:underline"
+                      >
+                        Setup →
+                      </Link>
+                    </div>
+                  )}
+                </div>
+                {/* Applicants */}
+                <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+                  <div className="text-xs text-slate-500 mb-1">Applicants</div>
+                  <div className="text-lg font-bold text-white">
+                    {(p as any).applicantCount || 0}
+                  </div>
+                </div>
+                {/* Active Workers */}
+                <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+                  <div className="text-xs text-slate-500 mb-1">Active Workers</div>
+                  <div className="text-lg font-bold text-cyan-400">
+                    {(p as any).activeWorkerCount || 0}
+                  </div>
+                </div>
+              </div>
+
+              {/* PATCH_79: Screening Banner - Only show if screening is required */}
+              {(p as any).hasScreening && (
+                <div className="mt-3 p-2 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                  <p className="text-xs text-purple-300 flex items-center gap-2">
+                    <span>🔒</span>
+                    Workers must pass screening before they can work on projects
+                  </p>
+                </div>
+              )}
+
+              {/* View Workers Pipeline */}
+              <div className="mt-4">
+                <Link
+                  href={`/admin/workforce?position=${p._id}`}
+                  className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 text-sm bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 rounded-lg hover:bg-cyan-500/20 transition-colors"
+                >
+                  <span>👥</span>
+                  View Workers in Pipeline →
+                </Link>
+              </div>
+
+              {p.description && (
+                <p className="mt-3 text-sm text-slate-200">{p.description}</p>
+              )}
+
+              {/* PATCH_79: Secondary Actions - De-emphasized */}
+              <details className="mt-4">
+                <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-300">
+                  Advanced: Edit or Deactivate
+                </summary>
+                <div className="mt-2 flex gap-2 flex-wrap">
                   <button
                     type="button"
-                    className="btn-secondary"
+                    className="btn-secondary text-xs"
                     onClick={() => toggleActive(p)}
                   >
                     {p.active === false ? "Activate" : "Deactivate"}
                   </button>
                   <button
                     type="button"
-                    className="btn-secondary"
+                    className="btn-secondary text-xs"
                     onClick={() => openEdit(p)}
                   >
                     Edit
                   </button>
                   <button
                     type="button"
-                    className="btn-secondary"
+                    className="btn-secondary text-xs"
                     onClick={() => remove(p)}
                   >
                     Delete
                   </button>
                 </div>
-              </div>
-
-              {/* PATCH_66: Position Stats Panel */}
-              <div className="mt-3 grid grid-cols-3 gap-2">
-                <div className="bg-white/5 border border-white/10 rounded-lg p-2 text-center">
-                  <div className="text-xs text-slate-500">Screening</div>
-                  <div className="text-sm font-medium text-white mt-0.5">
-                    {(p as any).hasScreening ? (
-                      <span className="text-emerald-400">✓ Configured</span>
-                    ) : (
-                      <Link
-                        href={`/admin/workspace/screenings?position=${p._id}`}
-                        className="text-amber-400 hover:underline"
-                      >
-                        ⚠️ Not Set
-                      </Link>
-                    )}
-                  </div>
-                </div>
-                <div className="bg-white/5 border border-white/10 rounded-lg p-2 text-center">
-                  <div className="text-xs text-slate-500">Applicants</div>
-                  <div className="text-sm font-medium text-white mt-0.5">
-                    {(p as any).applicantCount || 0}
-                  </div>
-                </div>
-                <div className="bg-white/5 border border-white/10 rounded-lg p-2 text-center">
-                  <div className="text-xs text-slate-500">Active Workers</div>
-                  <div className="text-sm font-medium text-white mt-0.5">
-                    {(p as any).activeWorkerCount || 0}
-                  </div>
-                </div>
-              </div>
-
-              {/* View Pipeline Button */}
-              <div className="mt-3">
-                <Link
-                  href={`/admin/workforce?position=${p._id}`}
-                  className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 text-sm bg-blue-500/10 border border-blue-500/30 text-blue-300 rounded-lg hover:bg-blue-500/20 transition-colors"
-                >
-                  <span>📊</span>
-                  View Pipeline: Applicants → Screening → Test → Approved →
-                  Assigned
-                </Link>
-              </div>
-
-              {p.description ? (
-                <p className="mt-3 text-sm text-slate-200">{p.description}</p>
-              ) : null}
-
-              {p.requirements ? (
-                <pre className="mt-3 whitespace-pre-wrap text-xs text-[#9CA3AF] rounded-xl border border-white/10 bg-white/5 p-3">
-                  {p.requirements}
-                </pre>
-              ) : null}
+              </details>
             </div>
           ))}
         </div>

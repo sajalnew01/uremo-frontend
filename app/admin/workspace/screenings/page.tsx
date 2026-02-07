@@ -334,7 +334,7 @@ function ScreeningsContent() {
 
   return (
     <div className="u-container max-w-6xl">
-      {/* Header */}
+      {/* PATCH_79: Header with Clear Purpose */}
       <div className="mb-6">
         <Link
           href="/admin/workspace/master"
@@ -348,18 +348,37 @@ function ScreeningsContent() {
             <div>
               <h1 className="text-2xl font-bold">Screenings</h1>
               <p className="text-slate-400 text-sm">
-                Create and manage screening tests
+                Verify worker eligibility with qualification tests
                 {categoryFilter && (
                   <span className="ml-2 text-cyan-400">
-                    (Filtered: {categoryFilter})
+                    (Filtered: {getJobRoleCategoryLabel(categoryFilter)})
                   </span>
                 )}
+              </p>
+              {/* PATCH_79: Flow guidance */}
+              <p className="text-xs text-cyan-400/70 mt-1">
+                Workers must pass screenings before they can work on projects.
               </p>
             </div>
           </div>
           <button onClick={() => setShowModal(true)} className="btn-primary">
             + Create Screening
           </button>
+        </div>
+      </div>
+
+      {/* PATCH_79: What happens when worker passes */}
+      <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 via-slate-800/50 to-purple-500/10 border border-emerald-500/20">
+        <div className="flex items-start gap-3">
+          <span className="text-2xl">✅</span>
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-white mb-1">Screening Results:</h3>
+            <ul className="text-sm text-slate-300 space-y-1">
+              <li>• <span className="text-emerald-400 font-medium">Pass</span> → Worker becomes "Ready to Work" → Can receive project assignments</li>
+              <li>• <span className="text-red-400 font-medium">Fail</span> → Worker cannot be assigned projects → Admin can allow retry</li>
+              <li>• <span className="text-amber-400 font-medium">Pending</span> → Waiting for admin review (test_submitted status)</li>
+            </ul>
+          </div>
         </div>
       </div>
 
@@ -519,7 +538,7 @@ function ScreeningsContent() {
         </div>
       )}
 
-      {/* Empty State */}
+      {/* Empty State - PATCH_79: Clear explanation */}
       {!loading && filteredScreenings.length === 0 && (
         <div className="text-center py-12 card">
           <div className="text-5xl mb-4">📝</div>
@@ -527,36 +546,38 @@ function ScreeningsContent() {
             No Screenings Yet
           </h3>
           <p className="text-slate-400 mb-4 max-w-md mx-auto">
-            Screenings are qualification tests that workers must pass before
-            receiving projects.
+            Screenings are qualification tests that verify workers can do the job before you assign them projects.
           </p>
+          {/* PATCH_79: Clear next step */}
+          <div className="mb-6 p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/20 inline-block">
+            <p className="text-sm text-cyan-300">
+              👉 <span className="font-medium">Why screening matters:</span> Workers who pass screening become "Ready to Work" and can receive project assignments
+            </p>
+          </div>
+          <br/>
           <button
             onClick={() => setShowModal(true)}
             className="btn-primary mb-4"
           >
             + Create Your First Screening
           </button>
-          <div className="text-sm text-slate-500 space-y-1">
-            <p>After creating screenings:</p>
+          <div className="text-sm text-slate-500 space-y-1 mt-6">
+            <p className="font-medium text-slate-400">After creating screenings:</p>
             <p>
               1.{" "}
               <Link
                 href="/admin/work-positions"
                 className="text-cyan-400 hover:underline"
               >
-                Attach to Job Roles
+                Link to Job Roles
               </Link>{" "}
-              for worker qualification
+              — Workers applying for that role take the test
             </p>
             <p>
-              2.{" "}
-              <Link
-                href="/admin/workspace/projects"
-                className="text-cyan-400 hover:underline"
-              >
-                Create Projects
-              </Link>{" "}
-              for qualified workers
+              2. Worker submits test → You grade it → Pass/Fail
+            </p>
+            <p>
+              3. Passing workers become "Ready to Work" → Assign projects
             </p>
           </div>
         </div>
