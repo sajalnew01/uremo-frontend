@@ -342,33 +342,38 @@ export default function AdminOrderDetailPage() {
           </div>
 
           <div className="mt-5 space-y-2">
-            <p className="text-xs text-slate-500">
-              Quick status change — or use action buttons on this page for
-              guided workflow
+            {/* PATCH_77: Demote dropdown, guide admin to action buttons */}
+            <p className="text-xs text-cyan-400 font-medium">
+              ↓ Use the action buttons below to proceed
             </p>
-            <div className="flex gap-2 flex-wrap">
-              <select
-                className="px-3 py-2 text-sm rounded bg-[#020617] border border-[#1F2937] text-white"
-                value={order.status}
-                onChange={(e) => updateStatus(e.target.value)}
-                disabled={
-                  order.status === "completed" || order.status === "cancelled"
-                }
-                title={
-                  order.status === "completed"
-                    ? "Order complete. No further changes."
-                    : order.status === "cancelled"
-                      ? "Order cancelled. No changes allowed."
-                      : "Change order status"
-                }
-              >
-                <option value="pending">pending</option>
-                <option value="waiting_user">waiting user</option>
-                <option value="in_progress">in progress</option>
-                <option value="completed">completed</option>
-                <option value="cancelled">cancelled</option>
-              </select>
-            </div>
+            <details className="group">
+              <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-400">
+                Advanced: Manual status change
+              </summary>
+              <div className="flex gap-2 flex-wrap mt-2">
+                <select
+                  className="px-3 py-2 text-sm rounded bg-[#020617] border border-[#1F2937] text-white opacity-70"
+                  value={order.status}
+                  onChange={(e) => updateStatus(e.target.value)}
+                  disabled={
+                    order.status === "completed" || order.status === "cancelled"
+                  }
+                  title={
+                    order.status === "completed"
+                      ? "Order complete. No further changes."
+                      : order.status === "cancelled"
+                        ? "Order cancelled. No changes allowed."
+                        : "Change order status"
+                  }
+                >
+                  <option value="pending">pending</option>
+                  <option value="waiting_user">waiting user</option>
+                  <option value="in_progress">in progress</option>
+                  <option value="completed">completed</option>
+                  <option value="cancelled">cancelled</option>
+                </select>
+              </div>
+            </details>
             {(order.status === "completed" || order.status === "cancelled") && (
               <p className="text-xs text-amber-400/80">
                 🔒 This order is finalized. Status cannot be changed.

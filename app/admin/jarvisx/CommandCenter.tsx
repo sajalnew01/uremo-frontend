@@ -897,6 +897,7 @@ export default function AdminJarvisXCommandCenter() {
             <div className="space-y-4">
               <div className="space-y-3 max-h-[420px] overflow-y-auto pr-2">
                 {/* PATCH_76: Welcome state when no messages yet */}
+                {/* PATCH_77: Added focused query guidance */}
                 {messages.length === 0 && (
                   <div className="text-center py-6">
                     <div className="text-3xl mb-3">🤖</div>
@@ -906,6 +907,9 @@ export default function AdminJarvisXCommandCenter() {
                     </p>
                     <p className="text-xs text-slate-500 mt-3">
                       Try: "How many orders are pending?" or "Show service stats"
+                    </p>
+                    <p className="text-xs text-cyan-400/60 mt-2 max-w-xs mx-auto">
+                      💡 JarvisX works best when you ask about ONE area at a time.
                     </p>
                   </div>
                 )}

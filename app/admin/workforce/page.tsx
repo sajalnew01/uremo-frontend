@@ -961,12 +961,43 @@ export default function WorkforceControlCenterPage() {
                           ${(worker.totalEarnings || 0).toFixed(2)}
                         </td>
                         <td className="py-3 px-4">
-                          <Link
-                            href={`/admin/workforce/${worker.applicationId}`}
-                            className="px-3 py-1 text-xs bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 rounded-lg transition-colors inline-block"
-                          >
-                            View Details
-                          </Link>
+                          {/* PATCH_77: Contextual primary action based on worker status */}
+                          {worker.workerStatus === "applied" && worker.status === "pending" ? (
+                            <Link
+                              href={`/admin/workforce/${worker.applicationId}`}
+                              className="px-3 py-1 text-xs bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 rounded-lg transition-colors inline-block font-medium"
+                            >
+                              Review Application →
+                            </Link>
+                          ) : worker.workerStatus === "test_submitted" ? (
+                            <Link
+                              href={`/admin/workforce/${worker.applicationId}`}
+                              className="px-3 py-1 text-xs bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 rounded-lg transition-colors inline-block font-medium"
+                            >
+                              Grade Screening →
+                            </Link>
+                          ) : worker.workerStatus === "ready_to_work" ? (
+                            <Link
+                              href={`/admin/workforce/${worker.applicationId}`}
+                              className="px-3 py-1 text-xs bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-300 rounded-lg transition-colors inline-block font-medium"
+                            >
+                              Assign Project →
+                            </Link>
+                          ) : worker.workerStatus === "proof_submitted" ? (
+                            <Link
+                              href={`/admin/workforce/${worker.applicationId}`}
+                              className="px-3 py-1 text-xs bg-amber-600/20 hover:bg-amber-600/40 text-amber-300 rounded-lg transition-colors inline-block font-medium"
+                            >
+                              Review Proof →
+                            </Link>
+                          ) : (
+                            <Link
+                              href={`/admin/workforce/${worker.applicationId}`}
+                              className="px-3 py-1 text-xs bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 rounded-lg transition-colors inline-block"
+                            >
+                              View Details
+                            </Link>
+                          )}
                         </td>
                       </tr>
                     ))}

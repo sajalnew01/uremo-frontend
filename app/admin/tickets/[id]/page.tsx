@@ -460,7 +460,7 @@ export default function AdminTicketViewPage() {
             </div>
           </div>
 
-          {/* Status Control */}
+          {/* Status Control - PATCH_77: Simplified with primary action hint */}
           <div className="flex flex-col gap-2">
             <span
               className={`${statusColor(ticket.status)} text-white text-xs px-3 py-1 rounded text-center`}
@@ -476,17 +476,29 @@ export default function AdminTicketViewPage() {
                 </p>
               </div>
             ) : (
-              <select
-                value={ticket.status}
-                onChange={(e) => updateStatus(e.target.value)}
-                disabled={updatingStatus}
-                className="u-select text-xs"
-              >
-                <option value="open">Open</option>
-                <option value="in_progress">In Progress</option>
-                <option value="waiting_user">Waiting on User</option>
-                <option value="closed">Closed</option>
-              </select>
+              <>
+                {/* PATCH_77: Primary action hint */}
+                <p className="text-xs text-cyan-400 text-center">
+                  ↓ Reply below to respond
+                </p>
+                {/* Collapsed status dropdown */}
+                <details className="group">
+                  <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-400 text-center">
+                    Change status
+                  </summary>
+                  <select
+                    value={ticket.status}
+                    onChange={(e) => updateStatus(e.target.value)}
+                    disabled={updatingStatus}
+                    className="u-select text-xs mt-1 w-full"
+                  >
+                    <option value="open">Open</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="waiting_user">Waiting on User</option>
+                    <option value="closed">Closed</option>
+                  </select>
+                </details>
+              </>
             )}
             <select
               value={ticket.assignedAdmin?._id || ""}
