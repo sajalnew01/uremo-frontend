@@ -141,6 +141,7 @@ function ProjectsContent() {
     deadline: "",
     status: "open",
     screeningId: "",
+    screeningIds: [] as string[], // PATCH_88: Multiple screenings
   });
   const [updating, setUpdating] = useState(false);
   const [viewLoading, setViewLoading] = useState(false);
@@ -459,7 +460,8 @@ function ProjectsContent() {
       payType: (project as any).payType || "per_task",
       deadline: project.deadline ? project.deadline.split("T")[0] : "",
       status: project.status || "open",
-      screeningId: (project as any).screeningId || "",
+      screeningId: (project as any).screeningId?._id || (project as any).screeningId || "",
+      screeningIds: ((project as any).screeningIds || []).map((s: any) => typeof s === "string" ? s : s._id).filter(Boolean),
     });
     setEditModal(project);
   };
@@ -474,7 +476,10 @@ function ProjectsContent() {
       await apiRequest(
         `/api/admin/workspace/project/${editModal._id}`,
         "PUT",
-        editForm,
+        {
+          ...editForm,
+          screeningId: editForm.screeningIds[0] || editForm.screeningId || null,
+        },
         true,
       );
       setSuccess("Project updated successfully!");
@@ -1646,28 +1651,38 @@ function ProjectsContent() {
 
               <div>
                 <label className="block text-sm text-slate-400 mb-1">
-                  Linked Screening Test
+                  Required Screening Tests
                 </label>
-                <select
-                  value={editForm.screeningId}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, screeningId: e.target.value })
-                  }
-                  className="input w-full"
-                >
-                  <option value="">No screening required</option>
-                  {screenings
-                    .filter(
-                      (s) => s.category === editForm.category || !s.category,
-                    )
-                    .map((s) => (
-                      <option key={s._id} value={s._id}>
-                        {s.title} ({s.category})
-                      </option>
-                    ))}
-                </select>
+                <div className="space-y-2 max-h-48 overflow-y-auto p-2 rounded-lg bg-black/20 border border-white/10">
+                  {screenings.length === 0 ? (
+                    <p className="text-xs text-slate-500 p-2">No screening tests available</p>
+                  ) : (
+                    screenings
+                      .filter((s) => s.category === editForm.category || !s.category)
+                      .map((s) => (
+                        <label key={s._id} className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-all ${
+                          editForm.screeningIds.includes(s._id)
+                            ? "bg-purple-500/20 border border-purple-500/30"
+                            : "hover:bg-white/5"
+                        }`}>
+                          <input
+                            type="checkbox"
+                            checked={editForm.screeningIds.includes(s._id)}
+                            onChange={() => {
+                              const ids = editForm.screeningIds.includes(s._id)
+                                ? editForm.screeningIds.filter((id) => id !== s._id)
+                                : [...editForm.screeningIds, s._id];
+                              setEditForm({ ...editForm, screeningIds: ids, screeningId: ids[0] || "" });
+                            }}
+                            className="rounded border-white/20"
+                          />
+                          <span className="text-sm">{s.title} <span className="text-slate-500">({s.category})</span></span>
+                        </label>
+                      ))
+                  )}
+                </div>
                 <p className="text-xs text-slate-500 mt-1">
-                  Only workers who passed this screening can be assigned
+                  Workers must pass ALL selected tests to be eligible for this project
                 </p>
               </div>
 

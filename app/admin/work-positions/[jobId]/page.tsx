@@ -23,11 +23,15 @@ type Project = {
   _id?: string;
   title: string;
   description?: string;
+  instructions?: string;
   payRate: number;
   payType: "per_task" | "hourly" | "fixed";
   deadline?: string;
-  status: "draft" | "active" | "completed";
+  status: "draft" | "open" | "assigned" | "in_progress" | "completed" | "cancelled";
   assignedWorker?: string;
+  screeningId?: { _id: string; title: string; passingScore: number } | string | null;
+  screeningIds?: Array<{ _id: string; title: string; passingScore: number } | string>;
+  workPositionId?: string;
 };
 
 type TrainingMaterial = {
@@ -156,7 +160,10 @@ export default function AdminJobRolePage() {
     payType: "per_task",
     status: "draft",
   });
-  const [projectMode, setProjectMode] = useState<"list" | "create">("list");
+  const [projectMode, setProjectMode] = useState<"list" | "create" | "edit">("list");
+  // PATCH_88: Edit project state
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [editProjectScreeningIds, setEditProjectScreeningIds] = useState<string[]>([]);
 
   const loadJob = async () => {
     if (!jobId) return;
@@ -433,6 +440,78 @@ export default function AdminJobRolePage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  // PATCH_88: Edit project with screening management
+  const startEditProject = (proj: Project) => {
+    setEditingProject(proj);
+    // Extract screening IDs from populated or string references
+    const ids: string[] = [];
+    if (proj.screeningIds && Array.isArray(proj.screeningIds)) {
+      proj.screeningIds.forEach((s: any) => {
+        ids.push(typeof s === "string" ? s : s._id);
+      });
+    }
+    if (proj.screeningId && ids.length === 0) {
+      const sid = typeof proj.screeningId === "string" ? proj.screeningId : proj.screeningId._id;
+      if (sid) ids.push(sid);
+    }
+    setEditProjectScreeningIds(ids);
+    setProjectMode("edit");
+  };
+
+  const saveEditProject = async () => {
+    if (!editingProject?._id) return;
+    setSaving(true);
+    try {
+      await apiRequest(
+        `/api/admin/workspace/project/${editingProject._id}`,
+        "PUT",
+        {
+          title: editingProject.title,
+          description: editingProject.description,
+          instructions: editingProject.instructions,
+          payRate: editingProject.payRate,
+          payType: editingProject.payType,
+          deadline: editingProject.deadline,
+          screeningIds: editProjectScreeningIds,
+          screeningId: editProjectScreeningIds[0] || null,
+        },
+        true,
+      );
+      toast("Project updated", "success");
+      setProjectMode("list");
+      setEditingProject(null);
+      loadProjects();
+    } catch (e: any) {
+      toast(e?.message || "Failed to update project", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const activateProject = async (projectId: string) => {
+    setSaving(true);
+    try {
+      await apiRequest(
+        `/api/admin/workspace/job/${jobId}/projects/${projectId}/activate`,
+        "PUT",
+        {},
+        true,
+      );
+      toast("Project activated", "success");
+      loadProjects();
+    } catch (e: any) {
+      toast(e?.message || "Failed to activate project", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleScreeningId = (id: string) => {
+    setEditProjectScreeningIds((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
+    );
   };
 
   const selectedScreening =
@@ -1249,106 +1328,165 @@ export default function AdminJobRolePage() {
           <div className="card">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold">💼 Projects</h3>
-              {projectMode === "list" && (
-                <button
-                  onClick={() => setProjectMode("create")}
-                  disabled={Boolean(projectsLockedReason)}
-                  title={
-                    projectsLockedReason ||
-                    "Create a project for this job role (requires backend support)"
-                  }
-                  className="px-3 py-1 rounded-lg bg-blue-500/20 text-blue-300 text-sm hover:bg-blue-500/30"
-                >
-                  ➕ Create Project
-                </button>
-              )}
+              <div className="flex gap-2">
+                {projectMode !== "list" && (
+                  <button
+                    onClick={() => { setProjectMode("list"); setEditingProject(null); }}
+                    className="px-3 py-1 rounded-lg bg-slate-500/20 text-slate-300 text-sm hover:bg-slate-500/30"
+                  >
+                    ← Back to List
+                  </button>
+                )}
+                {projectMode === "list" && (
+                  <button
+                    onClick={() => setProjectMode("create")}
+                    disabled={Boolean(projectsLockedReason)}
+                    className="px-3 py-1 rounded-lg bg-blue-500/20 text-blue-300 text-sm hover:bg-blue-500/30"
+                  >
+                    ➕ Create Project
+                  </button>
+                )}
+              </div>
             </div>
 
             {projectsLockedReason && (
               <div className="mb-4 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-amber-100">
                 <p className="font-semibold">Locked</p>
                 <p className="text-sm mt-1">{projectsLockedReason}</p>
-                <p className="text-xs mt-2 opacity-80">
-                  Next step: use Admin → Workspace → Projects if available, or
-                  enable job-role projects server-side.
-                </p>
               </div>
             )}
 
-            {projectMode === "list" ? (
+            {/* PROJECT LIST */}
+            {projectMode === "list" && (
               projects.length === 0 ? (
                 <div className="text-center py-8 text-slate-400">
                   <div className="text-4xl mb-3">📦</div>
                   <p className="font-medium">No projects yet</p>
+                  <p className="text-sm mt-1">Create a project to assign to workers</p>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {projects.map((proj) => (
-                    <div
-                      key={proj._id}
-                      className="p-4 rounded-xl bg-white/5 border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-3"
-                    >
-                      <div>
-                        <p className="font-medium">{proj.title}</p>
-                        <div className="flex flex-wrap gap-3 mt-1 text-sm text-slate-400">
-                          <span>
-                            💰 ${proj.payRate} {proj.payType}
-                          </span>
-                          <span
-                            className={`px-2 py-0.5 rounded text-xs ${
-                              proj.status === "active"
-                                ? "bg-emerald-500/20 text-emerald-300"
-                                : proj.status === "completed"
-                                  ? "bg-blue-500/20 text-blue-300"
-                                  : "bg-slate-500/20 text-slate-300"
-                            }`}
-                          >
-                            {proj.status}
-                          </span>
+                  {projects.map((proj) => {
+                    const screeningList = (proj as any).screeningIds || [];
+                    const legacyScreening = (proj as any).screeningId;
+                    return (
+                      <div
+                        key={proj._id}
+                        className="p-4 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors"
+                      >
+                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-lg">{proj.title}</p>
+                              <span
+                                className={`px-2 py-0.5 rounded text-xs ${
+                                  proj.status === "open"
+                                    ? "bg-emerald-500/20 text-emerald-300"
+                                    : proj.status === "draft"
+                                      ? "bg-slate-500/20 text-slate-300"
+                                      : proj.status === "assigned" || proj.status === "in_progress"
+                                        ? "bg-blue-500/20 text-blue-300"
+                                        : proj.status === "completed"
+                                          ? "bg-green-500/20 text-green-300"
+                                          : "bg-red-500/20 text-red-300"
+                                }`}
+                              >
+                                {proj.status}
+                              </span>
+                            </div>
+                            {proj.description && (
+                              <p className="text-sm text-slate-400 mt-1">{proj.description}</p>
+                            )}
+                            <div className="flex flex-wrap gap-3 mt-2 text-sm text-slate-400">
+                              <span>💰 ${proj.payRate} {proj.payType}</span>
+                              {proj.deadline && (
+                                <span>📅 {new Date(proj.deadline).toLocaleDateString()}</span>
+                              )}
+                            </div>
+                            {/* Show linked screenings */}
+                            {(screeningList.length > 0 || legacyScreening) && (
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                <span className="text-xs text-slate-500">Tests:</span>
+                                {screeningList.map((s: any) => (
+                                  <span key={s._id || s} className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 text-xs">
+                                    📋 {s.title || "Screening"}
+                                  </span>
+                                ))}
+                                {screeningList.length === 0 && legacyScreening && (
+                                  <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 text-xs">
+                                    📋 {typeof legacyScreening === "object" ? legacyScreening.title : "Screening"}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              onClick={() => startEditProject(proj)}
+                              className="px-3 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 text-sm hover:bg-cyan-500/30"
+                            >
+                              ✏️ Edit
+                            </button>
+                            {proj.status === "draft" && proj._id && (
+                              <button
+                                onClick={() => activateProject(proj._id!)}
+                                disabled={saving}
+                                className="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 text-sm hover:bg-emerald-500/30 disabled:opacity-50"
+                              >
+                                🚀 Activate
+                              </button>
+                            )}
+                            <Link
+                              href={`/admin/workspace/projects?action=view&id=${proj._id}`}
+                              className="px-3 py-1.5 rounded-lg bg-white/5 text-slate-300 text-sm hover:bg-white/10"
+                            >
+                              View Details →
+                            </Link>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )
-            ) : (
+            )}
+
+            {/* CREATE PROJECT */}
+            {projectMode === "create" && (
               <div className="space-y-4">
+                <h4 className="text-sm font-medium text-slate-300">New Project for {job.title}</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs text-slate-400 mb-1 block">
-                      Project Title
-                    </label>
+                    <label className="text-xs text-slate-400 mb-1 block">Project Title *</label>
                     <input
                       type="text"
-                      placeholder="e.g. Data Entry Batch #1"
+                      placeholder="e.g. Valkyrie V4"
                       value={projectForm.title}
-                      onChange={(e) =>
-                        setProjectForm({
-                          ...projectForm,
-                          title: e.target.value,
-                        })
-                      }
+                      onChange={(e) => setProjectForm({ ...projectForm, title: e.target.value })}
                       className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-slate-400 mb-1 block">
-                      Pay Rate ($)
-                    </label>
+                    <label className="text-xs text-slate-400 mb-1 block">Pay Rate ($)</label>
                     <input
                       type="number"
                       min={0}
                       step={0.01}
                       value={projectForm.payRate}
-                      onChange={(e) =>
-                        setProjectForm({
-                          ...projectForm,
-                          payRate: Number(e.target.value),
-                        })
-                      }
+                      onChange={(e) => setProjectForm({ ...projectForm, payRate: Number(e.target.value) })}
                       className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
                     />
                   </div>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">Description</label>
+                  <textarea
+                    placeholder="Project description..."
+                    value={projectForm.description || ""}
+                    onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })}
+                    className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                    rows={3}
+                  />
                 </div>
                 <div className="flex gap-3">
                   <button
@@ -1360,6 +1498,152 @@ export default function AdminJobRolePage() {
                   </button>
                   <button
                     onClick={() => setProjectMode("list")}
+                    className="btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* EDIT PROJECT - PATCH_88: Full edit with multi-screening */}
+            {projectMode === "edit" && editingProject && (
+              <div className="space-y-4">
+                <h4 className="text-sm font-medium text-slate-300">Editing: {editingProject.title}</h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">Project Title *</label>
+                    <input
+                      type="text"
+                      value={editingProject.title}
+                      onChange={(e) => setEditingProject({ ...editingProject, title: e.target.value })}
+                      className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">Pay Rate ($)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      value={editingProject.payRate}
+                      onChange={(e) => setEditingProject({ ...editingProject, payRate: Number(e.target.value) })}
+                      className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">Description</label>
+                  <textarea
+                    value={editingProject.description || ""}
+                    onChange={(e) => setEditingProject({ ...editingProject, description: e.target.value })}
+                    className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                    rows={3}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">Instructions</label>
+                  <textarea
+                    placeholder="Detailed task instructions for workers..."
+                    value={editingProject.instructions || ""}
+                    onChange={(e) => setEditingProject({ ...editingProject, instructions: e.target.value })}
+                    className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                    rows={4}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">Pay Type</label>
+                    <select
+                      value={editingProject.payType}
+                      onChange={(e) => setEditingProject({ ...editingProject, payType: e.target.value as any })}
+                      className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                    >
+                      <option value="per_task">Per Task</option>
+                      <option value="hourly">Hourly</option>
+                      <option value="fixed">Fixed</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">Deadline</label>
+                    <input
+                      type="date"
+                      value={editingProject.deadline ? new Date(editingProject.deadline).toISOString().split("T")[0] : ""}
+                      onChange={(e) => setEditingProject({ ...editingProject, deadline: e.target.value })}
+                      className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* SCREENING TESTS ASSIGNMENT - Multi-select */}
+                <div className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/20">
+                  <div className="flex items-center justify-between mb-3">
+                    <h5 className="font-semibold text-purple-300">📋 Required Screening Tests</h5>
+                    <span className="text-xs text-slate-400">{editProjectScreeningIds.length} selected</span>
+                  </div>
+                  <p className="text-xs text-slate-400 mb-3">
+                    Workers must pass ALL selected tests to be eligible for this project
+                  </p>
+                  {screenings.length === 0 ? (
+                    <p className="text-sm text-slate-400">No screening tests available. <Link href="/admin/workspace/screenings" className="text-cyan-400 hover:underline">Create one →</Link></p>
+                  ) : (
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {screenings.map((s) => (
+                        <label
+                          key={s._id}
+                          className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                            editProjectScreeningIds.includes(s._id)
+                              ? "bg-purple-500/20 border-purple-500/40 text-white"
+                              : "bg-white/5 border-white/10 text-slate-400 hover:border-white/20"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={editProjectScreeningIds.includes(s._id)}
+                            onChange={() => toggleScreeningId(s._id)}
+                            className="rounded border-white/20"
+                          />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{s.title}</p>
+                            <p className="text-xs text-slate-500">
+                              Pass: {s.passingScore}% | Time: {s.timeLimit} min
+                            </p>
+                          </div>
+                          <Link
+                            href={`/admin/workspace/screenings/${s._id}`}
+                            className="text-xs text-cyan-400 hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Edit
+                          </Link>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-3 pt-3 border-t border-purple-500/20">
+                    <Link
+                      href="/admin/workspace/screenings"
+                      className="text-sm text-purple-400 hover:text-purple-300"
+                    >
+                      ➕ Create New Screening Test
+                    </Link>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={saveEditProject}
+                    disabled={saving}
+                    className="btn-primary disabled:opacity-50"
+                  >
+                    {saving ? "Saving..." : "💾 Save Project"}
+                  </button>
+                  <button
+                    onClick={() => { setProjectMode("list"); setEditingProject(null); }}
                     className="btn-secondary"
                   >
                     Cancel
