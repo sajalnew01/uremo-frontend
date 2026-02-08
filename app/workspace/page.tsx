@@ -1024,6 +1024,17 @@ export default function WorkspacePage() {
     };
   }, [applications]);
 
+  // PATCH_86: Check if worker can access projects tab
+  // Worker needs at least one job with ready_to_work status or higher (assigned, working)
+  const canAccessProjects = useMemo(() => {
+    return applications.some(
+      (a) =>
+        a.workerStatus === "ready_to_work" ||
+        a.workerStatus === "assigned" ||
+        a.workerStatus === "working",
+    );
+  }, [applications]);
+
   if (loading) {
     return (
       <div className="u-container max-w-6xl">
@@ -1149,36 +1160,52 @@ export default function WorkspacePage() {
       </div>
 
       {/* PATCH_49: Tab Navigation */}
+      {/* PATCH_86: Projects tab locked until screening passed */}
       <div className="mb-6">
         <div className="flex border-b border-white/10">
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${
-                activeTab === tab.key
-                  ? "text-white"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              <span>{tab.icon}</span>
-              <span>{tab.label}</span>
-              {tabCounts[tab.key] > 0 && (
-                <span
-                  className={`ml-1 px-2 py-0.5 rounded-full text-xs ${
-                    activeTab === tab.key
-                      ? "bg-blue-500/30 text-blue-200"
-                      : "bg-slate-700 text-slate-400"
-                  }`}
-                >
-                  {tabCounts[tab.key]}
-                </span>
-              )}
-              {activeTab === tab.key && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />
-              )}
-            </button>
-          ))}
+          {TABS.map((tab) => {
+            const isProjectsLocked = tab.key === "projects" && !canAccessProjects;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => {
+                  if (isProjectsLocked) {
+                    // Show toast explaining why locked
+                    toast("Complete your screening test to access projects", "info");
+                    return;
+                  }
+                  setActiveTab(tab.key);
+                }}
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${
+                  isProjectsLocked
+                    ? "text-slate-500 cursor-not-allowed"
+                    : activeTab === tab.key
+                      ? "text-white"
+                      : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <span>{isProjectsLocked ? "🔒" : tab.icon}</span>
+                <span>{tab.label}</span>
+                {isProjectsLocked && (
+                  <span className="ml-1 text-xs text-amber-400">(Locked)</span>
+                )}
+                {!isProjectsLocked && tabCounts[tab.key] > 0 && (
+                  <span
+                    className={`ml-1 px-2 py-0.5 rounded-full text-xs ${
+                      activeTab === tab.key
+                        ? "bg-blue-500/30 text-blue-200"
+                        : "bg-slate-700 text-slate-400"
+                    }`}
+                  >
+                    {tabCounts[tab.key]}
+                  </span>
+                )}
+                {activeTab === tab.key && !isProjectsLocked && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 

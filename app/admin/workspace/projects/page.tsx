@@ -39,6 +39,12 @@ interface Project {
   proofApproved?: boolean; // PATCH_73: Track if proof was approved
   deadline?: string;
   createdAt: string;
+  // PATCH_86: Job role linkage
+  workPositionId?: {
+    _id: string;
+    title: string;
+    category: string;
+  } | null;
 }
 
 interface Worker {
@@ -63,6 +69,16 @@ interface Screening {
   active: boolean;
 }
 
+// PATCH_86: Job Role interface
+interface JobRole {
+  _id: string;
+  title: string;
+  category: string;
+  hasScreening?: boolean;
+  screeningId?: string;
+  active: boolean;
+}
+
 function ProjectsContent() {
   const searchParams = useSearchParams();
   const showCreate = searchParams.get("action") === "create";
@@ -72,6 +88,7 @@ function ProjectsContent() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [screenings, setScreenings] = useState<Screening[]>([]); // PATCH_64: For linkage
+  const [jobRoles, setJobRoles] = useState<JobRole[]>([]); // PATCH_86: Job roles
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -83,7 +100,7 @@ function ProjectsContent() {
   const [filter, setFilter] = useState<string>("all");
   const [showLinkedScreenings, setShowLinkedScreenings] = useState(false); // PATCH_64
 
-  // Create form state
+  // Create form state - PATCH_86: Added workPositionId
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -92,6 +109,7 @@ function ProjectsContent() {
     earnings: 0,
     deadline: "",
     screeningId: "", // PATCH_65.1: Link to screening test
+    workPositionId: "", // PATCH_86: Job Role ID
   });
   const [creating, setCreating] = useState(false);
 
@@ -132,6 +150,7 @@ function ProjectsContent() {
     loadProjects();
     loadWorkers();
     loadScreenings(); // PATCH_64
+    loadJobRoles(); // PATCH_86
   }, [filter]);
 
   const loadProjects = async () => {
@@ -186,6 +205,21 @@ function ProjectsContent() {
     }
   };
 
+  // PATCH_86: Load job roles for project assignment
+  const loadJobRoles = async () => {
+    try {
+      const res = await apiRequest<any>(
+        "/api/work-positions?active=true",
+        "GET",
+        null,
+        true,
+      );
+      setJobRoles(res.positions || res.data || []);
+    } catch (e) {
+      console.error("Failed to load job roles:", e);
+    }
+  };
+
   // PATCH_64: Get linked screenings for a category
   const getLinkedScreenings = (category: string): Screening[] => {
     return screenings.filter((s) => s.category === category);
@@ -229,29 +263,68 @@ function ProjectsContent() {
     return ["completed", "cancelled"].includes(project.status);
   };
 
-  // PATCH_57: When assign modal opens, filter workers by project category
+  // PATCH_86: When assign modal opens, fetch eligible workers from backend
+  // This ensures only workers who passed the required screening are shown
+  const [loadingEligible, setLoadingEligible] = useState(false);
+  const [eligibilityInfo, setEligibilityInfo] = useState<{
+    jobRole: string | null;
+    requiresScreening: boolean;
+  } | null>(null);
+
   useEffect(() => {
     if (assignModal) {
-      const projectCategory = assignModal.category
-        ?.toLowerCase()
-        .replace(/[_-]/g, " ");
-      // Filter workers whose job category matches project category
-      // Also show all workers if no exact match (fallback)
-      const filtered = workers.filter((w: any) => {
-        const workerCategory = (w.category || w.jobId?.category || "")
-          .toLowerCase()
-          .replace(/[_-]/g, " ");
-        // Match if categories are similar or if project category is generic
-        return (
-          workerCategory.includes(projectCategory) ||
-          projectCategory.includes(workerCategory) ||
-          projectCategory === "microjobs" ||
-          projectCategory === "other"
-        );
-      });
-      setAssignableWorkers(filtered.length > 0 ? filtered : workers);
+      // PATCH_86: Use backend endpoint to get eligible workers
+      const loadEligibleWorkers = async () => {
+        setLoadingEligible(true);
+        try {
+          const res = await apiRequest<any>(
+            `/api/admin/workspace/project/${assignModal._id}/eligible-workers`,
+            "GET",
+            null,
+            true,
+          );
+          if (res?.workers) {
+            // Transform to match Worker interface
+            const eligible = res.workers.map((w: any) => ({
+              _id: w._id,
+              userId: w.userId,
+              jobId: w.position,
+              status: w.workerStatus,
+            }));
+            setAssignableWorkers(eligible);
+            setEligibilityInfo(res.eligibilityInfo || null);
+          } else {
+            // Fallback to category-based filtering
+            const projectCategory = assignModal.category
+              ?.toLowerCase()
+              .replace(/[_-]/g, " ");
+            const filtered = workers.filter((w: any) => {
+              const workerCategory = (w.category || w.jobId?.category || "")
+                .toLowerCase()
+                .replace(/[_-]/g, " ");
+              return (
+                workerCategory.includes(projectCategory) ||
+                projectCategory.includes(workerCategory) ||
+                projectCategory === "microjobs" ||
+                projectCategory === "other"
+              );
+            });
+            setAssignableWorkers(filtered.length > 0 ? filtered : workers);
+            setEligibilityInfo(null);
+          }
+        } catch (e) {
+          console.error("Failed to load eligible workers:", e);
+          // Fallback to all ready workers
+          setAssignableWorkers(workers);
+          setEligibilityInfo(null);
+        } finally {
+          setLoadingEligible(false);
+        }
+      };
+      loadEligibleWorkers();
     } else {
       setAssignableWorkers([]);
+      setEligibilityInfo(null);
     }
   }, [assignModal, workers]);
 
@@ -272,6 +345,7 @@ function ProjectsContent() {
         earnings: 0,
         deadline: "",
         screeningId: "",
+        workPositionId: "", // PATCH_86
       });
       loadProjects();
     } catch (e: any) {
@@ -712,6 +786,12 @@ function ProjectsContent() {
                   <p className="text-sm text-slate-400 line-clamp-2">
                     {project.description}
                   </p>
+                  {/* PATCH_86: Show job role if linked */}
+                  {project.workPositionId && (
+                    <p className="text-xs text-cyan-400 mt-1">
+                      🎯 Job Role: {project.workPositionId?.title || "Linked"}
+                    </p>
+                  )}
                   {project.assignedTo && (
                     <p className="text-xs text-slate-500 mt-2">
                       Assigned to: {project.assignedTo.firstName}{" "}
@@ -923,6 +1003,42 @@ function ProjectsContent() {
                 </div>
               </div>
 
+              {/* PATCH_86: Job Role Selection - PRIMARY LINK */}
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">
+                  Job Role <span className="text-amber-400">*</span>
+                </label>
+                <select
+                  value={form.workPositionId}
+                  onChange={(e) => {
+                    const selectedRole = jobRoles.find(
+                      (j) => j._id === e.target.value,
+                    );
+                    setForm({
+                      ...form,
+                      workPositionId: e.target.value,
+                      // Auto-set category from job role
+                      category: selectedRole?.category || form.category,
+                      // Auto-link screening if job role has one
+                      screeningId: selectedRole?.screeningId || "",
+                    });
+                  }}
+                  className="input w-full"
+                >
+                  <option value="">-- Select Job Role --</option>
+                  {jobRoles.map((j) => (
+                    <option key={j._id} value={j._id}>
+                      {j.title} ({j.category})
+                      {j.hasScreening ? " [Requires Screening]" : ""}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-slate-500 mt-1">
+                  Projects are assigned to workers in this job role. Workers must pass
+                  the job role&apos;s screening test to be eligible.
+                </p>
+              </div>
+
               {/* PATCH_65.1: Linked Screening Selection */}
               <div>
                 <label className="block text-sm text-slate-400 mb-1">
@@ -1014,7 +1130,7 @@ function ProjectsContent() {
         </div>
       )}
 
-      {/* Assign Modal - PATCH_57: Category-aware worker selection */}
+      {/* Assign Modal - PATCH_86: Eligibility-aware worker selection */}
       {assignModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-slate-900 rounded-2xl p-6 w-full max-w-md border border-white/10">
@@ -1022,19 +1138,42 @@ function ProjectsContent() {
             <p className="text-sm text-slate-400 mb-2">
               Assign &quot;{assignModal.title}&quot; to a worker
             </p>
-            <p className="text-xs text-blue-400 mb-4">
-              📁 Project Category:{" "}
-              {getJobRoleCategoryLabel(assignModal.category)}
-            </p>
+            
+            {/* PATCH_86: Show eligibility requirements */}
+            <div className="mb-4 p-3 bg-slate-800 rounded-lg border border-slate-700">
+              <div className="text-xs text-slate-400 uppercase tracking-wider mb-2">
+                Eligibility Requirements
+              </div>
+              <div className="space-y-1 text-sm">
+                {eligibilityInfo?.jobRole ? (
+                  <p className="text-emerald-400">✓ Job Role: {eligibilityInfo.jobRole}</p>
+                ) : (
+                  <p className="text-slate-400">📁 Category: {getJobRoleCategoryLabel(assignModal.category)}</p>
+                )}
+                {eligibilityInfo?.requiresScreening ? (
+                  <p className="text-amber-400">🔒 Requires: Passed screening test</p>
+                ) : (
+                  <p className="text-slate-500">• No screening required</p>
+                )}
+              </div>
+            </div>
 
             <div className="mb-4">
               <label className="block text-sm text-slate-400 mb-1">
-                Select Worker ({assignableWorkers.length} available)
+                Select Eligible Worker ({loadingEligible ? "..." : assignableWorkers.length} available)
               </label>
-              {assignableWorkers.length === 0 ? (
+              {loadingEligible ? (
+                <div className="p-4 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 text-sm flex items-center gap-2">
+                  <span className="animate-spin">⏳</span> Loading eligible workers...
+                </div>
+              ) : assignableWorkers.length === 0 ? (
                 <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm">
-                  ⚠️ No workers with &quot;ready_to_work&quot; status found.
-                  Workers need to complete their screening first.
+                  ⚠️ No eligible workers found.
+                  {eligibilityInfo?.requiresScreening ? (
+                    <span> Workers must pass the required screening for this job role.</span>
+                  ) : (
+                    <span> Workers need &quot;ready_to_work&quot; status to be assigned.</span>
+                  )}
                 </div>
               ) : (
                 <select
@@ -1081,7 +1220,7 @@ function ProjectsContent() {
               </button>
               <button
                 onClick={handleAssign}
-                disabled={!selectedWorker || assignableWorkers.length === 0}
+                disabled={!selectedWorker || assignableWorkers.length === 0 || loadingEligible}
                 className="btn-primary flex-1 disabled:opacity-50"
               >
                 Assign Worker
