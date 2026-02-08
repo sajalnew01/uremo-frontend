@@ -27,10 +27,21 @@ type Project = {
   payRate: number;
   payType: "per_task" | "hourly" | "fixed";
   deadline?: string;
-  status: "draft" | "open" | "assigned" | "in_progress" | "completed" | "cancelled";
+  status:
+    | "draft"
+    | "open"
+    | "assigned"
+    | "in_progress"
+    | "completed"
+    | "cancelled";
   assignedWorker?: string;
-  screeningId?: { _id: string; title: string; passingScore: number } | string | null;
-  screeningIds?: Array<{ _id: string; title: string; passingScore: number } | string>;
+  screeningId?:
+    | { _id: string; title: string; passingScore: number }
+    | string
+    | null;
+  screeningIds?: Array<
+    { _id: string; title: string; passingScore: number } | string
+  >;
   workPositionId?: string;
 };
 
@@ -147,6 +158,10 @@ export default function AdminJobRolePage() {
   // PATCH_52A: Centralized screening selection
   const [screenings, setScreenings] = useState<ScreeningOption[]>([]);
   const [selectedScreeningId, setSelectedScreeningId] = useState<string>("");
+  // PATCH_89: Multi-screening selection for job role
+  const [selectedScreeningIds, setSelectedScreeningIds] = useState<string[]>(
+    [],
+  );
 
   // PATCH_46: Projects state
   const [projects, setProjects] = useState<Project[]>([]);
@@ -160,10 +175,14 @@ export default function AdminJobRolePage() {
     payType: "per_task",
     status: "draft",
   });
-  const [projectMode, setProjectMode] = useState<"list" | "create" | "edit">("list");
+  const [projectMode, setProjectMode] = useState<"list" | "create" | "edit">(
+    "list",
+  );
   // PATCH_88: Edit project state
   const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [editProjectScreeningIds, setEditProjectScreeningIds] = useState<string[]>([]);
+  const [editProjectScreeningIds, setEditProjectScreeningIds] = useState<
+    string[]
+  >([]);
 
   const loadJob = async () => {
     if (!jobId) return;
@@ -179,6 +198,17 @@ export default function AdminJobRolePage() {
       setStats(res.stats);
       setTrainingForm(res.job.trainingMaterials || []);
       setSelectedScreeningId(res.job.screeningId?._id || "");
+      // PATCH_89: Load multi-screening IDs
+      const ids = (res.job.screeningIds || []).map((s: any) =>
+        typeof s === "string" ? s : s._id,
+      );
+      setSelectedScreeningIds(
+        ids.length > 0
+          ? ids
+          : res.job.screeningId?._id
+            ? [res.job.screeningId._id]
+            : [],
+      );
     } catch (e: any) {
       toast(e?.message || "Failed to load job role", "error");
     } finally {
@@ -348,14 +378,17 @@ export default function AdminJobRolePage() {
     setTrainingForm(updated);
   };
 
-  // PATCH_52A: Screening selection functions
+  // PATCH_52A + PATCH_89: Screening selection functions (multi-screening)
   const saveScreeningSelection = async () => {
     setSaving(true);
     try {
       await apiRequest(
         `/api/admin/workspace/job/${jobId}/set-screening`,
         "PUT",
-        { screeningId: selectedScreeningId || null },
+        {
+          screeningIds: selectedScreeningIds,
+          screeningId: selectedScreeningIds[0] || null,
+        },
         true,
       );
       toast("Screening updated", "success");
@@ -365,6 +398,12 @@ export default function AdminJobRolePage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const toggleJobScreeningId = (sid: string) => {
+    setSelectedScreeningIds((prev) =>
+      prev.includes(sid) ? prev.filter((id) => id !== sid) : [...prev, sid],
+    );
   };
 
   // PATCH_46: Project Functions
@@ -453,7 +492,10 @@ export default function AdminJobRolePage() {
       });
     }
     if (proj.screeningId && ids.length === 0) {
-      const sid = typeof proj.screeningId === "string" ? proj.screeningId : proj.screeningId._id;
+      const sid =
+        typeof proj.screeningId === "string"
+          ? proj.screeningId
+          : proj.screeningId._id;
       if (sid) ids.push(sid);
     }
     setEditProjectScreeningIds(ids);
@@ -518,6 +560,11 @@ export default function AdminJobRolePage() {
     screenings.find((s) => s._id === selectedScreeningId) ||
     job?.screeningId ||
     null;
+
+  // PATCH_89: All selected screenings for the screening info panel
+  const selectedScreeningsList = selectedScreeningIds
+    .map((sid) => screenings.find((s) => s._id === sid))
+    .filter(Boolean);
 
   if (loading) {
     return (
@@ -859,8 +906,35 @@ export default function AdminJobRolePage() {
             </Link>
           </div>
 
-          {/* Current Screening Info */}
-          {selectedScreening ? (
+          {/* Current Screening Info — PATCH_89: Show all linked screenings */}
+          {selectedScreeningsList.length > 0 ? (
+            <div className="space-y-2 mb-4">
+              {selectedScreeningsList.map((sc: any) => (
+                <div
+                  key={sc._id}
+                  className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-between"
+                >
+                  <div>
+                    <p className="font-medium text-sm">{sc.title}</p>
+                    <div className="flex gap-4 mt-1 text-xs text-slate-400">
+                      <span>Pass: {sc.passingScore}%</span>
+                      <span>Time: {sc.timeLimit} min</span>
+                    </div>
+                  </div>
+                  <Link
+                    href={`/admin/workspace/screenings/${sc._id}`}
+                    className="btn-secondary text-xs"
+                  >
+                    Edit
+                  </Link>
+                </div>
+              ))}
+              <p className="text-xs text-slate-400">
+                Workers must pass ALL {selectedScreeningsList.length} screenings
+                to become ready
+              </p>
+            </div>
+          ) : selectedScreening ? (
             <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/20 mb-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -1206,10 +1280,10 @@ export default function AdminJobRolePage() {
       {/* PATCH_61: Settings Tab - Screening, Training, Projects */}
       {activeTab === "settings" && (
         <div className="space-y-6">
-          {/* Screening Selection */}
+          {/* Screening Selection — PATCH_89: Multi-select */}
           <div className="card">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">📋 Screening Test</h3>
+              <h3 className="font-semibold">📋 Screening Tests</h3>
               <Link
                 href="/admin/workspace/screenings"
                 className="text-sm text-slate-400 hover:text-white"
@@ -1218,33 +1292,54 @@ export default function AdminJobRolePage() {
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="md:col-span-2">
-                <label className="text-xs text-slate-400 mb-1 block">
-                  Select Screening
-                </label>
-                <select
-                  value={selectedScreeningId}
-                  onChange={(e) => setSelectedScreeningId(e.target.value)}
-                  className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+            {screenings.length === 0 ? (
+              <p className="text-sm text-slate-400">
+                No screening tests available.{" "}
+                <Link
+                  href="/admin/workspace/screenings"
+                  className="text-cyan-400 hover:underline"
                 >
-                  <option value="">No screening</option>
-                  {screenings.map((s) => (
-                    <option key={s._id} value={s._id}>
-                      {s.title}
-                    </option>
-                  ))}
-                </select>
+                  Create one →
+                </Link>
+              </p>
+            ) : (
+              <div className="space-y-2 max-h-48 overflow-y-auto rounded-lg border border-white/10 p-3 bg-[#1f2937]">
+                {screenings.map((s) => {
+                  const checked = selectedScreeningIds.includes(s._id);
+                  return (
+                    <label
+                      key={s._id}
+                      className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition ${
+                        checked
+                          ? "bg-purple-500/20 border border-purple-500/40"
+                          : "hover:bg-white/5 border border-transparent"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleJobScreeningId(s._id)}
+                        className="accent-purple-500"
+                      />
+                      <span className="text-sm">{s.title}</span>
+                    </label>
+                  );
+                })}
               </div>
-              <div className="flex items-end">
-                <button
-                  onClick={saveScreeningSelection}
-                  disabled={saving}
-                  className="btn-primary w-full disabled:opacity-50"
-                >
-                  {saving ? "Saving..." : "Save"}
-                </button>
-              </div>
+            )}
+
+            <div className="flex items-center justify-between mt-3">
+              <span className="text-xs text-slate-400">
+                {selectedScreeningIds.length} screening(s) selected — workers
+                must pass ALL to become ready
+              </span>
+              <button
+                onClick={saveScreeningSelection}
+                disabled={saving}
+                className="btn-primary px-6 disabled:opacity-50"
+              >
+                {saving ? "Saving..." : "Save Screenings"}
+              </button>
             </div>
           </div>
 
@@ -1331,7 +1426,10 @@ export default function AdminJobRolePage() {
               <div className="flex gap-2">
                 {projectMode !== "list" && (
                   <button
-                    onClick={() => { setProjectMode("list"); setEditingProject(null); }}
+                    onClick={() => {
+                      setProjectMode("list");
+                      setEditingProject(null);
+                    }}
                     className="px-3 py-1 rounded-lg bg-slate-500/20 text-slate-300 text-sm hover:bg-slate-500/30"
                   >
                     ← Back to List
@@ -1357,12 +1455,14 @@ export default function AdminJobRolePage() {
             )}
 
             {/* PROJECT LIST */}
-            {projectMode === "list" && (
-              projects.length === 0 ? (
+            {projectMode === "list" &&
+              (projects.length === 0 ? (
                 <div className="text-center py-8 text-slate-400">
                   <div className="text-4xl mb-3">📦</div>
                   <p className="font-medium">No projects yet</p>
-                  <p className="text-sm mt-1">Create a project to assign to workers</p>
+                  <p className="text-sm mt-1">
+                    Create a project to assign to workers
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -1377,14 +1477,17 @@ export default function AdminJobRolePage() {
                         <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <p className="font-medium text-lg">{proj.title}</p>
+                              <p className="font-medium text-lg">
+                                {proj.title}
+                              </p>
                               <span
                                 className={`px-2 py-0.5 rounded text-xs ${
                                   proj.status === "open"
                                     ? "bg-emerald-500/20 text-emerald-300"
                                     : proj.status === "draft"
                                       ? "bg-slate-500/20 text-slate-300"
-                                      : proj.status === "assigned" || proj.status === "in_progress"
+                                      : proj.status === "assigned" ||
+                                          proj.status === "in_progress"
                                         ? "bg-blue-500/20 text-blue-300"
                                         : proj.status === "completed"
                                           ? "bg-green-500/20 text-green-300"
@@ -1395,28 +1498,44 @@ export default function AdminJobRolePage() {
                               </span>
                             </div>
                             {proj.description && (
-                              <p className="text-sm text-slate-400 mt-1">{proj.description}</p>
+                              <p className="text-sm text-slate-400 mt-1">
+                                {proj.description}
+                              </p>
                             )}
                             <div className="flex flex-wrap gap-3 mt-2 text-sm text-slate-400">
-                              <span>💰 ${proj.payRate} {proj.payType}</span>
+                              <span>
+                                💰 ${proj.payRate} {proj.payType}
+                              </span>
                               {proj.deadline && (
-                                <span>📅 {new Date(proj.deadline).toLocaleDateString()}</span>
+                                <span>
+                                  📅{" "}
+                                  {new Date(proj.deadline).toLocaleDateString()}
+                                </span>
                               )}
                             </div>
                             {/* Show linked screenings */}
                             {(screeningList.length > 0 || legacyScreening) && (
                               <div className="mt-2 flex flex-wrap gap-1">
-                                <span className="text-xs text-slate-500">Tests:</span>
+                                <span className="text-xs text-slate-500">
+                                  Tests:
+                                </span>
                                 {screeningList.map((s: any) => (
-                                  <span key={s._id || s} className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 text-xs">
+                                  <span
+                                    key={s._id || s}
+                                    className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 text-xs"
+                                  >
                                     📋 {s.title || "Screening"}
                                   </span>
                                 ))}
-                                {screeningList.length === 0 && legacyScreening && (
-                                  <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 text-xs">
-                                    📋 {typeof legacyScreening === "object" ? legacyScreening.title : "Screening"}
-                                  </span>
-                                )}
+                                {screeningList.length === 0 &&
+                                  legacyScreening && (
+                                    <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 text-xs">
+                                      📋{" "}
+                                      {typeof legacyScreening === "object"
+                                        ? legacyScreening.title
+                                        : "Screening"}
+                                    </span>
+                                  )}
                               </div>
                             )}
                           </div>
@@ -1448,42 +1567,64 @@ export default function AdminJobRolePage() {
                     );
                   })}
                 </div>
-              )
-            )}
+              ))}
 
             {/* CREATE PROJECT */}
             {projectMode === "create" && (
               <div className="space-y-4">
-                <h4 className="text-sm font-medium text-slate-300">New Project for {job.title}</h4>
+                <h4 className="text-sm font-medium text-slate-300">
+                  New Project for {job.title}
+                </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs text-slate-400 mb-1 block">Project Title *</label>
+                    <label className="text-xs text-slate-400 mb-1 block">
+                      Project Title *
+                    </label>
                     <input
                       type="text"
                       placeholder="e.g. Valkyrie V4"
                       value={projectForm.title}
-                      onChange={(e) => setProjectForm({ ...projectForm, title: e.target.value })}
+                      onChange={(e) =>
+                        setProjectForm({
+                          ...projectForm,
+                          title: e.target.value,
+                        })
+                      }
                       className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-slate-400 mb-1 block">Pay Rate ($)</label>
+                    <label className="text-xs text-slate-400 mb-1 block">
+                      Pay Rate ($)
+                    </label>
                     <input
                       type="number"
                       min={0}
                       step={0.01}
                       value={projectForm.payRate}
-                      onChange={(e) => setProjectForm({ ...projectForm, payRate: Number(e.target.value) })}
+                      onChange={(e) =>
+                        setProjectForm({
+                          ...projectForm,
+                          payRate: Number(e.target.value),
+                        })
+                      }
                       className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400 mb-1 block">Description</label>
+                  <label className="text-xs text-slate-400 mb-1 block">
+                    Description
+                  </label>
                   <textarea
                     placeholder="Project description..."
                     value={projectForm.description || ""}
-                    onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })}
+                    onChange={(e) =>
+                      setProjectForm({
+                        ...projectForm,
+                        description: e.target.value,
+                      })
+                    }
                     className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
                     rows={3}
                   />
@@ -1509,47 +1650,77 @@ export default function AdminJobRolePage() {
             {/* EDIT PROJECT - PATCH_88: Full edit with multi-screening */}
             {projectMode === "edit" && editingProject && (
               <div className="space-y-4">
-                <h4 className="text-sm font-medium text-slate-300">Editing: {editingProject.title}</h4>
+                <h4 className="text-sm font-medium text-slate-300">
+                  Editing: {editingProject.title}
+                </h4>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs text-slate-400 mb-1 block">Project Title *</label>
+                    <label className="text-xs text-slate-400 mb-1 block">
+                      Project Title *
+                    </label>
                     <input
                       type="text"
                       value={editingProject.title}
-                      onChange={(e) => setEditingProject({ ...editingProject, title: e.target.value })}
+                      onChange={(e) =>
+                        setEditingProject({
+                          ...editingProject,
+                          title: e.target.value,
+                        })
+                      }
                       className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-slate-400 mb-1 block">Pay Rate ($)</label>
+                    <label className="text-xs text-slate-400 mb-1 block">
+                      Pay Rate ($)
+                    </label>
                     <input
                       type="number"
                       min={0}
                       step={0.01}
                       value={editingProject.payRate}
-                      onChange={(e) => setEditingProject({ ...editingProject, payRate: Number(e.target.value) })}
+                      onChange={(e) =>
+                        setEditingProject({
+                          ...editingProject,
+                          payRate: Number(e.target.value),
+                        })
+                      }
                       className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 mb-1 block">Description</label>
+                  <label className="text-xs text-slate-400 mb-1 block">
+                    Description
+                  </label>
                   <textarea
                     value={editingProject.description || ""}
-                    onChange={(e) => setEditingProject({ ...editingProject, description: e.target.value })}
+                    onChange={(e) =>
+                      setEditingProject({
+                        ...editingProject,
+                        description: e.target.value,
+                      })
+                    }
                     className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
                     rows={3}
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 mb-1 block">Instructions</label>
+                  <label className="text-xs text-slate-400 mb-1 block">
+                    Instructions
+                  </label>
                   <textarea
                     placeholder="Detailed task instructions for workers..."
                     value={editingProject.instructions || ""}
-                    onChange={(e) => setEditingProject({ ...editingProject, instructions: e.target.value })}
+                    onChange={(e) =>
+                      setEditingProject({
+                        ...editingProject,
+                        instructions: e.target.value,
+                      })
+                    }
                     className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
                     rows={4}
                   />
@@ -1557,10 +1728,17 @@ export default function AdminJobRolePage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs text-slate-400 mb-1 block">Pay Type</label>
+                    <label className="text-xs text-slate-400 mb-1 block">
+                      Pay Type
+                    </label>
                     <select
                       value={editingProject.payType}
-                      onChange={(e) => setEditingProject({ ...editingProject, payType: e.target.value as any })}
+                      onChange={(e) =>
+                        setEditingProject({
+                          ...editingProject,
+                          payType: e.target.value as any,
+                        })
+                      }
                       className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
                     >
                       <option value="per_task">Per Task</option>
@@ -1569,11 +1747,24 @@ export default function AdminJobRolePage() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs text-slate-400 mb-1 block">Deadline</label>
+                    <label className="text-xs text-slate-400 mb-1 block">
+                      Deadline
+                    </label>
                     <input
                       type="date"
-                      value={editingProject.deadline ? new Date(editingProject.deadline).toISOString().split("T")[0] : ""}
-                      onChange={(e) => setEditingProject({ ...editingProject, deadline: e.target.value })}
+                      value={
+                        editingProject.deadline
+                          ? new Date(editingProject.deadline)
+                              .toISOString()
+                              .split("T")[0]
+                          : ""
+                      }
+                      onChange={(e) =>
+                        setEditingProject({
+                          ...editingProject,
+                          deadline: e.target.value,
+                        })
+                      }
                       className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
                     />
                   </div>
@@ -1582,14 +1773,27 @@ export default function AdminJobRolePage() {
                 {/* SCREENING TESTS ASSIGNMENT - Multi-select */}
                 <div className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/20">
                   <div className="flex items-center justify-between mb-3">
-                    <h5 className="font-semibold text-purple-300">📋 Required Screening Tests</h5>
-                    <span className="text-xs text-slate-400">{editProjectScreeningIds.length} selected</span>
+                    <h5 className="font-semibold text-purple-300">
+                      📋 Required Screening Tests
+                    </h5>
+                    <span className="text-xs text-slate-400">
+                      {editProjectScreeningIds.length} selected
+                    </span>
                   </div>
                   <p className="text-xs text-slate-400 mb-3">
-                    Workers must pass ALL selected tests to be eligible for this project
+                    Workers must pass ALL selected tests to be eligible for this
+                    project
                   </p>
                   {screenings.length === 0 ? (
-                    <p className="text-sm text-slate-400">No screening tests available. <Link href="/admin/workspace/screenings" className="text-cyan-400 hover:underline">Create one →</Link></p>
+                    <p className="text-sm text-slate-400">
+                      No screening tests available.{" "}
+                      <Link
+                        href="/admin/workspace/screenings"
+                        className="text-cyan-400 hover:underline"
+                      >
+                        Create one →
+                      </Link>
+                    </p>
                   ) : (
                     <div className="space-y-2 max-h-60 overflow-y-auto">
                       {screenings.map((s) => (
@@ -1643,7 +1847,10 @@ export default function AdminJobRolePage() {
                     {saving ? "Saving..." : "💾 Save Project"}
                   </button>
                   <button
-                    onClick={() => { setProjectMode("list"); setEditingProject(null); }}
+                    onClick={() => {
+                      setProjectMode("list");
+                      setEditingProject(null);
+                    }}
                     className="btn-secondary"
                   >
                     Cancel

@@ -952,6 +952,15 @@ export default function AdminServicesPage() {
                     <td className="p-4 font-semibold">${s.price}</td>
                     <td className="p-4 text-xs text-[#9CA3AF]">
                       {s.deliveryType}
+                      {s.linkedJobId && (
+                        <a
+                          href={`/admin/work-positions/${s.linkedJobId}`}
+                          className="block mt-1 text-purple-400 hover:text-purple-300 font-medium"
+                          title="Auto-created Job Role"
+                        >
+                          → Job Role
+                        </a>
+                      )}
                     </td>
                     <td className="p-4">
                       <button

@@ -75,6 +75,7 @@ type JobApplication = {
   pendingEarnings: number;
   payRate: number;
   screening?: Screening;
+  requiredScreenings?: Screening[];
   trainingMaterials: TrainingMaterial[];
   assignedProjects: Project[];
   completedProjects: Project[];
@@ -249,6 +250,20 @@ function getStatusCTA(app: JobApplication): {
 } {
   const attemptsLeft = app.maxAttempts - app.attemptCount;
 
+  // PATCH_89: Find next incomplete screening for multi-screening flow
+  const completedScreeningIds = (app.screeningsCompleted || [])
+    .filter((sc: any) => sc.passed !== false)
+    .map((sc: any) => sc.screeningId?.toString?.() || sc.screeningId);
+  const allScreenings =
+    app.requiredScreenings || (app.screening ? [app.screening] : []);
+  const nextScreening = allScreenings.find(
+    (s) => !completedScreeningIds.includes(s._id),
+  );
+  const passedCount = allScreenings.filter((s) =>
+    completedScreeningIds.includes(s._id),
+  ).length;
+  const totalRequired = allScreenings.length;
+
   switch (app.workerStatus) {
     case "applied":
       return {
@@ -260,11 +275,15 @@ function getStatusCTA(app: JobApplication): {
       return { text: "📚 Start Training", action: "training", href: undefined };
     case "training_viewed":
       return {
-        text: "📝 Take Screening Test",
+        text:
+          totalRequired > 1
+            ? `📝 Take Screening Test (${passedCount}/${totalRequired} passed)`
+            : "📝 Take Screening Test",
         action: "test",
-        href: app.screening
-          ? `/workspace/screening/${app.screening._id}?position=${app._id}`
-          : undefined,
+        href:
+          nextScreening || app.screening
+            ? `/workspace/screening/${(nextScreening || app.screening)!._id}?position=${app._id}`
+            : undefined,
       };
     case "test_submitted":
       return { text: "⏳ Awaiting Result", action: null, disabled: true };
@@ -273,9 +292,10 @@ function getStatusCTA(app: JobApplication): {
         return {
           text: `🔄 Retry Test (${attemptsLeft} Attempt${attemptsLeft > 1 ? "s" : ""} Left)`,
           action: "retry",
-          href: app.screening
-            ? `/workspace/screening/${app.screening._id}?position=${app._id}`
-            : undefined,
+          href:
+            nextScreening || app.screening
+              ? `/workspace/screening/${(nextScreening || app.screening)!._id}?position=${app._id}`
+              : undefined,
         };
       }
       return {
@@ -778,7 +798,7 @@ function ApplicationsTab({
   );
 }
 
-// PATCH_49: Screenings Tab Content
+// PATCH_49 + PATCH_89: Screenings Tab Content with multi-screening support
 function ScreeningsTab({
   applications,
   onRefresh,
@@ -807,13 +827,75 @@ function ScreeningsTab({
             </p>
           </div>
           <div className="space-y-4">
-            {screeningApps.map((app) => (
-              <JobCard
-                key={app._id}
-                app={app}
-                onViewTrainingComplete={onRefresh}
-              />
-            ))}
+            {screeningApps.map((app) => {
+              // PATCH_89: Show all required screenings with pass/fail status
+              const allScreenings =
+                app.requiredScreenings ||
+                (app.screening ? [app.screening] : []);
+              const completedIds = (app.screeningsCompleted || [])
+                .filter((sc: any) => sc.passed !== false)
+                .map(
+                  (sc: any) => sc.screeningId?.toString?.() || sc.screeningId,
+                );
+
+              return (
+                <div key={app._id} className="space-y-3">
+                  <JobCard app={app} onViewTrainingComplete={onRefresh} />
+
+                  {/* Multi-screening progress panel */}
+                  {allScreenings.length > 1 && (
+                    <div className="ml-4 p-4 rounded-xl border border-purple-500/20 bg-purple-500/5">
+                      <h4 className="text-sm font-semibold text-purple-300 mb-3">
+                        📋 Required Screening Tests ({completedIds.length}/
+                        {allScreenings.length} passed)
+                      </h4>
+                      <div className="space-y-2">
+                        {allScreenings.map((s) => {
+                          const passed = completedIds.includes(s._id);
+                          return (
+                            <div
+                              key={s._id}
+                              className={`flex items-center justify-between p-3 rounded-lg border ${
+                                passed
+                                  ? "border-emerald-500/30 bg-emerald-500/10"
+                                  : "border-white/10 bg-white/5"
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className="text-lg">
+                                  {passed ? "✅" : "📝"}
+                                </span>
+                                <div>
+                                  <p className="text-sm font-medium">
+                                    {s.title}
+                                  </p>
+                                  <p className="text-xs text-slate-400">
+                                    Passing: {s.passingScore}% • Time:{" "}
+                                    {s.timeLimit}min
+                                  </p>
+                                </div>
+                              </div>
+                              {passed ? (
+                                <span className="text-xs text-emerald-400 font-semibold">
+                                  PASSED
+                                </span>
+                              ) : (
+                                <Link
+                                  href={`/workspace/screening/${s._id}?position=${app._id}`}
+                                  className="px-3 py-1 text-xs rounded-lg bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 transition font-medium"
+                                >
+                                  Take Test →
+                                </Link>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </>
       ) : (
@@ -1164,14 +1246,18 @@ export default function WorkspacePage() {
       <div className="mb-6">
         <div className="flex border-b border-white/10">
           {TABS.map((tab) => {
-            const isProjectsLocked = tab.key === "projects" && !canAccessProjects;
+            const isProjectsLocked =
+              tab.key === "projects" && !canAccessProjects;
             return (
               <button
                 key={tab.key}
                 onClick={() => {
                   if (isProjectsLocked) {
                     // Show toast explaining why locked
-                    toast("Complete your screening test to access projects", "info");
+                    toast(
+                      "Complete your screening test to access projects",
+                      "info",
+                    );
                     return;
                   }
                   setActiveTab(tab.key);
