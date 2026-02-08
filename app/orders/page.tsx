@@ -171,7 +171,7 @@ export default function OrdersPage() {
                 onClick={() => router.push(`/payment/${o._id}`)}
                 className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 to-orange-500 text-white font-medium text-sm hover:from-orange-500 hover:to-orange-400 transition-all"
               >
-                🔄 {copy.resubmitProofText}
+                🔄 Retry Payment
               </button>
             )}
 

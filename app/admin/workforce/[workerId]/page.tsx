@@ -463,15 +463,33 @@ export default function Worker360Page() {
   }, [loadWorkerData]);
 
   // Action handlers
+  // PATCH_87: Status change with forceOverride for bypass transitions
   const handleStatusChange = async () => {
     if (!worker || !newStatus) return;
+
+    // PATCH_87: Detect if this is an override (e.g., jumping straight to ready_to_work)
+    const normalTransitions: Record<string, string[]> = {
+      applied: ["screening_unlocked"],
+      screening_unlocked: ["training_viewed", "test_submitted"],
+      training_viewed: ["test_submitted"],
+      test_submitted: ["ready_to_work", "screening_unlocked", "failed"],
+      failed: ["screening_unlocked"],
+      ready_to_work: ["assigned"],
+      assigned: ["working", "ready_to_work"],
+      working: ["ready_to_work"],
+      suspended: ["ready_to_work", "screening_unlocked", "applied"],
+    };
+
+    const isOverride =
+      !normalTransitions[worker.workerStatus]?.includes(newStatus) &&
+      newStatus !== "suspended";
 
     setActionLoading("status");
     try {
       await apiRequest(
         `/api/admin/workspace/worker/${worker._id}/status`,
         "PUT",
-        { workerStatus: newStatus },
+        { workerStatus: newStatus, forceOverride: isOverride },
         true,
       );
       toast(
@@ -2281,14 +2299,24 @@ export default function Worker360Page() {
         </div>
       </div>
 
-      {/* Status Change Modal */}
+      {/* Status Change Modal - PATCH_87: Aligned with backend state machine */}
       {showStatusModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-slate-700">
-            <h3 className="text-lg font-semibold text-white mb-4">
-              Change Worker Status
+            <h3 className="text-lg font-semibold text-white mb-2">
+              Manual Status Override
             </h3>
-            {/* PATCH_73: Filtered status dropdown - only valid next-step transitions */}
+            <p className="text-sm text-amber-400 mb-4">
+              ⚠️ This bypasses normal workflow. Only use when necessary.
+            </p>
+            {/* PATCH_87: Show current status */}
+            <div className="mb-4 p-3 bg-slate-900 rounded-lg">
+              <span className="text-slate-400 text-sm">Current Status: </span>
+              <span className="text-white font-medium">
+                {STATUS_LABELS[worker.workerStatus] || worker.workerStatus}
+              </span>
+            </div>
+            {/* PATCH_87: Context-aware status options */}
             <select
               value={newStatus}
               onChange={(e) => setNewStatus(e.target.value)}
@@ -2297,40 +2325,61 @@ export default function Worker360Page() {
               <option value="">Select new status...</option>
               {/* Applied can go to screening_unlocked */}
               {worker.workerStatus === "applied" && (
-                <option value="screening_unlocked">Screening Unlocked</option>
+                <option value="screening_unlocked">→ Screening Unlocked</option>
               )}
-              {/* screening_unlocked can go to training_viewed */}
+              {/* screening_unlocked can go to training_viewed, test_submitted, or ready_to_work */}
               {worker.workerStatus === "screening_unlocked" && (
-                <option value="training_viewed">Training Viewed</option>
-              )}
-              {/* training_viewed can go to test_submitted */}
-              {worker.workerStatus === "training_viewed" && (
-                <option value="test_submitted">Test Submitted</option>
-              )}
-              {/* test_submitted can go to screening_passed or failed */}
-              {worker.workerStatus === "test_submitted" && (
                 <>
-                  <option value="screening_passed">Screening Passed</option>
-                  <option value="failed">Failed</option>
+                  <option value="training_viewed">→ Training Viewed</option>
+                  <option value="test_submitted">→ Test Submitted</option>
+                  <option value="ready_to_work">→ Ready to Work (Override)</option>
                 </>
               )}
-              {/* screening_passed can go to ready_to_work */}
-              {worker.workerStatus === "screening_passed" && (
-                <option value="ready_to_work">Ready to Work</option>
+              {/* training_viewed can go to test_submitted or ready_to_work */}
+              {worker.workerStatus === "training_viewed" && (
+                <>
+                  <option value="test_submitted">→ Test Submitted</option>
+                  <option value="ready_to_work">→ Ready to Work (Override)</option>
+                </>
+              )}
+              {/* test_submitted can go to ready_to_work, screening_unlocked (retry), or failed */}
+              {worker.workerStatus === "test_submitted" && (
+                <>
+                  <option value="ready_to_work">→ Ready to Work (Pass)</option>
+                  <option value="screening_unlocked">→ Screening Unlocked (Retry)</option>
+                  <option value="failed">→ Failed</option>
+                </>
               )}
               {/* failed can retry → screening_unlocked */}
               {worker.workerStatus === "failed" && (
-                <option value="screening_unlocked">
-                  Screening Unlocked (Retry)
-                </option>
+                <option value="screening_unlocked">→ Screening Unlocked (Retry)</option>
               )}
-              {/* Suspended option available from most states except completed */}
-              {!["suspended", "completed"].includes(worker.workerStatus) && (
-                <option value="suspended">Suspended</option>
+              {/* ready_to_work can go to assigned */}
+              {worker.workerStatus === "ready_to_work" && (
+                <option value="assigned">→ Assigned</option>
               )}
-              {/* Suspended can be unsuspended to applied */}
+              {/* assigned can go to working or ready_to_work (unassign) */}
+              {worker.workerStatus === "assigned" && (
+                <>
+                  <option value="working">→ Working</option>
+                  <option value="ready_to_work">→ Ready to Work (Unassign)</option>
+                </>
+              )}
+              {/* working can go to ready_to_work (complete) */}
+              {worker.workerStatus === "working" && (
+                <option value="ready_to_work">→ Ready to Work (Complete)</option>
+              )}
+              {/* Suspended option available from most states */}
+              {!["suspended"].includes(worker.workerStatus) && (
+                <option value="suspended">→ Suspended</option>
+              )}
+              {/* Suspended can be unsuspended */}
               {worker.workerStatus === "suspended" && (
-                <option value="applied">Unsuspend (→ Applied)</option>
+                <>
+                  <option value="ready_to_work">→ Ready to Work (Reactivate)</option>
+                  <option value="screening_unlocked">→ Screening Unlocked (Reactivate)</option>
+                  <option value="applied">→ Applied (Reset)</option>
+                </>
               )}
             </select>
             <div className="flex justify-end gap-3">
@@ -2343,9 +2392,9 @@ export default function Worker360Page() {
               <button
                 onClick={handleStatusChange}
                 disabled={!newStatus || actionLoading === "status"}
-                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition disabled:opacity-50"
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition disabled:opacity-50"
               >
-                {actionLoading === "status" ? "Updating..." : "Update Status"}
+                {actionLoading === "status" ? "Updating..." : "Override Status"}
               </button>
             </div>
           </div>
