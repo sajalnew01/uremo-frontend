@@ -843,7 +843,7 @@ function ScreeningsTab({
         completedAt: sc.completedAt,
         score: sc.score ?? 0,
         passed: sc.passed ?? false,
-        jobTitle: app.title,
+        jobTitle: app.positionTitle,
       });
     });
   });
