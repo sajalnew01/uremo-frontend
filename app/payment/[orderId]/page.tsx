@@ -374,7 +374,7 @@ export default function PaymentPage() {
       )}
 
       {/* PATCH_23: Pay with Wallet Option */}
-      {canSubmit && walletBalance > 0 && (
+      {canSubmit && (
         <div className="card border border-emerald-500/30 bg-emerald-500/10">
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -387,6 +387,11 @@ export default function PaymentPage() {
                   ${walletBalance.toFixed(2)}
                 </span>
               </p>
+              {walletBalance <= 0 && (
+                <p className="text-xs text-emerald-200/70 mt-1">
+                  Add funds to enable wallet payment for this order.
+                </p>
+              )}
             </div>
             {walletBalance >= (order?.serviceId?.price || 0) ? (
               <button
@@ -415,7 +420,7 @@ export default function PaymentPage() {
       )}
 
       {/* Divider for OR */}
-      {canSubmit && walletBalance > 0 && (
+      {canSubmit && (
         <div className="flex items-center gap-4">
           <div className="flex-1 h-px bg-white/10" />
           <span className="text-sm text-[#9CA3AF]">or pay manually</span>
