@@ -815,9 +815,49 @@ function ScreeningsTab({
       a.workerStatus === "failed",
   );
 
+  // Collect ALL completed screenings across ALL applications for history
+  const allCompletedScreenings: Array<{
+    screeningId: any;
+    screeningTitle: string;
+    completedAt: string;
+    score: number;
+    passed: boolean;
+    jobTitle: string;
+  }> = [];
+
+  applications.forEach((app) => {
+    const screeningsCompleted = app.screeningsCompleted || [];
+    screeningsCompleted.forEach((sc: any) => {
+      // Find the screening details from requiredScreenings or screening
+      const allScreenings =
+        app.requiredScreenings || (app.screening ? [app.screening] : []);
+      const screeningDetails = allScreenings.find(
+        (s: any) =>
+          s._id === sc.screeningId ||
+          s._id?.toString?.() === sc.screeningId?.toString?.(),
+      );
+
+      allCompletedScreenings.push({
+        screeningId: sc.screeningId,
+        screeningTitle: screeningDetails?.title || "Screening Test",
+        completedAt: sc.completedAt,
+        score: sc.score ?? 0,
+        passed: sc.passed ?? false,
+        jobTitle: app.title,
+      });
+    });
+  });
+
+  // Sort by most recent first
+  allCompletedScreenings.sort(
+    (a, b) =>
+      new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime(),
+  );
+
   return (
     <div className="space-y-6">
-      {screeningApps.length > 0 ? (
+      {/* Active Screenings Section */}
+      {screeningApps.length > 0 && (
         <>
           <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-xl p-4 border border-amber-500/20">
             <p className="text-sm text-amber-200">
@@ -898,11 +938,84 @@ function ScreeningsTab({
             })}
           </div>
         </>
-      ) : (
+      )}
+
+      {/* Completed Screenings History Section */}
+      {allCompletedScreenings.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-xl">📜</span>
+            <div>
+              <h3 className="text-lg font-semibold text-white">
+                Screening History
+              </h3>
+              <p className="text-xs text-slate-400">
+                {allCompletedScreenings.length} screening test
+                {allCompletedScreenings.length !== 1 ? "s" : ""} completed
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {allCompletedScreenings.map((sc, idx) => (
+              <div
+                key={`${sc.screeningId}-${idx}`}
+                className={`p-4 rounded-xl border ${
+                  sc.passed
+                    ? "border-emerald-500/20 bg-emerald-500/5"
+                    : "border-red-500/20 bg-red-500/5"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3 flex-1">
+                    <span className="text-2xl">{sc.passed ? "✅" : "❌"}</span>
+                    <div className="flex-1">
+                      <p className="font-medium text-white">
+                        {sc.screeningTitle}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Position: {sc.jobTitle}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {new Date(sc.completedAt).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p
+                      className={`text-2xl font-bold ${
+                        sc.passed ? "text-emerald-400" : "text-red-400"
+                      }`}
+                    >
+                      {sc.score}%
+                    </p>
+                    <p
+                      className={`text-xs font-semibold ${
+                        sc.passed ? "text-emerald-400" : "text-red-400"
+                      }`}
+                    >
+                      {sc.passed ? "PASSED" : "FAILED"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Empty State - only show if no active OR completed screenings */}
+      {screeningApps.length === 0 && allCompletedScreenings.length === 0 && (
         <EmptyState
           icon="📚"
-          title="No Active Screenings"
-          description="Complete your applications to unlock screening tests. Pass the screening to become an approved worker!"
+          title="No Screenings Yet"
+          description="Apply to positions to unlock screening tests. Pass the screening to become an approved worker!"
           ctaText="Apply to New Position"
           ctaHref="/apply-to-work"
           secondaryCtaText="View Applications"
