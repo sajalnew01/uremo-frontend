@@ -210,12 +210,30 @@ function ProjectsContent() {
   const loadJobRoles = async () => {
     try {
       const res = await apiRequest<any>(
+        "/api/admin/work-positions",
+        "GET",
+        null,
+        true,
+      );
+      const normalized = Array.isArray(res)
+        ? res
+        : res.positions || res.data || [];
+
+      if (normalized.length > 0) {
+        setJobRoles(normalized);
+        return;
+      }
+
+      const publicRes = await apiRequest<any>(
         "/api/work-positions?active=true",
         "GET",
         null,
         true,
       );
-      setJobRoles(res.positions || res.data || []);
+      const publicList = Array.isArray(publicRes)
+        ? publicRes
+        : publicRes.positions || publicRes.data || [];
+      setJobRoles(publicList);
     } catch (e) {
       console.error("Failed to load job roles:", e);
     }
@@ -1029,6 +1047,8 @@ function ProjectsContent() {
                     });
                   }}
                   className="input w-full"
+                  required
+                  disabled={jobRoles.length === 0}
                 >
                   <option value="">-- Select Job Role --</option>
                   {jobRoles.map((j) => (
@@ -1038,10 +1058,23 @@ function ProjectsContent() {
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-slate-500 mt-1">
-                  Projects are assigned to workers in this job role. Workers must pass
-                  the job role&apos;s screening test to be eligible.
-                </p>
+                {jobRoles.length === 0 ? (
+                  <p className="text-xs text-amber-300 mt-1">
+                    No job roles available. Create one in the{" "}
+                    <Link
+                      href="/admin/work-positions"
+                      className="text-cyan-400 hover:underline"
+                    >
+                      Job Roles
+                    </Link>{" "}
+                    page.
+                  </p>
+                ) : (
+                  <p className="text-xs text-slate-500 mt-1">
+                    Projects are assigned to workers in this job role. Workers must pass
+                    the job role&apos;s screening test to be eligible.
+                  </p>
+                )}
               </div>
 
               {/* PATCH_65.1: Linked Screening Selection */}
