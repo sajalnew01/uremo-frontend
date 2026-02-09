@@ -89,6 +89,8 @@ type WorkspaceData = {
   applications?: JobApplication[];
   stats: {
     totalEarnings: number;
+    workEarnings?: number; // PATCH_76: Work earnings from projects
+    affiliateEarnings?: number; // PATCH_76: Affiliate earnings from referrals
     pendingEarnings: number;
     projectsCompleted: number;
     jobsApplied?: number;
@@ -1313,13 +1315,25 @@ export default function WorkspacePage() {
         <p className="mt-2 text-sm text-[#9CA3AF]">Work & Earn</p>
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      {/* PATCH_76: Enhanced Stats Overview with earnings breakdown */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         <div className="card text-center">
           <p className="text-2xl font-bold text-emerald-400">
             ${stats.totalEarnings.toFixed(2)}
           </p>
           <p className="text-xs text-slate-400">Total Earnings</p>
+        </div>
+        <div className="card text-center">
+          <p className="text-2xl font-bold text-blue-400">
+            ${(stats.workEarnings || 0).toFixed(2)}
+          </p>
+          <p className="text-xs text-slate-400">Work Earnings</p>
+        </div>
+        <div className="card text-center">
+          <p className="text-2xl font-bold text-purple-400">
+            ${(stats.affiliateEarnings || 0).toFixed(2)}
+          </p>
+          <p className="text-xs text-slate-400">Affiliate Earnings</p>
         </div>
         <div className="card text-center">
           <p className="text-2xl font-bold text-amber-400">
@@ -1328,16 +1342,10 @@ export default function WorkspacePage() {
           <p className="text-xs text-slate-400">Pending</p>
         </div>
         <div className="card text-center">
-          <p className="text-2xl font-bold text-blue-400">
+          <p className="text-2xl font-bold text-cyan-400">
             {stats.projectsCompleted}
           </p>
           <p className="text-xs text-slate-400">Projects Done</p>
-        </div>
-        <div className="card text-center">
-          <p className="text-2xl font-bold text-purple-400">
-            {stats.jobsApplied || applications.length}
-          </p>
-          <p className="text-xs text-slate-400">Jobs Applied</p>
         </div>
       </div>
 

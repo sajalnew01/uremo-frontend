@@ -1363,11 +1363,7 @@ export default function UnifiedMarketplacePage() {
                   href={
                     activeIntent === "earn"
                       ? `/apply-to-work?serviceId=${previewService._id}`
-                      : activeIntent === "rent"
-                        ? `/rentals/${previewService._id}`
-                        : activeIntent === "deal"
-                          ? `/deals/${previewService._id}`
-                          : `/services/${previewService._id}`
+                      : `/services/${previewService._id}`
                   }
                   className={`px-6 py-3 rounded-xl text-white font-bold bg-gradient-to-r ${config.gradient} shadow-[0_0_24px_rgba(59,130,246,0.5)] hover:shadow-[0_0_32px_rgba(59,130,246,0.7)] transition-all hover:scale-105`}
                   onClick={() => {
@@ -1414,20 +1410,15 @@ function ServiceCard({
       service.deliveryType.slice(1)
     : "Standard";
 
-  // Determine the action link based on intent
+  // PATCH_76: All service cards route to /services/:id regardless of intent
   const getActionLink = () => {
-    switch (intent) {
-      case "earn":
-        return service.linkedJob?._id
-          ? `/apply-to-work?jobId=${service.linkedJob._id}`
-          : `/apply-to-work?serviceId=${service._id}`;
-      case "rent":
-        return `/rentals/${service._id}`;
-      case "deal":
-        return `/deals/${service._id}`;
-      default:
-        return `/services/${service._id}`;
+    if (intent === "earn") {
+      return service.linkedJob?._id
+        ? `/apply-to-work?jobId=${service.linkedJob._id}`
+        : `/apply-to-work?serviceId=${service._id}`;
     }
+    // All other intents (buy, rent, deal) use the service detail page
+    return `/services/${service._id}`;
   };
 
   // Get price display
