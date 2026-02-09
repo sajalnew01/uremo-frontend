@@ -235,6 +235,17 @@ export default function ServiceDetailsPage() {
 
   const createDealOrder = async () => {
     if (!ensureLoggedIn()) return;
+
+    // PATCH_75: Verify service allows deals before creating order
+    const allowed = normalizeAllowedActions(service?.allowedActions);
+    if (!allowed.deal) {
+      toast(
+        "Deals are not available for this service. Try Buy or Apply instead.",
+        "error",
+      );
+      return;
+    }
+
     const pct = Number(dealPercent);
     if (!Number.isFinite(pct) || pct <= 0 || pct > 100) {
       toast("Deal percent must be between 1 and 100", "error");

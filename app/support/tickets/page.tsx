@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -81,6 +81,93 @@ export default function SupportTicketsPage() {
   >([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
 
+  // File upload state for ticket creation
+  const [attachments, setAttachments] = useState<
+    Array<{
+      url: string;
+      filename: string;
+      fileType: string;
+      publicId: string;
+      size: number;
+    }>
+  >([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+      "application/pdf",
+      "application/zip",
+      "application/x-zip-compressed",
+      "text/plain",
+    ];
+
+    const validFiles = Array.from(files).filter((file) => {
+      if (!allowedTypes.includes(file.type)) {
+        toast(
+          `${file.name} is not allowed. Only images, PDF, ZIP, and TXT.`,
+          "error",
+        );
+        return false;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast(`${file.name} is too large. Max 10MB.`, "error");
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
+
+    setUploading(true);
+    try {
+      for (const file of validFiles) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const uploadRes = await apiRequest<any>(
+          "/api/upload/chat",
+          "POST",
+          formData,
+          true,
+          true, // isFormData
+        );
+
+        if (uploadRes.url) {
+          setAttachments((prev) => [
+            ...prev,
+            {
+              url: uploadRes.url,
+              filename: uploadRes.filename,
+              fileType: uploadRes.fileType,
+              publicId: uploadRes.publicId,
+              size: uploadRes.size,
+            },
+          ]);
+        }
+      }
+    } catch (err: any) {
+      toast(err?.message || "Failed to upload files", "error");
+    } finally {
+      setUploading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const loadTickets = async () => {
     setLoading(true);
     try {
@@ -142,6 +229,9 @@ export default function SupportTicketsPage() {
       if (newTicket.orderId) {
         payload.orderId = newTicket.orderId;
       }
+      if (attachments.length > 0) {
+        payload.attachments = attachments;
+      }
 
       const res = await apiRequest<any>("/api/tickets", "POST", payload, true);
 
@@ -155,6 +245,7 @@ export default function SupportTicketsPage() {
           message: "",
           orderId: "",
         });
+        setAttachments([]); // Clear attachments
         router.push(`/support/tickets/${res.ticket._id}`);
       }
     } catch (err: any) {
@@ -405,20 +496,65 @@ export default function SupportTicketsPage() {
                 />
               </div>
 
-              <div className="flex gap-3 justify-end pt-4">
-                <button
-                  onClick={() => setShowCreate(false)}
-                  className="btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={createTicket}
-                  disabled={creating}
-                  className="btn-primary disabled:opacity-50"
-                >
-                  {creating ? "Creating..." : "Create Ticket"}
-                </button>
+              {/* File Attachments Section */}
+              {attachments.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {attachments.map((att, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-2 bg-[#1F2937] border border-[#374151] rounded px-3 py-1 text-xs"
+                    >
+                      <span className="text-[#9CA3AF]">📎 {att.filename}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeAttachment(idx)}
+                        className="text-red-400 hover:text-red-300 font-bold"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex gap-3 justify-between items-center pt-4">
+                <div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileSelect}
+                    accept="image/*,application/pdf,application/zip,text/plain"
+                    multiple
+                    style={{ display: "none" }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="btn-secondary text-sm disabled:opacity-50"
+                  >
+                    {uploading ? "Uploading..." : "📎 Attach Files"}
+                  </button>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowCreate(false);
+                      setAttachments([]); // Clear attachments on cancel
+                    }}
+                    className="btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={createTicket}
+                    disabled={creating || uploading}
+                    className="btn-primary disabled:opacity-50"
+                  >
+                    {creating ? "Creating..." : "Create Ticket"}
+                  </button>
+                </div>
               </div>
             </div>
           </motion.div>

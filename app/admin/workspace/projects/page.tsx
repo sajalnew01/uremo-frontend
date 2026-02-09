@@ -478,8 +478,11 @@ function ProjectsContent() {
       payType: (project as any).payType || "per_task",
       deadline: project.deadline ? project.deadline.split("T")[0] : "",
       status: project.status || "open",
-      screeningId: (project as any).screeningId?._id || (project as any).screeningId || "",
-      screeningIds: ((project as any).screeningIds || []).map((s: any) => typeof s === "string" ? s : s._id).filter(Boolean),
+      screeningId:
+        (project as any).screeningId?._id || (project as any).screeningId || "",
+      screeningIds: ((project as any).screeningIds || [])
+        .map((s: any) => (typeof s === "string" ? s : s._id))
+        .filter(Boolean),
     });
     setEditModal(project);
   };
@@ -587,12 +590,28 @@ function ProjectsContent() {
         <div className="flex items-start gap-3">
           <span className="text-2xl">🔒</span>
           <div className="flex-1">
-            <h3 className="text-sm font-semibold text-white mb-1">Project Flow Rules (Cannot Be Skipped):</h3>
+            <h3 className="text-sm font-semibold text-white mb-1">
+              Project Flow Rules (Cannot Be Skipped):
+            </h3>
             <ul className="text-sm text-slate-300 space-y-1">
-              <li>• <span className="text-emerald-400">Assign Worker:</span> Only workers with <span className="font-medium">"Ready to Work"</span> status can be assigned</li>
-              <li>• <span className="text-amber-400">Proof Required:</span> Worker must submit proof of work before project can be marked complete</li>
-              <li>• <span className="text-cyan-400">Credit Wallet:</span> Only visible after proof is approved → Credits worker's wallet</li>
-              <li>• <span className="text-slate-400">🔒 Completed:</span> Once credited, project is locked (cannot be undone)</li>
+              <li>
+                • <span className="text-emerald-400">Assign Worker:</span> Only
+                workers with{" "}
+                <span className="font-medium">"Ready to Work"</span> status can
+                be assigned
+              </li>
+              <li>
+                • <span className="text-amber-400">Proof Required:</span> Worker
+                must submit proof of work before project can be marked complete
+              </li>
+              <li>
+                • <span className="text-cyan-400">Credit Wallet:</span> Only
+                visible after proof is approved → Credits worker's wallet
+              </li>
+              <li>
+                • <span className="text-slate-400">🔒 Completed:</span> Once
+                credited, project is locked (cannot be undone)
+              </li>
             </ul>
           </div>
         </div>
@@ -1071,8 +1090,8 @@ function ProjectsContent() {
                   </p>
                 ) : (
                   <p className="text-xs text-slate-500 mt-1">
-                    Projects are assigned to workers in this job role. Workers must pass
-                    the job role&apos;s screening test to be eligible.
+                    Projects are assigned to workers in this job role. Workers
+                    must pass the job role&apos;s screening test to be eligible.
                   </p>
                 )}
               </div>
@@ -1176,7 +1195,7 @@ function ProjectsContent() {
             <p className="text-sm text-slate-400 mb-2">
               Assign &quot;{assignModal.title}&quot; to a worker
             </p>
-            
+
             {/* PATCH_86: Show eligibility requirements */}
             <div className="mb-4 p-3 bg-slate-800 rounded-lg border border-slate-700">
               <div className="text-xs text-slate-400 uppercase tracking-wider mb-2">
@@ -1184,12 +1203,18 @@ function ProjectsContent() {
               </div>
               <div className="space-y-1 text-sm">
                 {eligibilityInfo?.jobRole ? (
-                  <p className="text-emerald-400">✓ Job Role: {eligibilityInfo.jobRole}</p>
+                  <p className="text-emerald-400">
+                    ✓ Job Role: {eligibilityInfo.jobRole}
+                  </p>
                 ) : (
-                  <p className="text-slate-400">📁 Category: {getJobRoleCategoryLabel(assignModal.category)}</p>
+                  <p className="text-slate-400">
+                    📁 Category: {getJobRoleCategoryLabel(assignModal.category)}
+                  </p>
                 )}
                 {eligibilityInfo?.requiresScreening ? (
-                  <p className="text-amber-400">🔒 Requires: Passed screening test</p>
+                  <p className="text-amber-400">
+                    🔒 Requires: Passed screening test
+                  </p>
                 ) : (
                   <p className="text-slate-500">• No screening required</p>
                 )}
@@ -1198,19 +1223,29 @@ function ProjectsContent() {
 
             <div className="mb-4">
               <label className="block text-sm text-slate-400 mb-1">
-                Select Eligible Worker ({loadingEligible ? "..." : assignableWorkers.length} available)
+                Select Eligible Worker (
+                {loadingEligible ? "..." : assignableWorkers.length} available)
               </label>
               {loadingEligible ? (
                 <div className="p-4 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 text-sm flex items-center gap-2">
-                  <span className="animate-spin">⏳</span> Loading eligible workers...
+                  <span className="animate-spin">⏳</span> Loading eligible
+                  workers...
                 </div>
               ) : assignableWorkers.length === 0 ? (
                 <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm">
                   ⚠️ No eligible workers found.
                   {eligibilityInfo?.requiresScreening ? (
-                    <span> Workers must pass the required screening for this job role.</span>
+                    <span>
+                      {" "}
+                      Workers must pass the required screening for this job
+                      role.
+                    </span>
                   ) : (
-                    <span> Workers need &quot;ready_to_work&quot; status to be assigned.</span>
+                    <span>
+                      {" "}
+                      Workers need &quot;ready_to_work&quot; status to be
+                      assigned.
+                    </span>
                   )}
                 </div>
               ) : (
@@ -1258,7 +1293,11 @@ function ProjectsContent() {
               </button>
               <button
                 onClick={handleAssign}
-                disabled={!selectedWorker || assignableWorkers.length === 0 || loadingEligible}
+                disabled={
+                  !selectedWorker ||
+                  assignableWorkers.length === 0 ||
+                  loadingEligible
+                }
                 className="btn-primary flex-1 disabled:opacity-50"
               >
                 Assign Worker
@@ -1688,34 +1727,53 @@ function ProjectsContent() {
                 </label>
                 <div className="space-y-2 max-h-48 overflow-y-auto p-2 rounded-lg bg-black/20 border border-white/10">
                   {screenings.length === 0 ? (
-                    <p className="text-xs text-slate-500 p-2">No screening tests available</p>
+                    <p className="text-xs text-slate-500 p-2">
+                      No screening tests available
+                    </p>
                   ) : (
                     screenings
-                      .filter((s) => s.category === editForm.category || !s.category)
+                      .filter(
+                        (s) => s.category === editForm.category || !s.category,
+                      )
                       .map((s) => (
-                        <label key={s._id} className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-all ${
-                          editForm.screeningIds.includes(s._id)
-                            ? "bg-purple-500/20 border border-purple-500/30"
-                            : "hover:bg-white/5"
-                        }`}>
+                        <label
+                          key={s._id}
+                          className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-all ${
+                            editForm.screeningIds.includes(s._id)
+                              ? "bg-purple-500/20 border border-purple-500/30"
+                              : "hover:bg-white/5"
+                          }`}
+                        >
                           <input
                             type="checkbox"
                             checked={editForm.screeningIds.includes(s._id)}
                             onChange={() => {
                               const ids = editForm.screeningIds.includes(s._id)
-                                ? editForm.screeningIds.filter((id) => id !== s._id)
+                                ? editForm.screeningIds.filter(
+                                    (id) => id !== s._id,
+                                  )
                                 : [...editForm.screeningIds, s._id];
-                              setEditForm({ ...editForm, screeningIds: ids, screeningId: ids[0] || "" });
+                              setEditForm({
+                                ...editForm,
+                                screeningIds: ids,
+                                screeningId: ids[0] || "",
+                              });
                             }}
                             className="rounded border-white/20"
                           />
-                          <span className="text-sm">{s.title} <span className="text-slate-500">({s.category})</span></span>
+                          <span className="text-sm">
+                            {s.title}{" "}
+                            <span className="text-slate-500">
+                              ({s.category})
+                            </span>
+                          </span>
                         </label>
                       ))
                   )}
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
-                  Workers must pass ALL selected tests to be eligible for this project
+                  Workers must pass ALL selected tests to be eligible for this
+                  project
                 </p>
               </div>
 

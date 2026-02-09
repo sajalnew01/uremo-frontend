@@ -92,12 +92,26 @@ export default function WorkerPipelineCard({
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
 
-  const workerName = worker.userId
-    ? `${worker.userId.firstName || ""} ${worker.userId.lastName || ""}`.trim() ||
-      worker.userId.email
-    : "Unknown Worker";
+  // More robust name extraction with multiple fallbacks
+  const workerName = (() => {
+    if (!worker.userId) return "Unknown Worker";
 
-  const workerEmail = worker.userId?.email || "";
+    const { firstName, lastName, email, name } = worker.userId;
+
+    // Try first + last name
+    const fullName = `${firstName || ""} ${lastName || ""}`.trim();
+    if (fullName) return fullName;
+
+    // Try name field
+    if (name && name.trim()) return name.trim();
+
+    // Try email username
+    if (email) return email.split("@")[0];
+
+    return "Unknown Worker";
+  })();
+
+  const workerEmail = worker.userId?.email || "No email";
   const jobTitle =
     worker.positionTitle ||
     worker.position?.title ||
