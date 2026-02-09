@@ -619,6 +619,27 @@ export default function UnifiedMarketplacePage() {
             </div>
           </div>
         </div>
+
+        {(activeIntent === "rent" || activeIntent === "deal") && (
+          <div className="mt-6 rounded-2xl border border-white/10 bg-slate-950/70 px-5 py-4">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-white">
+                !
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">
+                  {activeIntent === "rent"
+                    ? "Rentals are coming soon"
+                    : "Deals are coming soon"}
+                </p>
+                <p className="text-xs text-slate-300">
+                  You can still browse listings now. We will open this feature
+                  shortly.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8">
@@ -1363,7 +1384,9 @@ export default function UnifiedMarketplacePage() {
                   href={
                     activeIntent === "earn"
                       ? `/apply-to-work?serviceId=${previewService._id}`
-                      : `/services/${previewService._id}`
+                      : activeIntent === "rent" || activeIntent === "deal"
+                        ? `/services/${previewService._id}?intent=${activeIntent}`
+                        : `/services/${previewService._id}`
                   }
                   className={`px-6 py-3 rounded-xl text-white font-bold bg-gradient-to-r ${config.gradient} shadow-[0_0_24px_rgba(59,130,246,0.5)] hover:shadow-[0_0_32px_rgba(59,130,246,0.7)] transition-all hover:scale-105`}
                   onClick={() => {
@@ -1418,7 +1441,9 @@ function ServiceCard({
         : `/apply-to-work?serviceId=${service._id}`;
     }
     // All other intents (buy, rent, deal) use the service detail page
-    return `/services/${service._id}`;
+    const intentSuffix =
+      intent === "rent" || intent === "deal" ? `?intent=${intent}` : "";
+    return `/services/${service._id}${intentSuffix}`;
   };
 
   // Get price display
