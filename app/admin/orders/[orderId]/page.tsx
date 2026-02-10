@@ -55,6 +55,13 @@ export default function AdminOrderDetailPage() {
   const [orderError, setOrderError] = useState<string | null>(null);
   const [reply, setReply] = useState("");
   const [sendError, setSendError] = useState<string | null>(null);
+
+  // PATCH_91: Admin chat attachment state
+  const [chatAttachments, setChatAttachments] = useState<
+    Array<{ url: string; filename: string; fileType: string }>
+  >([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [lastVerifiedData, setLastVerifiedData] = useState<{
     orderId: string;
     previousStatus: string;
@@ -83,6 +90,7 @@ export default function AdminOrderDetailPage() {
   } = useChatSocket({
     orderId: orderId || null,
     enabled: authReady && isAuthenticated && Boolean(orderId),
+    role: "admin",
     onError: (err) => {
       if (process.env.NODE_ENV !== "production") {
         console.warn("[Socket] Error:", err);
@@ -271,17 +279,60 @@ export default function AdminOrderDetailPage() {
 
   const sendReply = () => {
     const text = reply.trim();
-    if (!text) return;
+    if (!text && chatAttachments.length === 0) return;
 
     if (!authReady || !isAuthenticated) {
       toast("Please login to send messages", "error");
       return;
     }
 
-    socketSendMessage(text);
+    // PATCH_91: Send with attachments
+    socketSendMessage(
+      text || "(attachment)",
+      chatAttachments.length > 0 ? chatAttachments : undefined,
+    );
     setReply("");
+    setChatAttachments([]);
     setSendError(null);
     toast("Reply sent", "success");
+  };
+
+  // PATCH_91: Admin chat file upload handler
+  const handleAdminFileSelect = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await apiRequest<{
+          url: string;
+          filename: string;
+          fileType: string;
+          publicId?: string;
+          size?: number;
+        }>("/api/upload/chat", "POST", formData, true);
+        if (res?.url) {
+          setChatAttachments((prev) => [
+            ...prev,
+            {
+              url: res.url,
+              filename: res.filename || file.name,
+              fileType: res.fileType || "unknown",
+            },
+          ]);
+        }
+      }
+    } catch (err) {
+      toast("Failed to upload file", "error");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   if (orderLoading) {
@@ -538,6 +589,52 @@ export default function AdminOrderDetailPage() {
                     {m.senderRole === "admin" ? "You" : "User"}
                   </p>
                   <p className="whitespace-pre-wrap">{m.message}</p>
+
+                  {/* PATCH_91: Render attachments in admin chat */}
+                  {m.attachments && m.attachments.length > 0 && (
+                    <div className="mt-2 space-y-2">
+                      {m.attachments.map((att, idx) => (
+                        <div key={idx}>
+                          {att.fileType === "image" ? (
+                            <a
+                              href={att.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="block"
+                            >
+                              <img
+                                src={att.url}
+                                alt={att.filename}
+                                className="max-w-[240px] max-h-[180px] rounded-lg border border-white/10 object-cover hover:opacity-80 transition-opacity cursor-pointer"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display =
+                                    "none";
+                                  (
+                                    e.target as HTMLImageElement
+                                  ).insertAdjacentHTML(
+                                    "afterend",
+                                    '<span class="text-xs text-red-400">Image failed to load</span>',
+                                  );
+                                }}
+                              />
+                              <p className="text-[10px] opacity-70 mt-1">
+                                {att.filename}
+                              </p>
+                            </a>
+                          ) : (
+                            <a
+                              href={att.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="block text-xs opacity-90 hover:opacity-100 underline"
+                            >
+                              📎 {att.filename}
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <div className="mt-1 flex items-center gap-2">
                     <p className="text-[11px] text-[#9CA3AF]">
                       {new Date(m.createdAt).toLocaleString()}
@@ -572,6 +669,24 @@ export default function AdminOrderDetailPage() {
         </div>
 
         <div className="mt-4 flex gap-2">
+          {/* PATCH_91: Admin file upload button */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            accept="image/*,application/pdf,application/zip,text/plain"
+            multiple
+            onChange={handleAdminFileSelect}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="px-3 py-2 rounded-lg border border-white/10 text-[#9CA3AF] hover:text-white hover:bg-white/5 text-sm disabled:opacity-50"
+            title="Attach file"
+          >
+            {uploading ? "⏳" : "📎"}
+          </button>
           <input
             className="flex-1 rounded-lg border border-white/10 bg-[#020617] px-3 py-2 text-sm text-white placeholder:text-[#64748B]"
             placeholder="Reply to user…"
@@ -593,13 +708,50 @@ export default function AdminOrderDetailPage() {
             type="button"
             onClick={sendReply}
             disabled={
-              sending || !reply.trim() || !authReady || !isAuthenticated
+              sending ||
+              (!reply.trim() && chatAttachments.length === 0) ||
+              !authReady ||
+              !isAuthenticated
             }
             className="px-4 py-2 rounded-lg bg-[#3B82F6] text-white text-sm disabled:opacity-50"
           >
             {sending ? "Sending…" : "Send"}
           </button>
         </div>
+
+        {/* PATCH_91: Attachment preview before sending */}
+        {chatAttachments.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {chatAttachments.map((att, idx) => (
+              <div
+                key={idx}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-slate-300"
+              >
+                {att.fileType === "image" ? (
+                  <img
+                    src={att.url}
+                    alt={att.filename}
+                    className="w-8 h-8 rounded object-cover"
+                  />
+                ) : (
+                  <span>📎</span>
+                )}
+                <span className="max-w-[120px] truncate">{att.filename}</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setChatAttachments((prev) =>
+                      prev.filter((_, i) => i !== idx),
+                    )
+                  }
+                  className="text-red-400 hover:text-red-300 ml-1"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
 
       {/* Safety Layer: UndoToast */}

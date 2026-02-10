@@ -199,17 +199,45 @@ const MessageList = memo(function MessageList(props: {
 
                   {/* Display attachments if present */}
                   {m.attachments && m.attachments.length > 0 && (
-                    <div className="mt-2 space-y-1">
+                    <div className="mt-2 space-y-2">
                       {m.attachments.map((att, idx) => (
-                        <a
-                          key={idx}
-                          href={att.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="block text-xs opacity-90 hover:opacity-100 underline"
-                        >
-                          📎 {att.filename}
-                        </a>
+                        <div key={idx}>
+                          {att.fileType === "image" ? (
+                            <a
+                              href={att.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="block"
+                            >
+                              <img
+                                src={att.url}
+                                alt={att.filename}
+                                className="max-w-[240px] max-h-[180px] rounded-lg border border-white/10 object-cover hover:opacity-80 transition-opacity cursor-pointer"
+                                onError={(e) => {
+                                  const img = e.target as HTMLImageElement;
+                                  img.style.display = "none";
+                                  img.insertAdjacentHTML(
+                                    "afterend",
+                                    '<span class="text-xs text-red-400">Image failed to load</span>',
+                                  );
+                                }}
+                              />
+                              <p className="text-[10px] opacity-70 mt-1">
+                                {att.filename}
+                              </p>
+                            </a>
+                          ) : (
+                            <a
+                              key={idx}
+                              href={att.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="block text-xs opacity-90 hover:opacity-100 underline"
+                            >
+                              📎 {att.filename}
+                            </a>
+                          )}
+                        </div>
                       ))}
                     </div>
                   )}

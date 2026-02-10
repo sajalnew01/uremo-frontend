@@ -35,6 +35,7 @@ type TypingState = {
 type UseChatSocketOptions = {
   orderId: string | null;
   enabled: boolean;
+  role?: "user" | "admin";
   onError?: (error: string) => void;
 };
 
@@ -43,7 +44,7 @@ const RETRY_QUEUE_KEY = "uremo_chat_retry_queue";
 /**
  * Load retry queue from localStorage.
  */
-function loadRetryQueue(): Array<{ orderId: string; message: string; tempId: string }> {
+function loadRetryQueue(): Array<{ orderId: string; message: string; tempId: string; attachments?: Array<{ url: string; filename: string; fileType: string }> }> {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(RETRY_QUEUE_KEY);
@@ -56,7 +57,7 @@ function loadRetryQueue(): Array<{ orderId: string; message: string; tempId: str
 /**
  * Save retry queue to localStorage.
  */
-function saveRetryQueue(queue: Array<{ orderId: string; message: string; tempId: string }>) {
+function saveRetryQueue(queue: Array<{ orderId: string; message: string; tempId: string; attachments?: Array<{ url: string; filename: string; fileType: string }> }>) {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(RETRY_QUEUE_KEY, JSON.stringify(queue));
@@ -73,7 +74,7 @@ function generateTempId(): string {
 }
 
 export function useChatSocket(options: UseChatSocketOptions) {
-  const { orderId, enabled, onError } = options;
+  const { orderId, enabled, role: callerRole = "user", onError } = options;
 
   const onErrorRef = useRef(onError);
   useEffect(() => {
@@ -86,7 +87,7 @@ export function useChatSocket(options: UseChatSocketOptions) {
   const [joining, setJoining] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [typingUsers, setTypingUsers] = useState<TypingState[]>([]);
-  const [retryQueue, setRetryQueue] = useState<Array<{ orderId: string; message: string; tempId: string }>>([]);
+  const [retryQueue, setRetryQueue] = useState<Array<{ orderId: string; message: string; tempId: string; attachments?: Array<{ url: string; filename: string; fileType: string }> }>>([]);
 
   const socketRef = useRef<Socket | null>(null);
   const listenersBoundRef = useRef(false);
@@ -242,7 +243,7 @@ export function useChatSocket(options: UseChatSocketOptions) {
       _id: tempId,
       tempId,
       orderId,
-      senderRole: "user", // Will be overwritten by server
+      senderRole: callerRole, // Use actual role for correct UI positioning
       message,
       attachments: attachments || [],
       status: "sending",
@@ -253,7 +254,8 @@ export function useChatSocket(options: UseChatSocketOptions) {
     setMessages((prev) => [...prev, optimisticMsg]);
 
     const enqueueRetry = () => {
-      const queueItem = { orderId, message, tempId };
+      // PATCH_91: Preserve attachments in retry queue
+      const queueItem = { orderId, message, tempId, attachments: attachments || [] };
       setRetryQueue((q) => {
         // de-dupe by tempId
         if (q.some((x) => x.tempId === tempId)) return q;
@@ -353,7 +355,7 @@ export function useChatSocket(options: UseChatSocketOptions) {
 
       socket.emit(
         "message:send",
-        { orderId: item.orderId, tempId, text: item.message },
+        { orderId: item.orderId, tempId, text: item.message, attachments: item.attachments || [] },
         (ack: any) => {
           if (done) return;
           done = true;
