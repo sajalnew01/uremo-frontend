@@ -315,7 +315,7 @@ export default function AdminOrderDetailPage() {
           fileType: string;
           publicId?: string;
           size?: number;
-        }>("/api/upload/chat", "POST", formData, true);
+        }>("/api/upload/chat", "POST", formData, true, true);
         if (res?.url) {
           setChatAttachments((prev) => [
             ...prev,
