@@ -84,10 +84,19 @@ export default function ServiceDetailsPage() {
     return out;
   };
 
+  // PATCH_92b: Guard against non-ObjectId params (e.g. "coming-soon")
+  const isValidId = typeof id === "string" && /^[a-f\d]{24}$/i.test(id);
+
   useEffect(() => {
     let mounted = true;
     setLoading(true);
     setError("");
+
+    if (!isValidId) {
+      setError("Invalid service ID");
+      setLoading(false);
+      return;
+    }
 
     apiRequest(`/api/services/${id}`)
       .then((data) => {
@@ -884,7 +893,8 @@ export default function ServiceDetailsPage() {
                   </p>
                 </div>
                 <p className="text-xs text-slate-400 mb-3">
-                  The deals feature is under development. You&apos;ll be able to negotiate custom deal terms soon.
+                  The deals feature is under development. You&apos;ll be able to
+                  negotiate custom deal terms soon.
                 </p>
                 <button
                   type="button"
