@@ -898,7 +898,7 @@ export default function ServiceDetailsPage() {
                 </p>
                 <button
                   type="button"
-                  onClick={() => router.push("/deals/coming-soon")}
+                  onClick={() => router.push("/deals")}
                   className="w-full px-4 py-2.5 rounded-xl text-sm font-medium text-amber-200 bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition"
                 >
                   Learn More

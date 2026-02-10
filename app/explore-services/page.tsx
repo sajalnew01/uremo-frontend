@@ -1562,9 +1562,9 @@ function ServiceCard({
         : `/apply-to-work?serviceId=${service._id}`;
     }
     // Only pass intent to detail page if service supports that action
-    // PATCH_92: Deal cards redirect to coming-soon page
+    // PATCH_92: Deal cards redirect to deals page (shows coming-soon banner)
     if (intent === "deal") {
-      return "/deals/coming-soon";
+      return "/deals";
     }
     const canDoIntent =
       (intent === "rent" && service.allowedActions?.rent);
