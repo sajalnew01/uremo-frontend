@@ -27,6 +27,8 @@ import OrderStepper from "@/components/orders/OrderStepper";
 interface Order {
   _id: string;
   status: string;
+  orderType?: "buy" | "rental" | "deal";
+  country?: string;
   serviceId: {
     title: string;
     price: number;
@@ -40,6 +42,17 @@ interface Order {
     text: string;
     at: string;
   }>;
+  // PATCH_92: Populated rental details
+  rentalId?: {
+    _id: string;
+    rentalType: string;
+    duration: number;
+    price: number;
+    startDate?: string;
+    endDate?: string;
+    status: string;
+    daysRemaining?: number;
+  } | null;
 }
 
 type OrderMessage = ChatMessage;
@@ -433,6 +446,27 @@ function OrderDetailsContent() {
             <p className="text-lg font-semibold">{order.serviceId?.title}</p>
           </div>
 
+          {/* PATCH_92: Order type badge */}
+          {order.orderType && order.orderType !== "buy" && (
+            <div>
+              <p className="text-[#9CA3AF] text-sm">Order Type</p>
+              <span
+                className={`inline-block px-3 py-1 rounded text-sm font-medium ${
+                  order.orderType === "rental"
+                    ? "bg-purple-500/10 border border-purple-500/20 text-purple-200"
+                    : "bg-amber-500/10 border border-amber-500/20 text-amber-200"
+                }`}
+              >
+                {order.orderType === "rental" ? "🔄 Rental" : "🤝 Deal"}
+              </span>
+              {order.country && (
+                <span className="ml-2 inline-block px-2 py-1 rounded text-xs bg-white/5 border border-white/10 text-slate-300">
+                  {order.country}
+                </span>
+              )}
+            </div>
+          )}
+
           <div>
             <p className="text-[#9CA3AF] text-sm">{ui.amountLabel}</p>
             <p className="text-2xl font-bold text-[#22C55E]">
@@ -469,6 +503,90 @@ function OrderDetailsContent() {
           )}
         </div>
       </div>
+
+      {/* PATCH_92: Rental Details Panel */}
+      {order.orderType === "rental" && order.rentalId && (
+        <div className="border border-purple-500/20 rounded-lg p-6 bg-[#0F172A]">
+          <h3 className="font-semibold text-lg mb-4 text-purple-200">
+            🔄 Rental Details
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-[#9CA3AF] text-xs">Duration</p>
+              <p className="text-sm font-medium text-white">
+                {order.rentalId.duration} {order.rentalId.rentalType}
+              </p>
+            </div>
+            <div>
+              <p className="text-[#9CA3AF] text-xs">Rental Price</p>
+              <p className="text-sm font-bold text-emerald-300">
+                ${order.rentalId.price}
+              </p>
+            </div>
+            <div>
+              <p className="text-[#9CA3AF] text-xs">Start Date</p>
+              <p className="text-sm text-white">
+                {order.rentalId.startDate
+                  ? new Date(order.rentalId.startDate).toLocaleDateString()
+                  : "Pending activation"}
+              </p>
+            </div>
+            <div>
+              <p className="text-[#9CA3AF] text-xs">End Date</p>
+              <p className="text-sm text-white">
+                {order.rentalId.endDate
+                  ? new Date(order.rentalId.endDate).toLocaleDateString()
+                  : "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-[#9CA3AF] text-xs">Rental Status</p>
+              <span
+                className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                  order.rentalId.status === "active"
+                    ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-200"
+                    : order.rentalId.status === "pending"
+                      ? "bg-yellow-500/10 border border-yellow-500/20 text-yellow-200"
+                      : order.rentalId.status === "expired"
+                        ? "bg-red-500/10 border border-red-500/20 text-red-200"
+                        : "bg-white/5 border border-white/10 text-slate-300"
+                }`}
+              >
+                {order.rentalId.status}
+              </span>
+            </div>
+            {order.rentalId.status === "active" && order.rentalId.endDate && (
+              <div>
+                <p className="text-[#9CA3AF] text-xs">Days Remaining</p>
+                <p className="text-sm font-bold text-blue-300">
+                  {Math.max(
+                    0,
+                    Math.ceil(
+                      (new Date(order.rentalId.endDate).getTime() -
+                        Date.now()) /
+                        (1000 * 60 * 60 * 24),
+                    ),
+                  )}{" "}
+                  days
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Payment schedule info */}
+          {order.rentalId.status === "active" && (
+            <div className="mt-4 pt-4 border-t border-white/10">
+              <p className="text-xs font-semibold text-slate-300 mb-2">
+                Upcoming Payments
+              </p>
+              <p className="text-xs text-slate-400">
+                Payment milestones for this rental are tracked automatically.
+                Check your email for payment reminders.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Timeline */}
       <div className="border border-[#1F2937] rounded-lg p-6 bg-[#0F172A]">

@@ -3,7 +3,7 @@
 // PATCH_33: Service Detail Page with TrustBadges
 // PATCH_55: Service Detail Decision Engine - Action selector, trust panel, flow timeline, sticky bar
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { apiRequest } from "@/lib/api";
@@ -18,10 +18,7 @@ import ServiceActionSelector from "@/components/ServiceActionSelector";
 import ServiceTrustPanel from "@/components/ServiceTrustPanel";
 import ServiceFlowTimeline from "@/components/ServiceFlowTimeline";
 import StickyActionBar from "@/components/StickyActionBar";
-import {
-  getCategoryLabel,
-  getSubcategoryLabel,
-} from "@/lib/categoryLabels";
+import { getCategoryLabel, getSubcategoryLabel } from "@/lib/categoryLabels";
 
 export default function ServiceDetailsPage() {
   const { id } = useParams();
@@ -41,6 +38,11 @@ export default function ServiceDetailsPage() {
   const [selectedRentalPlan, setSelectedRentalPlan] = useState<number | null>(
     null,
   );
+  // PATCH_92: Read intent from URL, country selector for rent
+  const searchParams = useSearchParams();
+  const urlIntent = searchParams?.get("intent") || "";
+  const [rentCountry, setRentCountry] = useState<string>("");
+  const rentSectionRef = useRef<HTMLDivElement>(null);
 
   const normalizeAllowedActions = (value: any) => {
     const a = value && typeof value === "object" ? value : {};
@@ -141,7 +143,8 @@ export default function ServiceDetailsPage() {
     const allowed = normalizeAllowedActions(service?.allowedActions);
 
     // Resolve final plan index: direct param > state > null
-    const finalPlanIndex = overridePlanIndex !== undefined ? overridePlanIndex : selectedRentalPlan;
+    const finalPlanIndex =
+      overridePlanIndex !== undefined ? overridePlanIndex : selectedRentalPlan;
 
     // PATCH_22: Validate rental plan selection for rental services
     if (service?.isRental && finalPlanIndex === null) {
@@ -174,6 +177,8 @@ export default function ServiceDetailsPage() {
           {
             serviceId: service._id,
             planIndex: finalPlanIndex,
+            // PATCH_92: Include country if selected
+            ...(rentCountry ? { country: rentCountry } : {}),
           },
           true,
         );
@@ -332,6 +337,55 @@ export default function ServiceDetailsPage() {
   const allowed = normalizeAllowedActions(service?.allowedActions);
   const hasAnyAction =
     allowed.buy || allowed.apply || allowed.rent || allowed.deal;
+
+  // PATCH_92: Auto-scroll to rent section when intent=rent
+  useEffect(() => {
+    if (urlIntent === "rent" && allowed.rent && rentSectionRef.current) {
+      setTimeout(() => {
+        rentSectionRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 300);
+    }
+  }, [urlIntent, allowed.rent, service?._id]);
+
+  // PATCH_92: Compute payment schedule for selected rental plan
+  const rentSchedule = useMemo(() => {
+    if (selectedRentalPlan === null) return null;
+    const plan = service?.rentalPlans?.[selectedRentalPlan];
+    if (!plan) return null;
+    const total = plan.price;
+    // Payment milestones: Day 0 → 40%, middle → 20%, end → 10%
+    const milestones = [
+      {
+        day: 0,
+        label: "Checkout (Day 0)",
+        percent: 40,
+        amount: +(total * 0.4).toFixed(2),
+      },
+      {
+        day: Math.floor(plan.duration / 2),
+        label: `Mid-term (Day ${Math.floor(plan.duration / 2)})`,
+        percent: 20,
+        amount: +(total * 0.2).toFixed(2),
+      },
+      {
+        day: plan.duration,
+        label: `End (Day ${plan.duration})`,
+        percent: 10,
+        amount: +(total * 0.1).toFixed(2),
+      },
+    ];
+    return { total, milestones, firstPayment: milestones[0].amount };
+  }, [selectedRentalPlan, service?.rentalPlans]);
+
+  // PATCH_92: Available countries from the service
+  const serviceCountries = useMemo(() => {
+    const countries = service?.countries;
+    if (Array.isArray(countries) && countries.length > 0) return countries;
+    return ["Global"];
+  }, [service?.countries]);
 
   const deliveryLabel = service?.deliveryType
     ? String(service.deliveryType).replace(/_/g, " ")
@@ -672,18 +726,41 @@ export default function ServiceDetailsPage() {
               </div>
             )}
 
-            {/* RENT */}
+            {/* RENT — PATCH_92: Enhanced with country selector + pricing breakdown */}
             {allowed.rent &&
             service?.isRental &&
             Array.isArray(service.rentalPlans) &&
             service.rentalPlans.length > 0 ? (
-              <div className="mt-4">
+              <div className="mt-4" ref={rentSectionRef}>
                 <div className="mb-3">
-                  <p className="text-sm text-[#9CA3AF]">🔄 Rental plans</p>
-                  <p className="mt-1 text-sm text-slate-200">
-                    Choose a plan before renting.
+                  <p className="text-sm font-semibold text-purple-300">
+                    🔄 Rent Access
+                  </p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Select country, plan, then rent.
                   </p>
                 </div>
+
+                {/* Country selector */}
+                <div className="mb-3">
+                  <label className="block text-xs text-[#9CA3AF] mb-1">
+                    Country
+                  </label>
+                  <select
+                    value={rentCountry}
+                    onChange={(e) => setRentCountry(e.target.value)}
+                    className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-purple-500/50"
+                  >
+                    <option value="">Select country…</option>
+                    {serviceCountries.map((c: string) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Rental plan cards */}
                 <div className="space-y-2">
                   {service.rentalPlans.map((plan: any, idx: number) => (
                     <button
@@ -717,19 +794,56 @@ export default function ServiceDetailsPage() {
                     </button>
                   ))}
                 </div>
+
+                {/* PATCH_92: Payment schedule breakdown */}
+                {rentSchedule && (
+                  <div className="mt-3 rounded-xl border border-purple-500/20 bg-purple-500/5 p-3">
+                    <p className="text-xs font-semibold text-purple-200 mb-2">
+                      Payment Schedule
+                    </p>
+                    <div className="space-y-1.5">
+                      {rentSchedule.milestones.map((m: any, i: number) => (
+                        <div
+                          key={i}
+                          className="flex items-center justify-between text-xs"
+                        >
+                          <span className="text-slate-300">{m.label}</span>
+                          <span
+                            className={`font-semibold ${i === 0 ? "text-emerald-300" : "text-slate-400"}`}
+                          >
+                            {m.percent}% — ${m.amount}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-white/10 flex justify-between text-xs">
+                      <span className="text-slate-400">
+                        Due now at checkout
+                      </span>
+                      <span className="text-emerald-300 font-bold">
+                        ${rentSchedule.firstPayment}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 <button
                   type="button"
                   onClick={() => buyService()}
                   disabled={
-                    service?.active === false || selectedRentalPlan === null
+                    service?.active === false ||
+                    selectedRentalPlan === null ||
+                    !rentCountry
                   }
                   className="btn-primary w-full disabled:opacity-50 mt-4"
                 >
                   {service?.active === false
                     ? copy.unavailableButtonText
-                    : selectedRentalPlan !== null
+                    : selectedRentalPlan !== null && rentCountry
                       ? `Rent for $${service.rentalPlans[selectedRentalPlan]?.price}`
-                      : "Select a Plan"}
+                      : !rentCountry
+                        ? "Select Country"
+                        : "Select a Plan"}
                 </button>
               </div>
             ) : null}
@@ -760,38 +874,25 @@ export default function ServiceDetailsPage() {
               </button>
             )}
 
-            {/* DEAL */}
+            {/* DEAL — PATCH_92: Coming Soon redirect (deals not ready) */}
             {allowed.deal && (
-              <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm text-slate-200 font-medium">
-                    Deal percent
+              <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg">🚧</span>
+                  <p className="text-sm text-amber-200 font-semibold">
+                    Deals Coming Soon
                   </p>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min={1}
-                      max={100}
-                      value={dealPercent}
-                      onChange={(e) => setDealPercent(Number(e.target.value))}
-                      className="w-20 rounded-md bg-black/20 border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-amber-500/40"
-                    />
-                    <span className="text-sm text-[#9CA3AF]">%</span>
-                  </div>
                 </div>
+                <p className="text-xs text-slate-400 mb-3">
+                  The deals feature is under development. You&apos;ll be able to negotiate custom deal terms soon.
+                </p>
                 <button
                   type="button"
-                  onClick={createDealOrder}
-                  disabled={service?.active === false}
-                  className="btn-primary w-full disabled:opacity-50 mt-3"
+                  onClick={() => router.push("/deals/coming-soon")}
+                  className="w-full px-4 py-2.5 rounded-xl text-sm font-medium text-amber-200 bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition"
                 >
-                  {service?.active === false
-                    ? copy.unavailableButtonText
-                    : `Complete Deal @ ${dealPercent}%`}
+                  Learn More
                 </button>
-                <p className="mt-2 text-xs text-[#9CA3AF]">
-                  Creates a deal order and redirects to payment.
-                </p>
               </div>
             )}
 

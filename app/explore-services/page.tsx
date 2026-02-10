@@ -1562,9 +1562,12 @@ function ServiceCard({
         : `/apply-to-work?serviceId=${service._id}`;
     }
     // Only pass intent to detail page if service supports that action
+    // PATCH_92: Deal cards redirect to coming-soon page
+    if (intent === "deal") {
+      return "/deals/coming-soon";
+    }
     const canDoIntent =
-      (intent === "rent" && service.allowedActions?.rent) ||
-      (intent === "deal" && service.allowedActions?.deal);
+      (intent === "rent" && service.allowedActions?.rent);
     const intentSuffix = canDoIntent ? `?intent=${intent}` : "";
     return `/services/${service._id}${intentSuffix}`;
   };
@@ -1575,7 +1578,11 @@ function ServiceCard({
     if (intent === "earn" && service.payRate) {
       return `$${service.payRate}/hr`;
     }
-    if (intent === "rent" && service.allowedActions?.rent && service.rentalPlans?.length) {
+    if (
+      intent === "rent" &&
+      service.allowedActions?.rent &&
+      service.rentalPlans?.length
+    ) {
       const cheapest = service.rentalPlans.reduce(
         (min, p) => (p.price < min.price ? p : min),
         service.rentalPlans[0],
@@ -1772,15 +1779,22 @@ function ServiceCard({
           >
             {/* PATCH_54: Dynamic CTA text based on intent and price */}
             {/* PATCH_90: Only show Rent/Deal CTA if service supports it */}
+            {/* PATCH_92: Never show Buy on Rent tab; show intent-correct label */}
             {intent === "buy"
               ? `Buy – $${service.price}`
               : intent === "earn"
                 ? "Apply Now"
-                : intent === "rent" && service.allowedActions?.rent && service.rentalPlans?.length
+                : intent === "rent" &&
+                    service.allowedActions?.rent &&
+                    service.rentalPlans?.length
                   ? `Rent – $${service.rentalPlans[0].price}`
                   : intent === "deal" && service.allowedActions?.deal
                     ? "Start Deal"
-                    : `Buy – $${service.price}`}
+                    : intent === "rent"
+                      ? "View Rental"
+                      : intent === "deal"
+                        ? "View Deal"
+                        : `Buy – $${service.price}`}
           </Link>
         </div>
       </div>
