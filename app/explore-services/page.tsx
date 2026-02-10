@@ -17,7 +17,11 @@ import {
   useSiteSettings,
 } from "@/hooks/useSiteSettings";
 import TrustBadges from "@/components/TrustBadges";
-import { getCategoryLabel, getShortCategoryLabel } from "@/lib/categoryLabels";
+import {
+  getCategoryLabel,
+  getShortCategoryLabel,
+  getSubcategoryLabel,
+} from "@/lib/categoryLabels";
 
 // Intent Types
 type Intent = "buy" | "earn" | "rent" | "deal";
@@ -245,6 +249,52 @@ const INTENT_CONFIG = {
   },
 };
 
+const CATEGORY_GUIDE: Array<{
+  id: string;
+  title: string;
+  helper: string;
+  icon: string;
+  examples: string[];
+}> = [
+  {
+    id: "microjobs",
+    title: getCategoryLabel("microjobs"),
+    helper:
+      "Short remote gigs, data work, and screened tasks to start quickly.",
+    icon: "🧠",
+    examples: ["Data labeling", "Form filling", "Light research"],
+  },
+  {
+    id: "forex_crypto",
+    title: getCategoryLabel("forex_crypto"),
+    helper: "Trading and exchange account help for compliant setups.",
+    icon: "📈",
+    examples: ["Exchange setup", "KYC guidance", "Funding pathways"],
+  },
+  {
+    id: "banks_gateways_wallets",
+    title: getCategoryLabel("banks_gateways_wallets"),
+    helper:
+      "Banking, payment gateway, and wallet assistance with verification.",
+    icon: "🏦",
+    examples: ["Wallet verification", "Gateway onboarding", "Payout setup"],
+  },
+  {
+    id: "rentals",
+    title: getCategoryLabel("rentals"),
+    helper: "Temporary access or subscriptions with clear rental plans.",
+    icon: "🔑",
+    examples: ["Short-term seats", "Trial access", "Managed logins"],
+  },
+  {
+    id: "general",
+    title: getCategoryLabel("general"),
+    helper: "Everything else, including custom requests and mixed bundles.",
+    icon: "✨",
+    examples: ["Custom bundles", "White-glove help"],
+  },
+];
+
 export default function UnifiedMarketplacePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -385,11 +435,12 @@ export default function UnifiedMarketplacePage() {
     const q = filters.search.trim().toLowerCase();
 
     return services.filter((s) => {
+      const categoryKey = s.effectiveCategory || s.category || "";
       const hay =
-        `${s.title || ""} ${s.category || ""} ${s.shortDescription || ""} ${s.description || ""}`.toLowerCase();
+        `${s.title || ""} ${categoryKey} ${s.shortDescription || ""} ${s.description || ""}`.toLowerCase();
 
       if (q && !hay.includes(q)) return false;
-      if (filters.category && s.category !== filters.category) return false;
+      if (filters.category && categoryKey !== filters.category) return false;
       if (filters.subcategory && s.subcategory !== filters.subcategory)
         return false;
       if (filters.platform && s.platform !== filters.platform) return false;
@@ -642,6 +693,85 @@ export default function UnifiedMarketplacePage() {
         )}
       </div>
 
+      {/* Category Guide to explain what each bucket means */}
+      <div className="mt-6">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <div>
+            <p className="text-xs text-slate-400 uppercase tracking-wide">
+              Service Categories
+            </p>
+            <p className="text-sm text-slate-300">
+              Tap to filter and see what each category covers.
+            </p>
+          </div>
+          {filters.category && (
+            <button
+              onClick={() => {
+                setFilters((f) => ({ ...f, category: "", subcategory: "" }));
+                setPage(1);
+              }}
+              className="text-xs font-semibold text-blue-300 hover:text-blue-200"
+            >
+              Reset category
+            </button>
+          )}
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {CATEGORY_GUIDE.map((cat) => {
+            const isActive = filters.category === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => {
+                  setFilters((f) => ({
+                    ...f,
+                    category: cat.id,
+                    subcategory: "",
+                  }));
+                  setPage(1);
+                }}
+                className={`text-left rounded-2xl border px-4 py-4 transition-all duration-300 bg-slate-900/70 hover:bg-slate-900/90 hover:border-blue-500/30 ${isActive ? "border-blue-500/50 shadow-[0_0_24px_rgba(59,130,246,0.25)]" : "border-white/10"}`}
+              >
+                <div className="flex items-start gap-3">
+                  <span className="text-xl" aria-hidden>
+                    {cat.icon}
+                  </span>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-white">
+                        {cat.title}
+                      </span>
+                      {isActive && (
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-100 border border-blue-500/30">
+                          Active
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-300 leading-relaxed mt-1">
+                      {cat.helper}
+                    </p>
+                    {cat.examples?.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {cat.examples.map((example) => (
+                          <span
+                            key={`${cat.id}-${example}`}
+                            className="px-2 py-1 text-[11px] rounded-lg bg-white/5 border border-white/10 text-slate-200"
+                          >
+                            {example}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8">
         {/* Sticky Filter Panel - Enhanced */}
         <aside className="lg:sticky lg:top-24 h-fit">
@@ -699,7 +829,7 @@ export default function UnifiedMarketplacePage() {
                 <option value="">All Categories</option>
                 {filterOptions.categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
-                    {cat.label}
+                    {cat.label || getCategoryLabel(cat.id)}
                   </option>
                 ))}
               </select>
@@ -722,7 +852,7 @@ export default function UnifiedMarketplacePage() {
                     .find((c) => c.id === filters.category)
                     ?.subcategories?.map((sub) => (
                       <option key={sub} value={sub}>
-                        {sub.replace(/_/g, " ")}
+                        {getSubcategoryLabel(sub)}
                       </option>
                     ))}
                 </select>
@@ -1241,7 +1371,13 @@ export default function UnifiedMarketplacePage() {
                   {previewService.title}
                 </h3>
                 <p className="text-sm text-slate-300">
-                  {previewService.category?.replace(/_/g, " ")} • {config.label}
+                  {getCategoryLabel(
+                    previewService.effectiveCategory || previewService.category,
+                  )}
+                  {previewService.subcategory
+                    ? ` • ${getSubcategoryLabel(previewService.subcategory)}`
+                    : ""}
+                  {` • ${config.label}`}
                 </p>
               </div>
             </div>
@@ -1421,6 +1557,11 @@ function ServiceCard({
 }) {
   const hasLinkedJob = Boolean(service.linkedJob);
   const hasScreening = service.linkedJob?.hasScreening;
+  const categoryKey = service.effectiveCategory || service.category || "";
+  const categoryLabel = categoryKey ? getCategoryLabel(categoryKey) : "";
+  const subcategoryLabel = service.subcategory
+    ? getSubcategoryLabel(service.subcategory)
+    : "";
 
   const isVerified = /verified|verification/i.test(
     `${service.title || ""} ${service.category || ""} ${service.subcategory || ""}`,
@@ -1510,7 +1651,7 @@ function ServiceCard({
             {service.platform || "Platform"}
           </span>
           <span className="px-3 py-1.5 text-xs font-medium rounded-xl bg-white/15 backdrop-blur-md text-slate-100 border border-white/20">
-            {getShortCategoryLabel(service.category)}
+            {getShortCategoryLabel(categoryKey)}
           </span>
         </div>
 
@@ -1575,6 +1716,22 @@ function ServiceCard({
             <div className="text-white font-bold text-xs">{deliveryLabel}</div>
           </div>
         </div>
+
+        {/* Category clarity */}
+        {(categoryLabel || subcategoryLabel) && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {categoryLabel && (
+              <span className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-white/5 border border-white/10 text-slate-200">
+                {categoryLabel}
+              </span>
+            )}
+            {subcategoryLabel && (
+              <span className="px-2.5 py-1 text-[11px] font-medium rounded-lg bg-slate-800/60 border border-white/10 text-slate-200">
+                {subcategoryLabel}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* PATCH_54: Action Badges - Show what's possible with this service */}
         {service.allowedActions && (

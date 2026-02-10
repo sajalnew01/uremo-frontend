@@ -18,6 +18,10 @@ import ServiceActionSelector from "@/components/ServiceActionSelector";
 import ServiceTrustPanel from "@/components/ServiceTrustPanel";
 import ServiceFlowTimeline from "@/components/ServiceFlowTimeline";
 import StickyActionBar from "@/components/StickyActionBar";
+import {
+  getCategoryLabel,
+  getSubcategoryLabel,
+} from "@/lib/categoryLabels";
 
 export default function ServiceDetailsPage() {
   const { id } = useParams();
@@ -321,6 +325,12 @@ export default function ServiceDetailsPage() {
         .map((s: string) => s.trim())
         .filter(Boolean)
     : [];
+  const categoryLabel = getCategoryLabel(
+    service?.effectiveCategory || service?.category || "",
+  );
+  const subcategoryLabel = service?.subcategory
+    ? getSubcategoryLabel(service.subcategory)
+    : "";
 
   return (
     <div className="u-container max-w-6xl">
@@ -387,9 +397,14 @@ export default function ServiceDetailsPage() {
             {service.title}
           </h1>
           <div className="mt-3 flex items-center gap-2 flex-wrap">
-            {service?.category && (
+            {categoryLabel && (
               <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-[#E5E7EB]">
-                {String(service.category)}
+                {categoryLabel}
+              </span>
+            )}
+            {subcategoryLabel && (
+              <span className="inline-flex items-center rounded-full border border-white/10 bg-slate-900/70 px-3 py-1 text-xs text-[#E5E7EB]">
+                {subcategoryLabel}
               </span>
             )}
             <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-[#E5E7EB]">
