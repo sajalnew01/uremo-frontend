@@ -143,6 +143,61 @@ export default function ServiceDetailsPage() {
     };
   }, [id, service?._id]);
 
+  // PATCH_93: ALL hooks MUST be called before any early return to satisfy React Rules of Hooks.
+  // Moved from below the loading/error early returns to here.
+
+  const allowed = normalizeAllowedActions(service?.allowedActions);
+  const hasAnyAction =
+    allowed.buy || allowed.apply || allowed.rent || allowed.deal;
+
+  // PATCH_92/93: Auto-scroll to rent section when intent=rent
+  useEffect(() => {
+    if (urlIntent === "rent" && allowed.rent && rentSectionRef.current) {
+      setTimeout(() => {
+        rentSectionRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 300);
+    }
+  }, [urlIntent, allowed.rent, service?._id]);
+
+  // PATCH_92/93: Compute payment schedule for selected rental plan
+  const rentSchedule = useMemo(() => {
+    if (selectedRentalPlan === null) return null;
+    const plan = service?.rentalPlans?.[selectedRentalPlan];
+    if (!plan) return null;
+    const total = plan.price;
+    const milestones = [
+      {
+        day: 0,
+        label: "Checkout (Day 0)",
+        percent: 40,
+        amount: +(total * 0.4).toFixed(2),
+      },
+      {
+        day: Math.floor(plan.duration / 2),
+        label: `Mid-term (Day ${Math.floor(plan.duration / 2)})`,
+        percent: 20,
+        amount: +(total * 0.2).toFixed(2),
+      },
+      {
+        day: plan.duration,
+        label: `End (Day ${plan.duration})`,
+        percent: 10,
+        amount: +(total * 0.1).toFixed(2),
+      },
+    ];
+    return { total, milestones, firstPayment: milestones[0].amount };
+  }, [selectedRentalPlan, service?.rentalPlans]);
+
+  // PATCH_92/93: Available countries from the service
+  const serviceCountries = useMemo(() => {
+    const countries = service?.countries;
+    if (Array.isArray(countries) && countries.length > 0) return countries;
+    return ["Global"];
+  }, [service?.countries]);
+
   const buyService = async (overridePlanIndex?: number | null) => {
     // PATCH_12: Hard redirect if not logged in, with next param.
     // This avoids endless "Authentication required" toasts.
@@ -322,79 +377,33 @@ export default function ServiceDetailsPage() {
     return (
       <div className="u-container max-w-5xl">
         <div className="card">
-          <p className="text-white font-semibold">{copy.notAvailableTitle}</p>
-          <p className="text-sm text-[#9CA3AF] mt-1">
-            {error || copy.notAvailableSubtitle}
+          <p className="text-xs text-red-400 uppercase tracking-wide">Error</p>
+          <p className="text-white font-bold text-xl mt-1">
+            Service unavailable
+          </p>
+          <p className="text-sm text-[#9CA3AF] mt-2">
+            We couldn&apos;t load this service. It may have been removed or you
+            may not have permission to view it.
           </p>
           <div className="mt-4 flex gap-3 flex-wrap">
-            <Link href="/explore-services" className="btn-secondary">
-              {copy.backToServicesText}
-            </Link>
             <button
               type="button"
               onClick={() => router.refresh()}
               className="btn-primary"
             >
-              {copy.retryText}
+              Retry
             </button>
+            <Link href="/explore-services" className="btn-secondary">
+              Back to services
+            </Link>
+            <Link href="/" className="btn-secondary">
+              Home
+            </Link>
           </div>
         </div>
       </div>
     );
   }
-
-  const allowed = normalizeAllowedActions(service?.allowedActions);
-  const hasAnyAction =
-    allowed.buy || allowed.apply || allowed.rent || allowed.deal;
-
-  // PATCH_92: Auto-scroll to rent section when intent=rent
-  useEffect(() => {
-    if (urlIntent === "rent" && allowed.rent && rentSectionRef.current) {
-      setTimeout(() => {
-        rentSectionRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-      }, 300);
-    }
-  }, [urlIntent, allowed.rent, service?._id]);
-
-  // PATCH_92: Compute payment schedule for selected rental plan
-  const rentSchedule = useMemo(() => {
-    if (selectedRentalPlan === null) return null;
-    const plan = service?.rentalPlans?.[selectedRentalPlan];
-    if (!plan) return null;
-    const total = plan.price;
-    // Payment milestones: Day 0 → 40%, middle → 20%, end → 10%
-    const milestones = [
-      {
-        day: 0,
-        label: "Checkout (Day 0)",
-        percent: 40,
-        amount: +(total * 0.4).toFixed(2),
-      },
-      {
-        day: Math.floor(plan.duration / 2),
-        label: `Mid-term (Day ${Math.floor(plan.duration / 2)})`,
-        percent: 20,
-        amount: +(total * 0.2).toFixed(2),
-      },
-      {
-        day: plan.duration,
-        label: `End (Day ${plan.duration})`,
-        percent: 10,
-        amount: +(total * 0.1).toFixed(2),
-      },
-    ];
-    return { total, milestones, firstPayment: milestones[0].amount };
-  }, [selectedRentalPlan, service?.rentalPlans]);
-
-  // PATCH_92: Available countries from the service
-  const serviceCountries = useMemo(() => {
-    const countries = service?.countries;
-    if (Array.isArray(countries) && countries.length > 0) return countries;
-    return ["Global"];
-  }, [service?.countries]);
 
   const deliveryLabel = service?.deliveryType
     ? String(service.deliveryType).replace(/_/g, " ")
