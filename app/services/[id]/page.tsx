@@ -132,28 +132,48 @@ export default function ServiceDetailsPage() {
     };
   }, [id, service?._id]);
 
-  const buyService = async () => {
+  const buyService = async (overridePlanIndex?: number | null) => {
     // PATCH_12: Hard redirect if not logged in, with next param.
     // This avoids endless "Authentication required" toasts.
     if (!ensureLoggedIn()) return;
 
+    // PATCH_90: Check permissions before making API calls to prevent 403 errors
+    const allowed = normalizeAllowedActions(service?.allowedActions);
+
+    // Resolve final plan index: direct param > state > null
+    const finalPlanIndex = overridePlanIndex !== undefined ? overridePlanIndex : selectedRentalPlan;
+
     // PATCH_22: Validate rental plan selection for rental services
-    if (service?.isRental && selectedRentalPlan === null) {
+    if (service?.isRental && finalPlanIndex === null) {
+      // PATCH_90: Only prompt for rental plan if rent is actually allowed
+      if (!allowed.rent) {
+        toast(
+          "Rentals are not available for this service. Try Buy instead.",
+          "error",
+        );
+        return;
+      }
       toast("Please select a rental plan", "error");
       return;
     }
 
     // PATCH_22: For rental services, create a rental order instead
-    if (service?.isRental && selectedRentalPlan !== null) {
+    if (service?.isRental && finalPlanIndex !== null) {
+      // PATCH_90: Verify rent permission before calling API
+      if (!allowed.rent) {
+        toast(
+          "Rentals are not available for this service. Try Buy instead.",
+          "error",
+        );
+        return;
+      }
       try {
-        const plan = service.rentalPlans[selectedRentalPlan];
         const res = await apiRequest(
           "/api/rentals/create",
           "POST",
           {
             serviceId: service._id,
-            rentalType: plan.unit,
-            duration: plan.duration,
+            planIndex: finalPlanIndex,
           },
           true,
         );
@@ -377,7 +397,7 @@ export default function ServiceDetailsPage() {
           onApply={applyToWork}
           onRent={(planIndex) => {
             setSelectedRentalPlan(planIndex);
-            buyService();
+            buyService(planIndex);
           }}
           onDeal={createDealOrder}
           selectedRentalPlan={selectedRentalPlan}
@@ -699,7 +719,7 @@ export default function ServiceDetailsPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={buyService}
+                  onClick={() => buyService()}
                   disabled={
                     service?.active === false || selectedRentalPlan === null
                   }
@@ -718,7 +738,7 @@ export default function ServiceDetailsPage() {
             {allowed.buy && (
               <button
                 type="button"
-                onClick={buyService}
+                onClick={() => buyService()}
                 disabled={service?.active === false}
                 className="btn-primary w-full disabled:opacity-50 mt-4"
               >

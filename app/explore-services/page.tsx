@@ -670,27 +670,6 @@ export default function UnifiedMarketplacePage() {
             </div>
           </div>
         </div>
-
-        {(activeIntent === "rent" || activeIntent === "deal") && (
-          <div className="mt-6 rounded-2xl border border-white/10 bg-slate-950/70 px-5 py-4">
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-white">
-                !
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-white">
-                  {activeIntent === "rent"
-                    ? "Rentals are coming soon"
-                    : "Deals are coming soon"}
-                </p>
-                <p className="text-xs text-slate-300">
-                  You can still browse listings now. We will open this feature
-                  shortly.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Category Guide to explain what each bucket means */}
@@ -1575,24 +1554,28 @@ function ServiceCard({
     : "Standard";
 
   // PATCH_76: All service cards route to /services/:id regardless of intent
+  // PATCH_90: Only append rent/deal intent if the service actually supports it
   const getActionLink = () => {
     if (intent === "earn") {
       return service.linkedJob?._id
         ? `/apply-to-work?jobId=${service.linkedJob._id}`
         : `/apply-to-work?serviceId=${service._id}`;
     }
-    // All other intents (buy, rent, deal) use the service detail page
-    const intentSuffix =
-      intent === "rent" || intent === "deal" ? `?intent=${intent}` : "";
+    // Only pass intent to detail page if service supports that action
+    const canDoIntent =
+      (intent === "rent" && service.allowedActions?.rent) ||
+      (intent === "deal" && service.allowedActions?.deal);
+    const intentSuffix = canDoIntent ? `?intent=${intent}` : "";
     return `/services/${service._id}${intentSuffix}`;
   };
 
   // Get price display
+  // PATCH_90: Only show rental price if service actually allows rent
   const getPriceDisplay = () => {
     if (intent === "earn" && service.payRate) {
       return `$${service.payRate}/hr`;
     }
-    if (intent === "rent" && service.rentalPlans?.length) {
+    if (intent === "rent" && service.allowedActions?.rent && service.rentalPlans?.length) {
       const cheapest = service.rentalPlans.reduce(
         (min, p) => (p.price < min.price ? p : min),
         service.rentalPlans[0],
@@ -1771,7 +1754,7 @@ function ServiceCard({
             <div className="text-xs text-slate-400 mb-1">
               {intent === "earn"
                 ? "Earn"
-                : intent === "rent"
+                : intent === "rent" && service.allowedActions?.rent
                   ? "From"
                   : "Price"}
             </div>
@@ -1788,13 +1771,16 @@ function ServiceCard({
             className={`px-5 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r ${config.gradient} shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] transition-all duration-300 hover:scale-105 active:scale-95 whitespace-nowrap`}
           >
             {/* PATCH_54: Dynamic CTA text based on intent and price */}
+            {/* PATCH_90: Only show Rent/Deal CTA if service supports it */}
             {intent === "buy"
               ? `Buy – $${service.price}`
               : intent === "earn"
                 ? "Apply Now"
-                : intent === "rent" && service.rentalPlans?.length
+                : intent === "rent" && service.allowedActions?.rent && service.rentalPlans?.length
                   ? `Rent – $${service.rentalPlans[0].price}`
-                  : config.action}
+                  : intent === "deal" && service.allowedActions?.deal
+                    ? "Start Deal"
+                    : `Buy – $${service.price}`}
           </Link>
         </div>
       </div>

@@ -120,7 +120,6 @@ export default function ServiceActionSelector({
   const searchParams = useSearchParams();
   const intentParam = searchParams.get("intent") || "";
   const highlightedAction = INTENT_TO_ACTION[intentParam] || null;
-  const showComingSoon = intentParam === "rent" || intentParam === "deal";
 
   const hasAnyAction =
     allowedActions.buy ||
@@ -157,27 +156,6 @@ export default function ServiceActionSelector({
           Select the option that best fits your needs
         </p>
       </div>
-
-      {showComingSoon && (
-        <div className="rounded-2xl border border-white/10 bg-slate-950/70 px-5 py-4">
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-white">
-              !
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white">
-                {intentParam === "rent"
-                  ? "Rentals are coming soon"
-                  : "Deals are coming soon"}
-              </p>
-              <p className="text-xs text-slate-300">
-                You can still browse listings now. We will open this feature
-                shortly.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Action Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
