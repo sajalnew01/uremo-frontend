@@ -18,6 +18,7 @@ export interface WorkerData {
     firstName: string;
     lastName: string;
     email: string;
+    name?: string;
   };
   jobId?: {
     _id: string;
