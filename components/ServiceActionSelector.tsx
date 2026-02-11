@@ -2,11 +2,13 @@
 
 /**
  * PATCH_55: Service Action Selector Component
+ * PATCH_93: Deal card shows "Coming Soon" banner — no API calls, no deal creation.
  *
  * Displays all allowed actions for a service with clear explanations
  * and CTAs. Highlights the action matching user's intent from URL.
  */
 
+import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 
 type AllowedActions = {
@@ -117,6 +119,7 @@ export default function ServiceActionSelector({
   selectedRentalPlan,
   onSelectRentalPlan,
 }: ServiceActionSelectorProps) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const intentParam = searchParams.get("intent") || "";
   const highlightedAction = INTENT_TO_ACTION[intentParam] || null;
@@ -195,15 +198,51 @@ export default function ServiceActionSelector({
           />
         )}
 
-        {/* DEAL Card */}
+        {/* DEAL Card — PATCH_93: Coming Soon guard, no API calls */}
         {allowedActions.deal && (
-          <ActionCard
-            config={ACTION_CONFIG.deal}
-            isHighlighted={highlightedAction === "deal"}
-            isDisabled={!isActive}
-            ctaText={isActive ? "Start Deal" : "Currently Unavailable"}
-            onClick={onDeal}
-          />
+          <div
+            className={`
+              relative rounded-2xl border p-6 transition-all duration-300
+              ${
+                highlightedAction === "deal"
+                  ? "border-orange-500 shadow-[0_0_30px_rgba(249,115,22,0.3)] bg-orange-500/10"
+                  : "border-white/10 bg-gradient-to-br from-slate-900/60 to-slate-950/60 hover:border-white/20"
+              }
+            `}
+          >
+            {highlightedAction === "deal" && (
+              <div className="absolute -top-3 left-4">
+                <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-lg">
+                  Selected
+                </span>
+              </div>
+            )}
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center text-2xl shadow-lg">
+                🤝
+              </div>
+              <h3 className="text-lg font-bold text-white">
+                Deal at Percentage
+              </h3>
+            </div>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-lg">🚧</span>
+              <p className="text-sm text-amber-200 font-semibold">
+                Coming Soon
+              </p>
+            </div>
+            <p className="text-xs text-slate-400 mb-4">
+              The deals feature is under development. You&apos;ll be able to
+              negotiate custom deal terms soon.
+            </p>
+            <button
+              type="button"
+              onClick={() => router.push("/deals")}
+              className="w-full py-3 px-6 rounded-xl font-bold text-amber-200 bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition-all duration-300"
+            >
+              Learn More
+            </button>
+          </div>
         )}
       </div>
     </div>

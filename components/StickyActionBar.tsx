@@ -2,12 +2,14 @@
 
 /**
  * PATCH_55: Sticky Action Bar Component
+ * PATCH_93: Deal button shows "Coming Soon" and navigates to /deals — no API calls.
  *
  * Shows a sticky bottom bar when user scrolls down.
  * Works on both desktop and mobile.
  */
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type StickyActionBarProps = {
   serviceTitle: string;
@@ -43,6 +45,7 @@ export default function StickyActionBar({
   onDeal,
   onHelp,
 }: StickyActionBarProps) {
+  const router = useRouter();
   const [isVisible, setIsVisible] = useState(false);
   const [selectedAction, setSelectedAction] = useState<
     "buy" | "apply" | "rent" | "deal" | null
@@ -96,9 +99,9 @@ export default function StickyActionBar({
       onClick: onRent,
     },
     deal: {
-      label: "Start Deal",
+      label: "Deals — Coming Soon",
       gradient: "from-orange-500 to-amber-600",
-      onClick: onDeal,
+      onClick: () => router.push("/deals"),
     },
   };
 

@@ -1499,9 +1499,11 @@ export default function UnifiedMarketplacePage() {
                   href={
                     activeIntent === "earn"
                       ? `/apply-to-work?serviceId=${previewService._id}`
-                      : activeIntent === "rent" || activeIntent === "deal"
-                        ? `/services/${previewService._id}?intent=${activeIntent}`
-                        : `/services/${previewService._id}`
+                      : activeIntent === "deal"
+                        ? "/deals"
+                        : activeIntent === "rent"
+                          ? `/services/${previewService._id}?intent=${activeIntent}`
+                          : `/services/${previewService._id}`
                   }
                   className={`px-6 py-3 rounded-xl text-white font-bold bg-gradient-to-r ${config.gradient} shadow-[0_0_24px_rgba(59,130,246,0.5)] hover:shadow-[0_0_32px_rgba(59,130,246,0.7)] transition-all hover:scale-105`}
                   onClick={() => {
@@ -1566,8 +1568,7 @@ function ServiceCard({
     if (intent === "deal") {
       return "/deals";
     }
-    const canDoIntent =
-      (intent === "rent" && service.allowedActions?.rent);
+    const canDoIntent = intent === "rent" && service.allowedActions?.rent;
     const intentSuffix = canDoIntent ? `?intent=${intent}` : "";
     return `/services/${service._id}${intentSuffix}`;
   };

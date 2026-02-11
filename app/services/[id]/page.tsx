@@ -32,8 +32,6 @@ export default function ServiceDetailsPage() {
   const [service, setService] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
-  // PATCH_38: Deal percent (1..100)
-  const [dealPercent, setDealPercent] = useState<number>(10);
   // PATCH_22: Selected rental plan for rental services
   const [selectedRentalPlan, setSelectedRentalPlan] = useState<number | null>(
     null,
@@ -326,39 +324,10 @@ export default function ServiceDetailsPage() {
     }
   };
 
-  const createDealOrder = async () => {
-    if (!ensureLoggedIn()) return;
-
-    // PATCH_75: Verify service allows deals before creating order
-    const allowed = normalizeAllowedActions(service?.allowedActions);
-    if (!allowed.deal) {
-      toast(
-        "Deals are not available for this service. Try Buy or Apply instead.",
-        "error",
-      );
-      return;
-    }
-
-    const pct = Number(dealPercent);
-    if (!Number.isFinite(pct) || pct <= 0 || pct > 100) {
-      toast("Deal percent must be between 1 and 100", "error");
-      return;
-    }
-
-    try {
-      const res = await apiRequest(
-        "/api/orders/deal",
-        "POST",
-        { serviceId: service._id, dealPercent: pct },
-        true,
-      );
-      const orderId = res?.orderId;
-      if (!orderId) throw new Error("Failed to create deal order");
-      toast("Deal created. Complete payment to confirm.", "success");
-      router.push(`/payment/${orderId}`);
-    } catch (e: any) {
-      toast(e?.message || "Failed to create deal order", "error");
-    }
+  // PATCH_93: createDealOrder neutralized — deals not yet live.
+  // All deal buttons now redirect to /deals coming-soon page.
+  const createDealOrder = () => {
+    router.push("/deals");
   };
 
   if (loading) {
