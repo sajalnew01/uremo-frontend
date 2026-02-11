@@ -52,6 +52,18 @@ export default function ScreeningTestPage() {
     message: string;
     attemptsRemaining: number;
     newStatus: string;
+    // PATCH_90: Hybrid screening fields
+    autoScore?: number;
+    autoPass?: boolean;
+    evaluationMode?: string;
+    submissionStatus?: string;
+    validationFlags?: { rule: string; passed: boolean; detail: string }[];
+    rubricBreakdown?: {
+      criteria: string;
+      weight: number;
+      maxScore: number;
+      awarded: number;
+    }[];
   } | null>(null);
 
   // Load screening
@@ -142,9 +154,19 @@ export default function ScreeningTestPage() {
         message: res.message,
         attemptsRemaining: res.attemptsRemaining,
         newStatus: res.newStatus,
+        // PATCH_90: Hybrid screening fields
+        autoScore: res.autoScore,
+        autoPass: res.autoPass,
+        evaluationMode: res.evaluationMode,
+        submissionStatus: res.submissionStatus,
+        validationFlags: res.validationFlags,
+        rubricBreakdown: res.rubricBreakdown,
       });
 
-      if (res.passed) {
+      // PATCH_90: Different toast for hybrid/manual pending review
+      if (res.submissionStatus === "pending_review") {
+        toast("Submission received — pending admin review", "info");
+      } else if (res.passed) {
         toast("Congratulations! You passed!", "success");
       } else {
         toast(res.message, "error");
@@ -205,67 +227,149 @@ export default function ScreeningTestPage() {
 
   // Result screen
   if (result) {
+    // PATCH_90: Determine display mode
+    const isPendingReview = result.submissionStatus === "pending_review";
+    const isHybridOrManual =
+      result.evaluationMode === "hybrid" || result.evaluationMode === "manual";
+
     return (
       <div className="u-container max-w-3xl">
         <div className="card text-center py-12">
-          <div className="text-6xl mb-4">{result.passed ? "🎉" : "😔"}</div>
-          <h1 className="text-2xl font-bold mb-2">
-            {result.passed ? "Congratulations!" : "Not Quite"}
-          </h1>
-          <p
-            className={`text-4xl font-bold mb-4 ${result.passed ? "text-emerald-400" : "text-red-400"}`}
-          >
-            {result.score}%
-          </p>
-          <p className="text-slate-300 mb-6">{result.message}</p>
-
-          {result.passed ? (
-            <div className="space-y-4">
-              <p className="text-sm text-emerald-300">
-                You're now ready to receive work assignments!
-              </p>
-              <Link href="/workspace" className="btn-primary">
-                Go to Workspace
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {result.attemptsRemaining > 0 ? (
-                <>
-                  <p className="text-sm text-amber-300">
-                    You have {result.attemptsRemaining} attempt
-                    {result.attemptsRemaining !== 1 ? "s" : ""} remaining.
-                  </p>
-                  <div className="flex gap-3 justify-center">
-                    <Link href="/workspace" className="btn-secondary">
-                      Review Training
-                    </Link>
-                    <button
-                      onClick={() => {
-                        setResult(null);
-                        setAnswers({});
-                        setCurrentQuestion(0);
-                        setStarted(false);
-                        setTimeRemaining(screening.timeLimit * 60);
-                      }}
-                      className="btn-primary"
-                    >
-                      Try Again
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <p className="text-sm text-red-300">
-                    You've used all your attempts. Contact admin for
-                    re-evaluation.
-                  </p>
-                  <Link href="/workspace" className="btn-secondary">
-                    Back to Workspace
-                  </Link>
-                </>
+          {/* PATCH_90: Pending Review state for hybrid/manual */}
+          {isPendingReview ? (
+            <>
+              <div className="text-6xl mb-4">⏳</div>
+              <h1 className="text-2xl font-bold mb-2">Submission Received</h1>
+              {result.autoScore !== undefined && (
+                <p className="text-3xl font-bold text-cyan-400 mb-2">
+                  Auto Score: {result.autoScore}%
+                </p>
               )}
-            </div>
+              <p className="text-slate-300 mb-4">
+                {result.autoPass
+                  ? "Auto criteria met — pending admin review for final approval."
+                  : "Your submission is under review. An admin will evaluate your responses."}
+              </p>
+
+              {/* Validation Flags Summary */}
+              {result.validationFlags && result.validationFlags.length > 0 && (
+                <div className="mt-4 mb-4 text-left max-w-md mx-auto">
+                  <h3 className="text-sm font-medium text-slate-400 mb-2">
+                    Validation Checks:
+                  </h3>
+                  <div className="space-y-1">
+                    {result.validationFlags.map((flag, i) => (
+                      <div key={i} className="flex items-center gap-2 text-sm">
+                        <span
+                          className={
+                            flag.passed ? "text-emerald-400" : "text-amber-400"
+                          }
+                        >
+                          {flag.passed ? "✓" : "⚠"}
+                        </span>
+                        <span className="text-slate-300">{flag.detail}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Rubric Breakdown Summary */}
+              {result.rubricBreakdown && result.rubricBreakdown.length > 0 && (
+                <div className="mt-4 mb-4 text-left max-w-md mx-auto">
+                  <h3 className="text-sm font-medium text-slate-400 mb-2">
+                    Rubric Breakdown:
+                  </h3>
+                  <div className="space-y-1">
+                    {result.rubricBreakdown.map((item, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between text-sm"
+                      >
+                        <span className="text-slate-300">{item.criteria}</span>
+                        <span className="text-cyan-400 font-medium">
+                          {item.awarded}/{item.maxScore}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="rounded-xl bg-cyan-500/10 border border-cyan-500/20 p-3 mb-6 max-w-md mx-auto">
+                <p className="text-sm text-cyan-300">
+                  📋 Your test has been submitted for admin review. You&apos;ll
+                  be notified once it&apos;s evaluated.
+                </p>
+              </div>
+
+              <Link href="/workspace" className="btn-primary">
+                Back to Workspace
+              </Link>
+            </>
+          ) : (
+            <>
+              {/* Original pass/fail display for auto-graded results */}
+              <div className="text-6xl mb-4">{result.passed ? "🎉" : "😔"}</div>
+              <h1 className="text-2xl font-bold mb-2">
+                {result.passed ? "Congratulations!" : "Not Quite"}
+              </h1>
+              <p
+                className={`text-4xl font-bold mb-4 ${result.passed ? "text-emerald-400" : "text-red-400"}`}
+              >
+                {result.score}%
+              </p>
+              <p className="text-slate-300 mb-6">{result.message}</p>
+
+              {result.passed ? (
+                <div className="space-y-4">
+                  <p className="text-sm text-emerald-300">
+                    You&apos;re now ready to receive work assignments!
+                  </p>
+                  <Link href="/workspace" className="btn-primary">
+                    Go to Workspace
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {result.attemptsRemaining > 0 ? (
+                    <>
+                      <p className="text-sm text-amber-300">
+                        You have {result.attemptsRemaining} attempt
+                        {result.attemptsRemaining !== 1 ? "s" : ""} remaining.
+                      </p>
+                      <div className="flex gap-3 justify-center">
+                        <Link href="/workspace" className="btn-secondary">
+                          Review Training
+                        </Link>
+                        <button
+                          onClick={() => {
+                            setResult(null);
+                            setAnswers({});
+                            setCurrentQuestion(0);
+                            setStarted(false);
+                            setTimeRemaining(screening.timeLimit * 60);
+                          }}
+                          className="btn-primary"
+                        >
+                          Try Again
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-red-300">
+                        You&apos;ve used all your attempts. Contact admin for
+                        re-evaluation.
+                      </p>
+                      <Link href="/workspace" className="btn-secondary">
+                        Back to Workspace
+                      </Link>
+                    </>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
