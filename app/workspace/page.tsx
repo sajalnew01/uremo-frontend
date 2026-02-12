@@ -536,6 +536,29 @@ function JobCard({
             </div>
           )}
 
+        {/* No Training Materials - Skip directly to test when screening_unlocked */}
+        {app.workerStatus === "screening_unlocked" &&
+          !trainingViewed &&
+          (!app.trainingMaterials || app.trainingMaterials.length === 0) && (
+            <div className="space-y-4">
+              <div className="bg-emerald-500/10 rounded-xl p-4 border border-emerald-500/20">
+                <h4 className="font-medium text-emerald-300 mb-2 flex items-center gap-2">
+                  ✅ No Training Required
+                </h4>
+                <p className="text-xs text-slate-400 mb-3">
+                  You can proceed directly to the screening test
+                </p>
+              </div>
+              <button
+                onClick={handleViewTraining}
+                disabled={markingViewed}
+                className="w-full btn-primary disabled:opacity-50"
+              >
+                {markingViewed ? "⏳ Saving..." : "📝 Proceed to Test"}
+              </button>
+            </div>
+          )}
+
         {/* Failed - Show training again + retry */}
         {app.workerStatus === "failed" &&
           app.maxAttempts - app.attemptCount > 0 &&
