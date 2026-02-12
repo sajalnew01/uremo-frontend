@@ -164,8 +164,7 @@ export default function AdminScreeningEditorPage() {
           minWords: data.autoValidationRules?.minWords || 0,
           maxWords: data.autoValidationRules?.maxWords || 0,
           bannedWords: (data.autoValidationRules?.bannedWords || []).join(", "),
-          requireJustification:
-            data.autoValidationRules?.requireJustification || false,
+          requireJustification: data.autoValidationRules?.requireJustification || false,
         },
       });
     } catch (e: any) {
@@ -279,13 +278,9 @@ export default function AdminScreeningEditorPage() {
           minWords: form.autoValidationRules.minWords || undefined,
           maxWords: form.autoValidationRules.maxWords || undefined,
           bannedWords: form.autoValidationRules.bannedWords
-            ? form.autoValidationRules.bannedWords
-                .split(",")
-                .map((w: string) => w.trim())
-                .filter(Boolean)
+            ? form.autoValidationRules.bannedWords.split(",").map((w: string) => w.trim()).filter(Boolean)
             : undefined,
-          requireJustification:
-            form.autoValidationRules.requireJustification || undefined,
+          requireJustification: form.autoValidationRules.requireJustification || undefined,
         },
         questions: form.questions.map((q) => {
           const options = normalizeOptions(q.options);
@@ -437,245 +432,6 @@ export default function AdminScreeningEditorPage() {
           </div>
         </div>
 
-        {/* PATCH_90: Evaluation Mode & Rubric Settings */}
-        <div className="border-t border-white/10 pt-4 mt-2">
-          <h3 className="font-medium text-sm text-slate-300 mb-3">
-            ⚡ Evaluation Settings{" "}
-            <span className="text-xs text-slate-500">(PATCH_90)</span>
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">
-                Evaluation Mode
-              </label>
-              <select
-                value={form.evaluationMode}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    evaluationMode: e.target.value as
-                      | "auto"
-                      | "hybrid"
-                      | "manual",
-                  })
-                }
-                className="input w-full"
-              >
-                <option value="auto">Auto (MCQ only, instant pass/fail)</option>
-                <option value="hybrid">
-                  Hybrid (auto score + admin review)
-                </option>
-                <option value="manual">Manual (full admin review)</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">
-                Pass Threshold (%)
-              </label>
-              <input
-                type="number"
-                min={1}
-                max={100}
-                value={form.passThreshold}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    passThreshold: Number(e.target.value) || 70,
-                  })
-                }
-                className="input w-full"
-              />
-            </div>
-          </div>
-
-          {/* Auto Validation Rules */}
-          {form.evaluationMode !== "auto" && (
-            <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10">
-              <h4 className="text-xs font-medium text-slate-400 mb-2">
-                Auto Validation Rules
-              </h4>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-slate-500 mb-1">
-                    Min Words
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={form.autoValidationRules.minWords}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        autoValidationRules: {
-                          ...form.autoValidationRules,
-                          minWords: Number(e.target.value) || 0,
-                        },
-                      })
-                    }
-                    className="input w-full text-sm"
-                    placeholder="0 = no limit"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-500 mb-1">
-                    Max Words
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={form.autoValidationRules.maxWords}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        autoValidationRules: {
-                          ...form.autoValidationRules,
-                          maxWords: Number(e.target.value) || 0,
-                        },
-                      })
-                    }
-                    className="input w-full text-sm"
-                    placeholder="0 = no limit"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-xs text-slate-500 mb-1">
-                    Banned Words (comma separated)
-                  </label>
-                  <input
-                    type="text"
-                    value={form.autoValidationRules.bannedWords}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        autoValidationRules: {
-                          ...form.autoValidationRules,
-                          bannedWords: e.target.value,
-                        },
-                      })
-                    }
-                    className="input w-full text-sm"
-                    placeholder="e.g., spam, placeholder, lorem"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={form.autoValidationRules.requireJustification}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          autoValidationRules: {
-                            ...form.autoValidationRules,
-                            requireJustification: e.target.checked,
-                          },
-                        })
-                      }
-                    />
-                    Require justification in text answers
-                  </label>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Rubric Editor */}
-          {form.evaluationMode !== "auto" && (
-            <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-xs font-medium text-slate-400">
-                  Rubric Criteria
-                </h4>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setForm({
-                      ...form,
-                      rubric: [
-                        ...form.rubric,
-                        { criteria: "", weight: 1, maxScore: 10 },
-                      ],
-                    })
-                  }
-                  className="text-xs text-blue-400 hover:text-blue-300"
-                >
-                  + Add Criteria
-                </button>
-              </div>
-              {form.rubric.length === 0 && (
-                <p className="text-xs text-slate-500">
-                  No rubric criteria. Admin will review without structured
-                  rubric.
-                </p>
-              )}
-              <div className="space-y-2">
-                {form.rubric.map((r, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={r.criteria}
-                      onChange={(e) => {
-                        const updated = [...form.rubric];
-                        updated[idx] = {
-                          ...updated[idx],
-                          criteria: e.target.value,
-                        };
-                        setForm({ ...form, rubric: updated });
-                      }}
-                      className="input flex-1 text-sm"
-                      placeholder="Criteria name"
-                    />
-                    <input
-                      type="number"
-                      min={1}
-                      value={r.weight}
-                      onChange={(e) => {
-                        const updated = [...form.rubric];
-                        updated[idx] = {
-                          ...updated[idx],
-                          weight: Number(e.target.value) || 1,
-                        };
-                        setForm({ ...form, rubric: updated });
-                      }}
-                      className="input w-16 text-sm"
-                      placeholder="Wt"
-                      title="Weight"
-                    />
-                    <input
-                      type="number"
-                      min={1}
-                      value={r.maxScore}
-                      onChange={(e) => {
-                        const updated = [...form.rubric];
-                        updated[idx] = {
-                          ...updated[idx],
-                          maxScore: Number(e.target.value) || 10,
-                        };
-                        setForm({ ...form, rubric: updated });
-                      }}
-                      className="input w-16 text-sm"
-                      placeholder="Max"
-                      title="Max Score"
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setForm({
-                          ...form,
-                          rubric: form.rubric.filter((_, i) => i !== idx),
-                        })
-                      }
-                      className="text-red-400 hover:text-red-300 text-xs"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
         <div className="border-t border-white/10 pt-6">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-medium">Questions</h3>
@@ -688,7 +444,172 @@ export default function AdminScreeningEditorPage() {
             </button>
           </div>
 
-          <div className="space-y-4">
+        {/* PATCH_90: Evaluation Mode & Rubric Settings */}
+        <div className="border-t border-white/10 pt-4 mt-2">
+          <h3 className="font-medium text-sm text-slate-300 mb-3">⚡ Evaluation Settings <span className="text-xs text-slate-500">(PATCH_90)</span></h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">Evaluation Mode</label>
+              <select
+                value={form.evaluationMode}
+                onChange={(e) => setForm({ ...form, evaluationMode: e.target.value as "auto" | "hybrid" | "manual" })}
+                className="input w-full"
+              >
+                <option value="auto">Auto (MCQ only, instant pass/fail)</option>
+                <option value="hybrid">Hybrid (auto score + admin review)</option>
+                <option value="manual">Manual (full admin review)</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">Pass Threshold (%)</label>
+              <input
+                type="number"
+                min={1}
+                max={100}
+                value={form.passThreshold}
+                onChange={(e) => setForm({ ...form, passThreshold: Number(e.target.value) || 70 })}
+                className="input w-full"
+              />
+            </div>
+          </div>
+
+          {/* Auto Validation Rules */}
+          {form.evaluationMode !== "auto" && (
+            <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10">
+              <h4 className="text-xs font-medium text-slate-400 mb-2">Auto Validation Rules</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-slate-500 mb-1">Min Words</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={form.autoValidationRules.minWords}
+                    onChange={(e) => setForm({
+                      ...form,
+                      autoValidationRules: { ...form.autoValidationRules, minWords: Number(e.target.value) || 0 }
+                    })}
+                    className="input w-full text-sm"
+                    placeholder="0 = no limit"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-500 mb-1">Max Words</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={form.autoValidationRules.maxWords}
+                    onChange={(e) => setForm({
+                      ...form,
+                      autoValidationRules: { ...form.autoValidationRules, maxWords: Number(e.target.value) || 0 }
+                    })}
+                    className="input w-full text-sm"
+                    placeholder="0 = no limit"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs text-slate-500 mb-1">Banned Words (comma separated)</label>
+                  <input
+                    type="text"
+                    value={form.autoValidationRules.bannedWords}
+                    onChange={(e) => setForm({
+                      ...form,
+                      autoValidationRules: { ...form.autoValidationRules, bannedWords: e.target.value }
+                    })}
+                    className="input w-full text-sm"
+                    placeholder="e.g., spam, placeholder, lorem"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.autoValidationRules.requireJustification}
+                      onChange={(e) => setForm({
+                        ...form,
+                        autoValidationRules: { ...form.autoValidationRules, requireJustification: e.target.checked }
+                      })}
+                    />
+                    Require justification in text answers
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Rubric Editor */}
+          {form.evaluationMode !== "auto" && (
+            <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-xs font-medium text-slate-400">Rubric Criteria</h4>
+                <button
+                  type="button"
+                  onClick={() => setForm({
+                    ...form,
+                    rubric: [...form.rubric, { criteria: "", weight: 1, maxScore: 10 }]
+                  })}
+                  className="text-xs text-blue-400 hover:text-blue-300"
+                >
+                  + Add Criteria
+                </button>
+              </div>
+              {form.rubric.length === 0 && (
+                <p className="text-xs text-slate-500">No rubric criteria. Admin will review without structured rubric.</p>
+              )}
+              <div className="space-y-2">
+                {form.rubric.map((r, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={r.criteria}
+                      onChange={(e) => {
+                        const updated = [...form.rubric];
+                        updated[idx] = { ...updated[idx], criteria: e.target.value };
+                        setForm({ ...form, rubric: updated });
+                      }}
+                      className="input flex-1 text-sm"
+                      placeholder="Criteria name"
+                    />
+                    <input
+                      type="number"
+                      min={1}
+                      value={r.weight}
+                      onChange={(e) => {
+                        const updated = [...form.rubric];
+                        updated[idx] = { ...updated[idx], weight: Number(e.target.value) || 1 };
+                        setForm({ ...form, rubric: updated });
+                      }}
+                      className="input w-16 text-sm"
+                      placeholder="Wt"
+                      title="Weight"
+                    />
+                    <input
+                      type="number"
+                      min={1}
+                      value={r.maxScore}
+                      onChange={(e) => {
+                        const updated = [...form.rubric];
+                        updated[idx] = { ...updated[idx], maxScore: Number(e.target.value) || 10 };
+                        setForm({ ...form, rubric: updated });
+                      }}
+                      className="input w-16 text-sm"
+                      placeholder="Max"
+                      title="Max Score"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, rubric: form.rubric.filter((_, i) => i !== idx) })}
+                      className="text-red-400 hover:text-red-300 text-xs"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-4">
             {form.questions.map((q, qIndex) => (
               <div
                 key={qIndex}

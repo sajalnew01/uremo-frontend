@@ -224,13 +224,9 @@ function ScreeningsContent() {
           minWords: form.autoValidationRules.minWords || undefined,
           maxWords: form.autoValidationRules.maxWords || undefined,
           bannedWords: form.autoValidationRules.bannedWords
-            ? form.autoValidationRules.bannedWords
-                .split(",")
-                .map((w: string) => w.trim())
-                .filter(Boolean)
+            ? form.autoValidationRules.bannedWords.split(",").map((w: string) => w.trim()).filter(Boolean)
             : undefined,
-          requireJustification:
-            form.autoValidationRules.requireJustification || undefined,
+          requireJustification: form.autoValidationRules.requireJustification || undefined,
         },
         questions: validQuestions.map((q) => {
           const options = normalizeOptions(q.options);
@@ -427,22 +423,11 @@ function ScreeningsContent() {
         <div className="flex items-start gap-3">
           <span className="text-2xl">✅</span>
           <div className="flex-1">
-            <h3 className="text-sm font-semibold text-white mb-1">
-              Screening Results:
-            </h3>
+            <h3 className="text-sm font-semibold text-white mb-1">Screening Results:</h3>
             <ul className="text-sm text-slate-300 space-y-1">
-              <li>
-                • <span className="text-emerald-400 font-medium">Pass</span> →
-                Worker becomes "Ready to Work" → Can receive project assignments
-              </li>
-              <li>
-                • <span className="text-red-400 font-medium">Fail</span> →
-                Worker cannot be assigned projects → Admin can allow retry
-              </li>
-              <li>
-                • <span className="text-amber-400 font-medium">Pending</span> →
-                Waiting for admin review (test_submitted status)
-              </li>
+              <li>• <span className="text-emerald-400 font-medium">Pass</span> → Worker becomes "Ready to Work" → Can receive project assignments</li>
+              <li>• <span className="text-red-400 font-medium">Fail</span> → Worker cannot be assigned projects → Admin can allow retry</li>
+              <li>• <span className="text-amber-400 font-medium">Pending</span> → Waiting for admin review (test_submitted status)</li>
             </ul>
           </div>
         </div>
@@ -548,21 +533,6 @@ function ScreeningsContent() {
                       <span className="px-2 py-0.5 rounded-full text-xs bg-purple-500/20 text-purple-400">
                         {getJobRoleCategoryLabel(screening.category)}
                       </span>
-                      {/* PATCH_90: Evaluation Mode Badge */}
-                      {screening.evaluationMode &&
-                        screening.evaluationMode !== "auto" && (
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-xs ${
-                              screening.evaluationMode === "hybrid"
-                                ? "bg-cyan-500/20 text-cyan-400"
-                                : "bg-amber-500/20 text-amber-400"
-                            }`}
-                          >
-                            {screening.evaluationMode === "hybrid"
-                              ? "⚡ Hybrid"
-                              : "👁 Manual"}
-                          </span>
-                        )}
                     </div>
                     <p className="text-sm text-slate-400 line-clamp-2">
                       {screening.description}
@@ -580,6 +550,16 @@ function ScreeningsContent() {
                         🔗 {linkedCount} project{linkedCount !== 1 ? "s" : ""}{" "}
                         linked
                       </span>
+                      {/* PATCH_90: Evaluation Mode Badge */}
+                      {screening.evaluationMode && screening.evaluationMode !== "auto" && (
+                        <span className={`px-2 py-0.5 rounded-full text-xs ${
+                          screening.evaluationMode === "hybrid"
+                            ? "bg-cyan-500/20 text-cyan-400"
+                            : "bg-amber-500/20 text-amber-400"
+                        }`}>
+                          {screening.evaluationMode === "hybrid" ? "⚡ Hybrid" : "👁 Manual"}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -627,18 +607,15 @@ function ScreeningsContent() {
             No Screenings Yet
           </h3>
           <p className="text-slate-400 mb-4 max-w-md mx-auto">
-            Screenings are qualification tests that verify workers can do the
-            job before you assign them projects.
+            Screenings are qualification tests that verify workers can do the job before you assign them projects.
           </p>
           {/* PATCH_79: Clear next step */}
           <div className="mb-6 p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/20 inline-block">
             <p className="text-sm text-cyan-300">
-              👉 <span className="font-medium">Why screening matters:</span>{" "}
-              Workers who pass screening become "Ready to Work" and can receive
-              project assignments
+              👉 <span className="font-medium">Why screening matters:</span> Workers who pass screening become "Ready to Work" and can receive project assignments
             </p>
           </div>
-          <br />
+          <br/>
           <button
             onClick={() => setShowModal(true)}
             className="btn-primary mb-4"
@@ -646,9 +623,7 @@ function ScreeningsContent() {
             + Create Your First Screening
           </button>
           <div className="text-sm text-slate-500 space-y-1 mt-6">
-            <p className="font-medium text-slate-400">
-              After creating screenings:
-            </p>
+            <p className="font-medium text-slate-400">After creating screenings:</p>
             <p>
               1.{" "}
               <Link
@@ -659,8 +634,12 @@ function ScreeningsContent() {
               </Link>{" "}
               — Workers applying for that role take the test
             </p>
-            <p>2. Worker submits test → You grade it → Pass/Fail</p>
-            <p>3. Passing workers become "Ready to Work" → Assign projects</p>
+            <p>
+              2. Worker submits test → You grade it → Pass/Fail
+            </p>
+            <p>
+              3. Passing workers become "Ready to Work" → Assign projects
+            </p>
           </div>
         </div>
       )}
@@ -753,249 +732,6 @@ function ScreeningsContent() {
                 </div>
               </div>
 
-              {/* PATCH_90: Evaluation Mode & Rubric Settings */}
-              <div className="border-t border-white/10 pt-4 mt-2">
-                <h3 className="font-medium text-sm text-slate-300 mb-3">
-                  ⚡ Evaluation Settings{" "}
-                  <span className="text-xs text-slate-500">(PATCH_90)</span>
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm text-slate-400 mb-1">
-                      Evaluation Mode
-                    </label>
-                    <select
-                      value={form.evaluationMode}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          evaluationMode: e.target.value as
-                            | "auto"
-                            | "hybrid"
-                            | "manual",
-                        })
-                      }
-                      className="input w-full"
-                    >
-                      <option value="auto">
-                        Auto (MCQ only, instant pass/fail)
-                      </option>
-                      <option value="hybrid">
-                        Hybrid (auto score + admin review)
-                      </option>
-                      <option value="manual">Manual (full admin review)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm text-slate-400 mb-1">
-                      Pass Threshold (%)
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="100"
-                      value={form.passThreshold}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          passThreshold: parseInt(e.target.value) || 70,
-                        })
-                      }
-                      className="input w-full"
-                    />
-                  </div>
-                </div>
-
-                {/* Auto Validation Rules (for hybrid/manual) */}
-                {form.evaluationMode !== "auto" && (
-                  <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10">
-                    <h4 className="text-xs font-medium text-slate-400 mb-2">
-                      Auto Validation Rules
-                    </h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs text-slate-500 mb-1">
-                          Min Words
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={form.autoValidationRules.minWords}
-                          onChange={(e) =>
-                            setForm({
-                              ...form,
-                              autoValidationRules: {
-                                ...form.autoValidationRules,
-                                minWords: parseInt(e.target.value) || 0,
-                              },
-                            })
-                          }
-                          className="input w-full text-sm"
-                          placeholder="0 = no limit"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-slate-500 mb-1">
-                          Max Words
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={form.autoValidationRules.maxWords}
-                          onChange={(e) =>
-                            setForm({
-                              ...form,
-                              autoValidationRules: {
-                                ...form.autoValidationRules,
-                                maxWords: parseInt(e.target.value) || 0,
-                              },
-                            })
-                          }
-                          className="input w-full text-sm"
-                          placeholder="0 = no limit"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <label className="block text-xs text-slate-500 mb-1">
-                          Banned Words (comma separated)
-                        </label>
-                        <input
-                          type="text"
-                          value={form.autoValidationRules.bannedWords}
-                          onChange={(e) =>
-                            setForm({
-                              ...form,
-                              autoValidationRules: {
-                                ...form.autoValidationRules,
-                                bannedWords: e.target.value,
-                              },
-                            })
-                          }
-                          className="input w-full text-sm"
-                          placeholder="e.g., spam, placeholder, lorem"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={
-                              form.autoValidationRules.requireJustification
-                            }
-                            onChange={(e) =>
-                              setForm({
-                                ...form,
-                                autoValidationRules: {
-                                  ...form.autoValidationRules,
-                                  requireJustification: e.target.checked,
-                                },
-                              })
-                            }
-                          />
-                          Require justification in text answers
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Rubric Editor */}
-                {form.evaluationMode !== "auto" && (
-                  <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-xs font-medium text-slate-400">
-                        Rubric Criteria
-                      </h4>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setForm({
-                            ...form,
-                            rubric: [
-                              ...form.rubric,
-                              { criteria: "", weight: 1, maxScore: 10 },
-                            ],
-                          })
-                        }
-                        className="text-xs text-blue-400 hover:text-blue-300"
-                      >
-                        + Add Criteria
-                      </button>
-                    </div>
-                    {form.rubric.length === 0 && (
-                      <p className="text-xs text-slate-500">
-                        No rubric criteria. Admin will review without structured
-                        rubric.
-                      </p>
-                    )}
-                    <div className="space-y-2">
-                      {form.rubric.map((r, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={r.criteria}
-                            onChange={(e) => {
-                              const updated = [...form.rubric];
-                              updated[idx] = {
-                                ...updated[idx],
-                                criteria: e.target.value,
-                              };
-                              setForm({ ...form, rubric: updated });
-                            }}
-                            className="input flex-1 text-sm"
-                            placeholder="Criteria name"
-                          />
-                          <input
-                            type="number"
-                            min="1"
-                            value={r.weight}
-                            onChange={(e) => {
-                              const updated = [...form.rubric];
-                              updated[idx] = {
-                                ...updated[idx],
-                                weight: parseInt(e.target.value) || 1,
-                              };
-                              setForm({ ...form, rubric: updated });
-                            }}
-                            className="input w-16 text-sm"
-                            placeholder="Wt"
-                            title="Weight"
-                          />
-                          <input
-                            type="number"
-                            min="1"
-                            value={r.maxScore}
-                            onChange={(e) => {
-                              const updated = [...form.rubric];
-                              updated[idx] = {
-                                ...updated[idx],
-                                maxScore: parseInt(e.target.value) || 10,
-                              };
-                              setForm({ ...form, rubric: updated });
-                            }}
-                            className="input w-16 text-sm"
-                            placeholder="Max"
-                            title="Max Score"
-                          />
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setForm({
-                                ...form,
-                                rubric: form.rubric.filter((_, i) => i !== idx),
-                              })
-                            }
-                            className="text-red-400 hover:text-red-300 text-xs"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
               {/* Questions */}
               <div className="border-t border-white/10 pt-4 mt-4">
                 <div className="flex items-center justify-between mb-3">
@@ -1015,7 +751,172 @@ function ScreeningsContent() {
                       key={qIndex}
                       className="p-4 rounded-lg bg-white/5 border border-white/10"
                     >
-                      <div className="flex items-start justify-between gap-2 mb-3">
+                    
+
+              {/* PATCH_90: Evaluation Mode & Rubric Settings */}
+              <div className="border-t border-white/10 pt-4 mt-2">
+                <h3 className="font-medium text-sm text-slate-300 mb-3">⚡ Evaluation Settings <span className="text-xs text-slate-500">(PATCH_90)</span></h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-1">Evaluation Mode</label>
+                    <select
+                      value={form.evaluationMode}
+                      onChange={(e) => setForm({ ...form, evaluationMode: e.target.value as "auto" | "hybrid" | "manual" })}
+                      className="input w-full"
+                    >
+                      <option value="auto">Auto (MCQ only, instant pass/fail)</option>
+                      <option value="hybrid">Hybrid (auto score + admin review)</option>
+                      <option value="manual">Manual (full admin review)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-1">Pass Threshold (%)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={form.passThreshold}
+                      onChange={(e) => setForm({ ...form, passThreshold: parseInt(e.target.value) || 70 })}
+                      className="input w-full"
+                    />
+                  </div>
+                </div>
+
+                {/* Auto Validation Rules (for hybrid/manual) */}
+                {form.evaluationMode !== "auto" && (
+                  <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                    <h4 className="text-xs font-medium text-slate-400 mb-2">Auto Validation Rules</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-slate-500 mb-1">Min Words</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={form.autoValidationRules.minWords}
+                          onChange={(e) => setForm({
+                            ...form,
+                            autoValidationRules: { ...form.autoValidationRules, minWords: parseInt(e.target.value) || 0 }
+                          })}
+                          className="input w-full text-sm"
+                          placeholder="0 = no limit"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-500 mb-1">Max Words</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={form.autoValidationRules.maxWords}
+                          onChange={(e) => setForm({
+                            ...form,
+                            autoValidationRules: { ...form.autoValidationRules, maxWords: parseInt(e.target.value) || 0 }
+                          })}
+                          className="input w-full text-sm"
+                          placeholder="0 = no limit"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs text-slate-500 mb-1">Banned Words (comma separated)</label>
+                        <input
+                          type="text"
+                          value={form.autoValidationRules.bannedWords}
+                          onChange={(e) => setForm({
+                            ...form,
+                            autoValidationRules: { ...form.autoValidationRules, bannedWords: e.target.value }
+                          })}
+                          className="input w-full text-sm"
+                          placeholder="e.g., spam, placeholder, lorem"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={form.autoValidationRules.requireJustification}
+                            onChange={(e) => setForm({
+                              ...form,
+                              autoValidationRules: { ...form.autoValidationRules, requireJustification: e.target.checked }
+                            })}
+                          />
+                          Require justification in text answers
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Rubric Editor */}
+                {form.evaluationMode !== "auto" && (
+                  <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-xs font-medium text-slate-400">Rubric Criteria</h4>
+                      <button
+                        type="button"
+                        onClick={() => setForm({
+                          ...form,
+                          rubric: [...form.rubric, { criteria: "", weight: 1, maxScore: 10 }]
+                        })}
+                        className="text-xs text-blue-400 hover:text-blue-300"
+                      >
+                        + Add Criteria
+                      </button>
+                    </div>
+                    {form.rubric.length === 0 && (
+                      <p className="text-xs text-slate-500">No rubric criteria. Admin will review without structured rubric.</p>
+                    )}
+                    <div className="space-y-2">
+                      {form.rubric.map((r, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={r.criteria}
+                            onChange={(e) => {
+                              const updated = [...form.rubric];
+                              updated[idx] = { ...updated[idx], criteria: e.target.value };
+                              setForm({ ...form, rubric: updated });
+                            }}
+                            className="input flex-1 text-sm"
+                            placeholder="Criteria name"
+                          />
+                          <input
+                            type="number"
+                            min="1"
+                            value={r.weight}
+                            onChange={(e) => {
+                              const updated = [...form.rubric];
+                              updated[idx] = { ...updated[idx], weight: parseInt(e.target.value) || 1 };
+                              setForm({ ...form, rubric: updated });
+                            }}
+                            className="input w-16 text-sm"
+                            placeholder="Wt"
+                            title="Weight"
+                          />
+                          <input
+                            type="number"
+                            min="1"
+                            value={r.maxScore}
+                            onChange={(e) => {
+                              const updated = [...form.rubric];
+                              updated[idx] = { ...updated[idx], maxScore: parseInt(e.target.value) || 10 };
+                              setForm({ ...form, rubric: updated });
+                            }}
+                            className="input w-16 text-sm"
+                            placeholder="Max"
+                            title="Max Score"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setForm({ ...form, rubric: form.rubric.filter((_, i) => i !== idx) })}
+                            className="text-red-400 hover:text-red-300 text-xs"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>  <div className="flex items-start justify-between gap-2 mb-3">
                         <span className="text-xs text-slate-500 shrink-0">
                           Q{qIndex + 1}
                         </span>
