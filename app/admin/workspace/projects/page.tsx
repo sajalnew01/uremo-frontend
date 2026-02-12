@@ -304,10 +304,13 @@ function ProjectsContent() {
           );
           if (res?.workers) {
             // Transform to match Worker interface
+            // PATCH_92: Preserve both 'user' and 'userId' for dropdown display compatibility
             const eligible = res.workers.map((w: any) => ({
               _id: w._id,
+              user: w.userId,
               userId: w.userId,
               jobId: w.position,
+              category: w.position?.category || w.position?.title,
               status: w.workerStatus,
             }));
             setAssignableWorkers(eligible);
@@ -1257,9 +1260,9 @@ function ProjectsContent() {
                   <option value="">Choose a worker...</option>
                   {assignableWorkers.map((w: any) => (
                     <option key={w._id} value={w._id}>
-                      {w.user?.name ||
-                        `${w.userId?.firstName || ""} ${w.userId?.lastName || ""}`}{" "}
-                      - {w.category || w.jobId?.title || "Unknown"}
+                      {w.user?.name || w.userId?.name ||
+                        `${w.userId?.firstName || ""} ${w.userId?.lastName || ""}`.trim() || w.userId?.email || "Worker"}{" "}
+                      - {w.category || w.jobId?.title || w.jobId?.category || "Worker"}
                     </option>
                   ))}
                 </select>
