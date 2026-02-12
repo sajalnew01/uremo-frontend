@@ -1790,11 +1790,11 @@ function ServiceCard({
                     service.rentalPlans?.length
                   ? `Rent – $${service.rentalPlans[0].price}`
                   : intent === "deal" && service.allowedActions?.deal
-                    ? "Start Deal"
+                    ? "Deals — Coming Soon"
                     : intent === "rent"
                       ? "View Rental"
                       : intent === "deal"
-                        ? "View Deal"
+                        ? "Deals — Coming Soon"
                         : `Buy – $${service.price}`}
           </Link>
         </div>

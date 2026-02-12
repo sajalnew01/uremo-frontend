@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type StickyActionBarProps = {
   serviceTitle: string;
@@ -46,18 +46,34 @@ export default function StickyActionBar({
   onHelp,
 }: StickyActionBarProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isVisible, setIsVisible] = useState(false);
   const [selectedAction, setSelectedAction] = useState<
     "buy" | "apply" | "rent" | "deal" | null
   >(null);
 
-  // Determine primary action
+  // PATCH_93: Determine primary action — respect URL intent param
   useEffect(() => {
+    const urlIntent = searchParams?.get("intent") || "";
+    // If URL intent matches an allowed action, prefer it
+    if (urlIntent === "rent" && allowedActions.rent) {
+      setSelectedAction("rent");
+      return;
+    }
+    if (urlIntent === "deal" && allowedActions.deal) {
+      setSelectedAction("deal");
+      return;
+    }
+    if (urlIntent === "buy" && allowedActions.buy) {
+      setSelectedAction("buy");
+      return;
+    }
+    // Default fallback priority
     if (allowedActions.buy) setSelectedAction("buy");
     else if (allowedActions.apply) setSelectedAction("apply");
     else if (allowedActions.rent) setSelectedAction("rent");
     else if (allowedActions.deal) setSelectedAction("deal");
-  }, [allowedActions]);
+  }, [allowedActions, searchParams]);
 
   // Show bar when scrolled down
   useEffect(() => {
