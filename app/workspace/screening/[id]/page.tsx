@@ -17,7 +17,23 @@ type Question = {
   type?: string;
   options: string[];
   points: number;
+  // PATCH_94: RLHF fields
+  responseA?: string;
+  responseB?: string;
+  imageUrl?: string;
+  codeLanguage?: string;
+  referenceUrls?: string[];
+  minWords?: number;
 };
+
+const RLHF_TYPES = [
+  "ranking",
+  "written",
+  "red_team",
+  "fact_check",
+  "coding",
+  "multimodal",
+];
 
 type Screening = {
   _id: string;
@@ -41,7 +57,8 @@ export default function ScreeningTestPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [answers, setAnswers] = useState<Record<number, string | string[]>>({});
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [answers, setAnswers] = useState<Record<number, any>>({});
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [started, setStarted] = useState(false);
@@ -131,6 +148,26 @@ export default function ScreeningTestPage() {
       return { ...prev, [questionIdx]: [...current, answer] };
     });
   };
+
+  // PATCH_94: RLHF answer handler — merges partial object updates
+  const updateRlhfAnswer = (
+    questionIdx: number,
+    field: string,
+    value: string | number,
+  ) => {
+    setAnswers((prev) => {
+      const current =
+        typeof prev[questionIdx] === "object" &&
+        !Array.isArray(prev[questionIdx])
+          ? prev[questionIdx]
+          : {};
+      return { ...prev, [questionIdx]: { ...current, [field]: value } };
+    });
+  };
+
+  // PATCH_94: Word count helper
+  const wordCount = (text: string) =>
+    text.trim().split(/\s+/).filter(Boolean).length;
 
   const handleSubmit = async () => {
     if (submitting) return;
@@ -438,8 +475,32 @@ export default function ScreeningTestPage() {
   const progress = ((currentQuestion + 1) / screening.questions.length) * 100;
   const isLastQuestion = currentQuestion === screening.questions.length - 1;
   const allAnswered = screening.questions.every((q, idx) => {
-    if (q.type === "multi") {
+    const qType = q.type || "single";
+    if (qType === "multi") {
       return Array.isArray(answers[idx]) && (answers[idx] as string[]).length;
+    }
+    // PATCH_94: RLHF types need object with required fields
+    if (RLHF_TYPES.includes(qType)) {
+      const a = answers[idx];
+      if (!a || typeof a !== "object" || Array.isArray(a)) return false;
+      switch (qType) {
+        case "ranking":
+          return (
+            a.choice && a.justification && wordCount(a.justification) >= 10
+          );
+        case "written":
+          return a.response && wordCount(a.response) >= 10;
+        case "fact_check":
+          return a.verdict && a.explanation;
+        case "coding":
+          return a.code && a.code.length >= 5;
+        case "red_team":
+          return a.prompt && a.explanation;
+        case "multimodal":
+          return a.description && a.rating;
+        default:
+          return false;
+      }
     }
     return answers[idx] !== undefined && answers[idx] !== "";
   });
@@ -478,47 +539,349 @@ export default function ScreeningTestPage() {
           <h2 className="text-xl font-medium">{question.question}</h2>
         </div>
 
-        {/* Options */}
+        {/* Options / RLHF Input */}
         <div className="space-y-3 mb-8">
-          {question.options.map((option, optIdx) => {
-            const isMulti = question.type === "multi";
-            const isSelected = isMulti
-              ? Array.isArray(answers[currentQuestion]) &&
-                (answers[currentQuestion] as string[]).includes(option)
-              : answers[currentQuestion] === option;
+          {/* MCQ Options (single/multi) */}
+          {(!question.type ||
+            question.type === "single" ||
+            question.type === "multi" ||
+            question.type === "multiple_choice") &&
+            question.options?.length > 0 && (
+              <>
+                {question.options.map((option, optIdx) => {
+                  const isMulti = question.type === "multi";
+                  const isSelected = isMulti
+                    ? Array.isArray(answers[currentQuestion]) &&
+                      (answers[currentQuestion] as string[]).includes(option)
+                    : answers[currentQuestion] === option;
 
-            return (
-              <button
-                key={optIdx}
-                onClick={() =>
-                  isMulti
-                    ? toggleMultiAnswer(currentQuestion, option)
-                    : handleAnswer(currentQuestion, option)
-                }
-                className={`w-full text-left p-4 rounded-xl border transition ${
-                  isSelected
-                    ? "border-blue-500 bg-blue-500/20 text-white"
-                    : "border-white/10 bg-white/5 hover:bg-white/10 text-slate-300"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                      isSelected ? "bg-blue-500 text-white" : "bg-white/10"
-                    }`}
-                  >
-                    {String.fromCharCode(65 + optIdx)}
-                  </span>
-                  <span>{option}</span>
-                  {isMulti && (
-                    <span className="ml-auto text-xs text-slate-400">
-                      {isSelected ? "Selected" : "Tap to select"}
+                  return (
+                    <button
+                      key={optIdx}
+                      onClick={() =>
+                        isMulti
+                          ? toggleMultiAnswer(currentQuestion, option)
+                          : handleAnswer(currentQuestion, option)
+                      }
+                      className={`w-full text-left p-4 rounded-xl border transition ${
+                        isSelected
+                          ? "border-blue-500 bg-blue-500/20 text-white"
+                          : "border-white/10 bg-white/5 hover:bg-white/10 text-slate-300"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${isSelected ? "bg-blue-500 text-white" : "bg-white/10"}`}
+                        >
+                          {String.fromCharCode(65 + optIdx)}
+                        </span>
+                        <span>{option}</span>
+                        {isMulti && (
+                          <span className="ml-auto text-xs text-slate-400">
+                            {isSelected ? "Selected" : "Tap to select"}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </>
+            )}
+
+          {/* PATCH_94: Ranking — Side-by-side comparison */}
+          {question.type === "ranking" && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div
+                  onClick={() =>
+                    updateRlhfAnswer(currentQuestion, "choice", "A")
+                  }
+                  className={`p-4 rounded-xl border-2 cursor-pointer transition ${
+                    answers[currentQuestion]?.choice === "A"
+                      ? "border-purple-500 bg-purple-500/20"
+                      : "border-white/10 bg-white/5 hover:border-white/30"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-purple-300">
+                      Response A
                     </span>
-                  )}
+                    {answers[currentQuestion]?.choice === "A" && (
+                      <span className="text-xs text-purple-400">
+                        ✓ Selected
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-slate-300 whitespace-pre-wrap">
+                    {question.responseA || "Response A"}
+                  </p>
                 </div>
-              </button>
-            );
-          })}
+                <div
+                  onClick={() =>
+                    updateRlhfAnswer(currentQuestion, "choice", "B")
+                  }
+                  className={`p-4 rounded-xl border-2 cursor-pointer transition ${
+                    answers[currentQuestion]?.choice === "B"
+                      ? "border-purple-500 bg-purple-500/20"
+                      : "border-white/10 bg-white/5 hover:border-white/30"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-purple-300">
+                      Response B
+                    </span>
+                    {answers[currentQuestion]?.choice === "B" && (
+                      <span className="text-xs text-purple-400">
+                        ✓ Selected
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-slate-300 whitespace-pre-wrap">
+                    {question.responseB || "Response B"}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">
+                  Justification{" "}
+                  <span className="text-xs text-slate-500">
+                    ({wordCount(answers[currentQuestion]?.justification || "")}{" "}
+                    words — min 30)
+                  </span>
+                </label>
+                <textarea
+                  value={answers[currentQuestion]?.justification || ""}
+                  onChange={(e) =>
+                    updateRlhfAnswer(
+                      currentQuestion,
+                      "justification",
+                      e.target.value,
+                    )
+                  }
+                  className="input w-full h-32 resize-none text-sm"
+                  placeholder="Explain why your chosen response is better..."
+                />
+              </div>
+            </div>
+          )}
+
+          {/* PATCH_94: Written — Free-form response */}
+          {question.type === "written" && (
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">
+                Your Response{" "}
+                <span className="text-xs text-slate-500">
+                  ({wordCount(answers[currentQuestion]?.response || "")} words
+                  {question.minWords ? ` — min ${question.minWords}` : ""})
+                </span>
+              </label>
+              <textarea
+                value={answers[currentQuestion]?.response || ""}
+                onChange={(e) =>
+                  updateRlhfAnswer(currentQuestion, "response", e.target.value)
+                }
+                className="input w-full h-48 resize-none text-sm"
+                placeholder="Write your detailed response..."
+              />
+            </div>
+          )}
+
+          {/* PATCH_94: Fact Check — Verdict + Sources + Explanation */}
+          {question.type === "fact_check" && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">
+                  Verdict
+                </label>
+                <div className="flex gap-2">
+                  {["true", "false", "misleading", "unverifiable"].map((v) => (
+                    <button
+                      key={v}
+                      onClick={() =>
+                        updateRlhfAnswer(currentQuestion, "verdict", v)
+                      }
+                      className={`px-4 py-2 rounded-lg border text-sm capitalize transition ${
+                        answers[currentQuestion]?.verdict === v
+                          ? "border-green-500 bg-green-500/20 text-green-300"
+                          : "border-white/10 bg-white/5 text-slate-400 hover:border-white/30"
+                      }`}
+                    >
+                      {v === "true"
+                        ? "✅ True"
+                        : v === "false"
+                          ? "❌ False"
+                          : v === "misleading"
+                            ? "⚠️ Misleading"
+                            : "❓ Unverifiable"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">
+                  Source URLs{" "}
+                  <span className="text-xs text-slate-500">(no Wikipedia)</span>
+                </label>
+                <input
+                  type="text"
+                  value={answers[currentQuestion]?.sourceUrls || ""}
+                  onChange={(e) =>
+                    updateRlhfAnswer(
+                      currentQuestion,
+                      "sourceUrls",
+                      e.target.value,
+                    )
+                  }
+                  className="input w-full text-sm"
+                  placeholder="https://source1.com, https://source2.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">
+                  Explanation
+                </label>
+                <textarea
+                  value={answers[currentQuestion]?.explanation || ""}
+                  onChange={(e) =>
+                    updateRlhfAnswer(
+                      currentQuestion,
+                      "explanation",
+                      e.target.value,
+                    )
+                  }
+                  className="input w-full h-32 resize-none text-sm"
+                  placeholder="Explain your fact-check reasoning..."
+                />
+              </div>
+            </div>
+          )}
+
+          {/* PATCH_94: Coding — Code editor */}
+          {question.type === "coding" && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300">
+                  {question.codeLanguage || "javascript"}
+                </span>
+              </div>
+              <textarea
+                value={answers[currentQuestion]?.code || ""}
+                onChange={(e) =>
+                  updateRlhfAnswer(currentQuestion, "code", e.target.value)
+                }
+                className="input w-full h-64 resize-none font-mono text-sm bg-slate-900/50"
+                placeholder={`// Write your ${question.codeLanguage || "javascript"} solution here...`}
+                spellCheck={false}
+              />
+            </div>
+          )}
+
+          {/* PATCH_94: Red Team — Adversarial prompt */}
+          {question.type === "red_team" && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">
+                  Adversarial Prompt
+                </label>
+                <textarea
+                  value={answers[currentQuestion]?.prompt || ""}
+                  onChange={(e) =>
+                    updateRlhfAnswer(currentQuestion, "prompt", e.target.value)
+                  }
+                  className="input w-full h-24 resize-none text-sm"
+                  placeholder="Write a prompt designed to expose a vulnerability..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">
+                  Explanation{" "}
+                  <span className="text-xs text-slate-500">
+                    ({wordCount(answers[currentQuestion]?.explanation || "")}{" "}
+                    words — min 20)
+                  </span>
+                </label>
+                <textarea
+                  value={answers[currentQuestion]?.explanation || ""}
+                  onChange={(e) =>
+                    updateRlhfAnswer(
+                      currentQuestion,
+                      "explanation",
+                      e.target.value,
+                    )
+                  }
+                  className="input w-full h-32 resize-none text-sm"
+                  placeholder="Explain the expected vulnerability and how your prompt exploits it..."
+                />
+              </div>
+            </div>
+          )}
+
+          {/* PATCH_94: Multimodal — Image analysis */}
+          {question.type === "multimodal" && (
+            <div className="space-y-4">
+              {question.imageUrl && (
+                <div className="rounded-xl overflow-hidden border border-white/10">
+                  <img
+                    src={question.imageUrl}
+                    alt="Analyze this image"
+                    className="max-h-64 mx-auto"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={answers[currentQuestion]?.description || ""}
+                  onChange={(e) =>
+                    updateRlhfAnswer(
+                      currentQuestion,
+                      "description",
+                      e.target.value,
+                    )
+                  }
+                  className="input w-full h-32 resize-none text-sm"
+                  placeholder="Describe what you see in detail..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">
+                  Issues Identified
+                </label>
+                <textarea
+                  value={answers[currentQuestion]?.issues || ""}
+                  onChange={(e) =>
+                    updateRlhfAnswer(currentQuestion, "issues", e.target.value)
+                  }
+                  className="input w-full h-20 resize-none text-sm"
+                  placeholder="Flag any quality issues, inaccuracies, or concerns..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">
+                  Quality Rating
+                </label>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((r) => (
+                    <button
+                      key={r}
+                      onClick={() =>
+                        updateRlhfAnswer(currentQuestion, "rating", r)
+                      }
+                      className={`w-12 h-12 rounded-xl text-lg border transition ${
+                        answers[currentQuestion]?.rating === r
+                          ? "border-amber-500 bg-amber-500/20 text-amber-300"
+                          : "border-white/10 bg-white/5 text-slate-400 hover:border-white/30"
+                      }`}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Navigation */}
@@ -532,21 +895,29 @@ export default function ScreeningTestPage() {
           </button>
 
           <div className="flex gap-2">
-            {screening.questions.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentQuestion(idx)}
-                className={`w-8 h-8 rounded-full text-xs font-medium ${
-                  idx === currentQuestion
-                    ? "bg-blue-500 text-white"
-                    : answers[idx] !== undefined
-                      ? "bg-emerald-500/20 text-emerald-300"
-                      : "bg-white/10 text-slate-400"
-                }`}
-              >
-                {idx + 1}
-              </button>
-            ))}
+            {screening.questions.map((q, idx) => {
+              const qType = q.type || "single";
+              const hasAnswer = RLHF_TYPES.includes(qType)
+                ? answers[idx] &&
+                  typeof answers[idx] === "object" &&
+                  !Array.isArray(answers[idx])
+                : answers[idx] !== undefined;
+              return (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentQuestion(idx)}
+                  className={`w-8 h-8 rounded-full text-xs font-medium ${
+                    idx === currentQuestion
+                      ? "bg-blue-500 text-white"
+                      : hasAnswer
+                        ? "bg-emerald-500/20 text-emerald-300"
+                        : "bg-white/10 text-slate-400"
+                  }`}
+                >
+                  {idx + 1}
+                </button>
+              );
+            })}
           </div>
 
           {isLastQuestion ? (

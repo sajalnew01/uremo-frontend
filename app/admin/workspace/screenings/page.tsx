@@ -44,8 +44,44 @@ interface Project {
 type ScreeningFormQuestion = {
   question: string;
   options: string[];
-  type: "single" | "multi";
+  type:
+    | "single"
+    | "multi"
+    | "ranking"
+    | "written"
+    | "red_team"
+    | "fact_check"
+    | "coding"
+    | "multimodal";
   correctAnswerIndexes: number[];
+  // PATCH_94: RLHF question fields
+  responseA?: string;
+  responseB?: string;
+  imageUrl?: string;
+  codeLanguage?: string;
+  minWords?: number;
+};
+
+// PATCH_94: Screening type labels
+const SCREENING_TYPE_LABELS: Record<string, string> = {
+  mcq: "📋 MCQ (Multiple Choice)",
+  written: "✍️ Written Response",
+  ranking: "⚖️ Ranking (Compare Responses)",
+  red_team: "🔴 Red Team (Adversarial)",
+  fact_check: "🔍 Fact Check (Verification)",
+  coding: "💻 Coding Challenge",
+  multimodal: "🖼️ Multimodal (Image Eval)",
+};
+
+// PATCH_94: Question types available per screening type
+const QUESTION_TYPES_FOR_SCREENING: Record<string, string[]> = {
+  mcq: ["single", "multi"],
+  written: ["written", "single", "multi"],
+  ranking: ["ranking", "written"],
+  red_team: ["red_team", "written"],
+  fact_check: ["fact_check", "written", "single"],
+  coding: ["coding", "written"],
+  multimodal: ["multimodal", "written"],
 };
 
 function ScreeningsContent() {
@@ -78,6 +114,11 @@ function ScreeningsContent() {
       bannedWords: string;
       requireJustification: boolean;
     };
+    // PATCH_94: RLHF fields
+    screeningType: string;
+    minJustificationWords: number;
+    allowRanking: boolean;
+    allowMultiResponseComparison: boolean;
   }>({
     title: "",
     description: "",
@@ -102,6 +143,11 @@ function ScreeningsContent() {
       bannedWords: "",
       requireJustification: false,
     },
+    // PATCH_94 defaults
+    screeningType: "mcq",
+    minJustificationWords: 0,
+    allowRanking: false,
+    allowMultiResponseComparison: false,
   });
   const [creating, setCreating] = useState(false);
 
@@ -181,18 +227,30 @@ function ScreeningsContent() {
     setError(null);
 
     // Validate questions
+    const rlhfTypes = [
+      "ranking",
+      "written",
+      "red_team",
+      "fact_check",
+      "coding",
+      "multimodal",
+    ];
     const validQuestions = form.questions.filter((q) => {
+      if (rlhfTypes.includes(q.type)) {
+        return q.question.trim().length >= 5;
+      }
       const options = normalizeOptions(q.options);
       return q.question.trim() && options.length >= 2;
     });
 
     if (validQuestions.length === 0) {
-      setError("Please add at least one question with at least 2 options");
+      setError("Please add at least one valid question");
       setCreating(false);
       return;
     }
 
     for (const q of validQuestions) {
+      if (rlhfTypes.includes(q.type)) continue; // RLHF types skip option validation
       const options = normalizeOptions(q.options);
       const correctAnswers = q.correctAnswerIndexes
         .filter((idx) => options[idx])
@@ -224,20 +282,39 @@ function ScreeningsContent() {
           minWords: form.autoValidationRules.minWords || undefined,
           maxWords: form.autoValidationRules.maxWords || undefined,
           bannedWords: form.autoValidationRules.bannedWords
-            ? form.autoValidationRules.bannedWords.split(",").map((w: string) => w.trim()).filter(Boolean)
+            ? form.autoValidationRules.bannedWords
+                .split(",")
+                .map((w: string) => w.trim())
+                .filter(Boolean)
             : undefined,
-          requireJustification: form.autoValidationRules.requireJustification || undefined,
+          requireJustification:
+            form.autoValidationRules.requireJustification || undefined,
         },
+        // PATCH_94: RLHF fields
+        screeningType: form.screeningType,
+        minJustificationWords: form.minJustificationWords || undefined,
+        allowRanking: form.allowRanking || undefined,
+        allowMultiResponseComparison:
+          form.allowMultiResponseComparison || undefined,
         questions: validQuestions.map((q) => {
-          const options = normalizeOptions(q.options);
-          const correctAnswers = q.correctAnswerIndexes
-            .filter((idx) => options[idx])
-            .map((idx) => options[idx]);
+          const isRlhf = rlhfTypes.includes(q.type);
+          const options = isRlhf ? [] : normalizeOptions(q.options);
+          const correctAnswers = isRlhf
+            ? []
+            : q.correctAnswerIndexes
+                .filter((idx) => options[idx])
+                .map((idx) => options[idx]);
           return {
             question: q.question.trim(),
             type: q.type,
             options,
             correctAnswers,
+            // PATCH_94: RLHF question fields
+            responseA: q.responseA || undefined,
+            responseB: q.responseB || undefined,
+            imageUrl: q.imageUrl || undefined,
+            codeLanguage: q.codeLanguage || undefined,
+            minWords: q.minWords || undefined,
           };
         }),
       };
@@ -273,6 +350,10 @@ function ScreeningsContent() {
           bannedWords: "",
           requireJustification: false,
         },
+        screeningType: "mcq",
+        minJustificationWords: 0,
+        allowRanking: false,
+        allowMultiResponseComparison: false,
       });
       loadScreenings();
     } catch (e: any) {
@@ -283,15 +364,30 @@ function ScreeningsContent() {
   };
 
   const addQuestion = () => {
+    // PATCH_94: Default question type depends on screening type
+    const allowedTypes = QUESTION_TYPES_FOR_SCREENING[form.screeningType] || [
+      "single",
+      "multi",
+    ];
+    const defaultType = allowedTypes[0] as ScreeningFormQuestion["type"];
+    const isRlhf = [
+      "ranking",
+      "written",
+      "red_team",
+      "fact_check",
+      "coding",
+      "multimodal",
+    ].includes(defaultType);
+
     setForm({
       ...form,
       questions: [
         ...form.questions,
         {
           question: "",
-          options: ["", "", "", ""],
-          type: "single",
-          correctAnswerIndexes: [0],
+          options: isRlhf ? [] : ["", "", "", ""],
+          type: defaultType,
+          correctAnswerIndexes: isRlhf ? [] : [0],
         },
       ],
     });
@@ -423,11 +519,22 @@ function ScreeningsContent() {
         <div className="flex items-start gap-3">
           <span className="text-2xl">✅</span>
           <div className="flex-1">
-            <h3 className="text-sm font-semibold text-white mb-1">Screening Results:</h3>
+            <h3 className="text-sm font-semibold text-white mb-1">
+              Screening Results:
+            </h3>
             <ul className="text-sm text-slate-300 space-y-1">
-              <li>• <span className="text-emerald-400 font-medium">Pass</span> → Worker becomes "Ready to Work" → Can receive project assignments</li>
-              <li>• <span className="text-red-400 font-medium">Fail</span> → Worker cannot be assigned projects → Admin can allow retry</li>
-              <li>• <span className="text-amber-400 font-medium">Pending</span> → Waiting for admin review (test_submitted status)</li>
+              <li>
+                • <span className="text-emerald-400 font-medium">Pass</span> →
+                Worker becomes "Ready to Work" → Can receive project assignments
+              </li>
+              <li>
+                • <span className="text-red-400 font-medium">Fail</span> →
+                Worker cannot be assigned projects → Admin can allow retry
+              </li>
+              <li>
+                • <span className="text-amber-400 font-medium">Pending</span> →
+                Waiting for admin review (test_submitted status)
+              </li>
             </ul>
           </div>
         </div>
@@ -551,15 +658,20 @@ function ScreeningsContent() {
                         linked
                       </span>
                       {/* PATCH_90: Evaluation Mode Badge */}
-                      {screening.evaluationMode && screening.evaluationMode !== "auto" && (
-                        <span className={`px-2 py-0.5 rounded-full text-xs ${
-                          screening.evaluationMode === "hybrid"
-                            ? "bg-cyan-500/20 text-cyan-400"
-                            : "bg-amber-500/20 text-amber-400"
-                        }`}>
-                          {screening.evaluationMode === "hybrid" ? "⚡ Hybrid" : "👁 Manual"}
-                        </span>
-                      )}
+                      {screening.evaluationMode &&
+                        screening.evaluationMode !== "auto" && (
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-xs ${
+                              screening.evaluationMode === "hybrid"
+                                ? "bg-cyan-500/20 text-cyan-400"
+                                : "bg-amber-500/20 text-amber-400"
+                            }`}
+                          >
+                            {screening.evaluationMode === "hybrid"
+                              ? "⚡ Hybrid"
+                              : "👁 Manual"}
+                          </span>
+                        )}
                     </div>
                   </div>
 
@@ -607,15 +719,18 @@ function ScreeningsContent() {
             No Screenings Yet
           </h3>
           <p className="text-slate-400 mb-4 max-w-md mx-auto">
-            Screenings are qualification tests that verify workers can do the job before you assign them projects.
+            Screenings are qualification tests that verify workers can do the
+            job before you assign them projects.
           </p>
           {/* PATCH_79: Clear next step */}
           <div className="mb-6 p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/20 inline-block">
             <p className="text-sm text-cyan-300">
-              👉 <span className="font-medium">Why screening matters:</span> Workers who pass screening become "Ready to Work" and can receive project assignments
+              👉 <span className="font-medium">Why screening matters:</span>{" "}
+              Workers who pass screening become "Ready to Work" and can receive
+              project assignments
             </p>
           </div>
-          <br/>
+          <br />
           <button
             onClick={() => setShowModal(true)}
             className="btn-primary mb-4"
@@ -623,7 +738,9 @@ function ScreeningsContent() {
             + Create Your First Screening
           </button>
           <div className="text-sm text-slate-500 space-y-1 mt-6">
-            <p className="font-medium text-slate-400">After creating screenings:</p>
+            <p className="font-medium text-slate-400">
+              After creating screenings:
+            </p>
             <p>
               1.{" "}
               <Link
@@ -634,12 +751,8 @@ function ScreeningsContent() {
               </Link>{" "}
               — Workers applying for that role take the test
             </p>
-            <p>
-              2. Worker submits test → You grade it → Pass/Fail
-            </p>
-            <p>
-              3. Passing workers become "Ready to Work" → Assign projects
-            </p>
+            <p>2. Worker submits test → You grade it → Pass/Fail</p>
+            <p>3. Passing workers become "Ready to Work" → Assign projects</p>
           </div>
         </div>
       )}
@@ -732,6 +845,95 @@ function ScreeningsContent() {
                 </div>
               </div>
 
+              {/* PATCH_94: Screening Type Selector */}
+              <div className="border-t border-white/10 pt-4 mt-2">
+                <h3 className="font-medium text-sm text-slate-300 mb-3">
+                  🧠 Screening Type{" "}
+                  <span className="text-xs text-slate-500">
+                    (PATCH_94 RLHF)
+                  </span>
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {Object.entries(SCREENING_TYPE_LABELS).map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setForm({ ...form, screeningType: key })}
+                      className={`p-2 rounded-lg border text-xs text-left transition ${
+                        form.screeningType === key
+                          ? "border-purple-500 bg-purple-500/20 text-white"
+                          : "border-white/10 bg-white/5 text-slate-400 hover:border-white/30"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {/* RLHF-specific settings */}
+                {form.screeningType !== "mcq" && (
+                  <div className="mt-3 grid grid-cols-2 gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                    {(form.screeningType === "ranking" ||
+                      form.screeningType === "written" ||
+                      form.screeningType === "red_team") && (
+                      <div>
+                        <label className="block text-xs text-slate-500 mb-1">
+                          Min Justification Words
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={form.minJustificationWords}
+                          onChange={(e) =>
+                            setForm({
+                              ...form,
+                              minJustificationWords:
+                                parseInt(e.target.value) || 0,
+                            })
+                          }
+                          className="input w-full text-sm"
+                          placeholder="30"
+                        />
+                      </div>
+                    )}
+                    {form.screeningType === "ranking" && (
+                      <>
+                        <div>
+                          <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer mt-4">
+                            <input
+                              type="checkbox"
+                              checked={form.allowRanking}
+                              onChange={(e) =>
+                                setForm({
+                                  ...form,
+                                  allowRanking: e.target.checked,
+                                })
+                              }
+                            />
+                            Allow ranking comparison
+                          </label>
+                        </div>
+                        <div>
+                          <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer mt-4">
+                            <input
+                              type="checkbox"
+                              checked={form.allowMultiResponseComparison}
+                              onChange={(e) =>
+                                setForm({
+                                  ...form,
+                                  allowMultiResponseComparison:
+                                    e.target.checked,
+                                })
+                              }
+                            />
+                            Multi-response comparison
+                          </label>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Questions */}
               <div className="border-t border-white/10 pt-4 mt-4">
                 <div className="flex items-center justify-between mb-3">
@@ -751,172 +953,261 @@ function ScreeningsContent() {
                       key={qIndex}
                       className="p-4 rounded-lg bg-white/5 border border-white/10"
                     >
-                    
-
-              {/* PATCH_90: Evaluation Mode & Rubric Settings */}
-              <div className="border-t border-white/10 pt-4 mt-2">
-                <h3 className="font-medium text-sm text-slate-300 mb-3">⚡ Evaluation Settings <span className="text-xs text-slate-500">(PATCH_90)</span></h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm text-slate-400 mb-1">Evaluation Mode</label>
-                    <select
-                      value={form.evaluationMode}
-                      onChange={(e) => setForm({ ...form, evaluationMode: e.target.value as "auto" | "hybrid" | "manual" })}
-                      className="input w-full"
-                    >
-                      <option value="auto">Auto (MCQ only, instant pass/fail)</option>
-                      <option value="hybrid">Hybrid (auto score + admin review)</option>
-                      <option value="manual">Manual (full admin review)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm text-slate-400 mb-1">Pass Threshold (%)</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="100"
-                      value={form.passThreshold}
-                      onChange={(e) => setForm({ ...form, passThreshold: parseInt(e.target.value) || 70 })}
-                      className="input w-full"
-                    />
-                  </div>
-                </div>
-
-                {/* Auto Validation Rules (for hybrid/manual) */}
-                {form.evaluationMode !== "auto" && (
-                  <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10">
-                    <h4 className="text-xs font-medium text-slate-400 mb-2">Auto Validation Rules</h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs text-slate-500 mb-1">Min Words</label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={form.autoValidationRules.minWords}
-                          onChange={(e) => setForm({
-                            ...form,
-                            autoValidationRules: { ...form.autoValidationRules, minWords: parseInt(e.target.value) || 0 }
-                          })}
-                          className="input w-full text-sm"
-                          placeholder="0 = no limit"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-slate-500 mb-1">Max Words</label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={form.autoValidationRules.maxWords}
-                          onChange={(e) => setForm({
-                            ...form,
-                            autoValidationRules: { ...form.autoValidationRules, maxWords: parseInt(e.target.value) || 0 }
-                          })}
-                          className="input w-full text-sm"
-                          placeholder="0 = no limit"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <label className="block text-xs text-slate-500 mb-1">Banned Words (comma separated)</label>
-                        <input
-                          type="text"
-                          value={form.autoValidationRules.bannedWords}
-                          onChange={(e) => setForm({
-                            ...form,
-                            autoValidationRules: { ...form.autoValidationRules, bannedWords: e.target.value }
-                          })}
-                          className="input w-full text-sm"
-                          placeholder="e.g., spam, placeholder, lorem"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={form.autoValidationRules.requireJustification}
-                            onChange={(e) => setForm({
-                              ...form,
-                              autoValidationRules: { ...form.autoValidationRules, requireJustification: e.target.checked }
-                            })}
-                          />
-                          Require justification in text answers
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Rubric Editor */}
-                {form.evaluationMode !== "auto" && (
-                  <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-xs font-medium text-slate-400">Rubric Criteria</h4>
-                      <button
-                        type="button"
-                        onClick={() => setForm({
-                          ...form,
-                          rubric: [...form.rubric, { criteria: "", weight: 1, maxScore: 10 }]
-                        })}
-                        className="text-xs text-blue-400 hover:text-blue-300"
-                      >
-                        + Add Criteria
-                      </button>
-                    </div>
-                    {form.rubric.length === 0 && (
-                      <p className="text-xs text-slate-500">No rubric criteria. Admin will review without structured rubric.</p>
-                    )}
-                    <div className="space-y-2">
-                      {form.rubric.map((r, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={r.criteria}
-                            onChange={(e) => {
-                              const updated = [...form.rubric];
-                              updated[idx] = { ...updated[idx], criteria: e.target.value };
-                              setForm({ ...form, rubric: updated });
-                            }}
-                            className="input flex-1 text-sm"
-                            placeholder="Criteria name"
-                          />
-                          <input
-                            type="number"
-                            min="1"
-                            value={r.weight}
-                            onChange={(e) => {
-                              const updated = [...form.rubric];
-                              updated[idx] = { ...updated[idx], weight: parseInt(e.target.value) || 1 };
-                              setForm({ ...form, rubric: updated });
-                            }}
-                            className="input w-16 text-sm"
-                            placeholder="Wt"
-                            title="Weight"
-                          />
-                          <input
-                            type="number"
-                            min="1"
-                            value={r.maxScore}
-                            onChange={(e) => {
-                              const updated = [...form.rubric];
-                              updated[idx] = { ...updated[idx], maxScore: parseInt(e.target.value) || 10 };
-                              setForm({ ...form, rubric: updated });
-                            }}
-                            className="input w-16 text-sm"
-                            placeholder="Max"
-                            title="Max Score"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setForm({ ...form, rubric: form.rubric.filter((_, i) => i !== idx) })}
-                            className="text-red-400 hover:text-red-300 text-xs"
-                          >
-                            ✕
-                          </button>
+                      {/* PATCH_90: Evaluation Mode & Rubric Settings */}
+                      <div className="border-t border-white/10 pt-4 mt-2">
+                        <h3 className="font-medium text-sm text-slate-300 mb-3">
+                          ⚡ Evaluation Settings{" "}
+                          <span className="text-xs text-slate-500">
+                            (PATCH_90)
+                          </span>
+                        </h3>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm text-slate-400 mb-1">
+                              Evaluation Mode
+                            </label>
+                            <select
+                              value={form.evaluationMode}
+                              onChange={(e) =>
+                                setForm({
+                                  ...form,
+                                  evaluationMode: e.target.value as
+                                    | "auto"
+                                    | "hybrid"
+                                    | "manual",
+                                })
+                              }
+                              className="input w-full"
+                            >
+                              <option value="auto">
+                                Auto (MCQ only, instant pass/fail)
+                              </option>
+                              <option value="hybrid">
+                                Hybrid (auto score + admin review)
+                              </option>
+                              <option value="manual">
+                                Manual (full admin review)
+                              </option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm text-slate-400 mb-1">
+                              Pass Threshold (%)
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="100"
+                              value={form.passThreshold}
+                              onChange={(e) =>
+                                setForm({
+                                  ...form,
+                                  passThreshold: parseInt(e.target.value) || 70,
+                                })
+                              }
+                              className="input w-full"
+                            />
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>  <div className="flex items-start justify-between gap-2 mb-3">
+
+                        {/* Auto Validation Rules (for hybrid/manual) */}
+                        {form.evaluationMode !== "auto" && (
+                          <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                            <h4 className="text-xs font-medium text-slate-400 mb-2">
+                              Auto Validation Rules
+                            </h4>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-xs text-slate-500 mb-1">
+                                  Min Words
+                                </label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={form.autoValidationRules.minWords}
+                                  onChange={(e) =>
+                                    setForm({
+                                      ...form,
+                                      autoValidationRules: {
+                                        ...form.autoValidationRules,
+                                        minWords: parseInt(e.target.value) || 0,
+                                      },
+                                    })
+                                  }
+                                  className="input w-full text-sm"
+                                  placeholder="0 = no limit"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-slate-500 mb-1">
+                                  Max Words
+                                </label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={form.autoValidationRules.maxWords}
+                                  onChange={(e) =>
+                                    setForm({
+                                      ...form,
+                                      autoValidationRules: {
+                                        ...form.autoValidationRules,
+                                        maxWords: parseInt(e.target.value) || 0,
+                                      },
+                                    })
+                                  }
+                                  className="input w-full text-sm"
+                                  placeholder="0 = no limit"
+                                />
+                              </div>
+                              <div className="col-span-2">
+                                <label className="block text-xs text-slate-500 mb-1">
+                                  Banned Words (comma separated)
+                                </label>
+                                <input
+                                  type="text"
+                                  value={form.autoValidationRules.bannedWords}
+                                  onChange={(e) =>
+                                    setForm({
+                                      ...form,
+                                      autoValidationRules: {
+                                        ...form.autoValidationRules,
+                                        bannedWords: e.target.value,
+                                      },
+                                    })
+                                  }
+                                  className="input w-full text-sm"
+                                  placeholder="e.g., spam, placeholder, lorem"
+                                />
+                              </div>
+                              <div className="col-span-2">
+                                <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      form.autoValidationRules
+                                        .requireJustification
+                                    }
+                                    onChange={(e) =>
+                                      setForm({
+                                        ...form,
+                                        autoValidationRules: {
+                                          ...form.autoValidationRules,
+                                          requireJustification:
+                                            e.target.checked,
+                                        },
+                                      })
+                                    }
+                                  />
+                                  Require justification in text answers
+                                </label>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Rubric Editor */}
+                        {form.evaluationMode !== "auto" && (
+                          <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="text-xs font-medium text-slate-400">
+                                Rubric Criteria
+                              </h4>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setForm({
+                                    ...form,
+                                    rubric: [
+                                      ...form.rubric,
+                                      { criteria: "", weight: 1, maxScore: 10 },
+                                    ],
+                                  })
+                                }
+                                className="text-xs text-blue-400 hover:text-blue-300"
+                              >
+                                + Add Criteria
+                              </button>
+                            </div>
+                            {form.rubric.length === 0 && (
+                              <p className="text-xs text-slate-500">
+                                No rubric criteria. Admin will review without
+                                structured rubric.
+                              </p>
+                            )}
+                            <div className="space-y-2">
+                              {form.rubric.map((r, idx) => (
+                                <div
+                                  key={idx}
+                                  className="flex items-center gap-2"
+                                >
+                                  <input
+                                    type="text"
+                                    value={r.criteria}
+                                    onChange={(e) => {
+                                      const updated = [...form.rubric];
+                                      updated[idx] = {
+                                        ...updated[idx],
+                                        criteria: e.target.value,
+                                      };
+                                      setForm({ ...form, rubric: updated });
+                                    }}
+                                    className="input flex-1 text-sm"
+                                    placeholder="Criteria name"
+                                  />
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    value={r.weight}
+                                    onChange={(e) => {
+                                      const updated = [...form.rubric];
+                                      updated[idx] = {
+                                        ...updated[idx],
+                                        weight: parseInt(e.target.value) || 1,
+                                      };
+                                      setForm({ ...form, rubric: updated });
+                                    }}
+                                    className="input w-16 text-sm"
+                                    placeholder="Wt"
+                                    title="Weight"
+                                  />
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    value={r.maxScore}
+                                    onChange={(e) => {
+                                      const updated = [...form.rubric];
+                                      updated[idx] = {
+                                        ...updated[idx],
+                                        maxScore:
+                                          parseInt(e.target.value) || 10,
+                                      };
+                                      setForm({ ...form, rubric: updated });
+                                    }}
+                                    className="input w-16 text-sm"
+                                    placeholder="Max"
+                                    title="Max Score"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setForm({
+                                        ...form,
+                                        rubric: form.rubric.filter(
+                                          (_, i) => i !== idx,
+                                        ),
+                                      })
+                                    }
+                                    className="text-red-400 hover:text-red-300 text-xs"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>{" "}
+                      <div className="flex items-start justify-between gap-2 mb-3">
                         <span className="text-xs text-slate-500 shrink-0">
                           Q{qIndex + 1}
                         </span>
@@ -943,11 +1234,13 @@ function ScreeningsContent() {
                         <select
                           value={q.type}
                           onChange={(e) => {
-                            const nextType = e.target.value as
-                              | "single"
-                              | "multi";
+                            const nextType = e.target
+                              .value as ScreeningFormQuestion["type"];
                             const updated = [...form.questions];
-                            updated[qIndex].type = nextType;
+                            updated[qIndex] = {
+                              ...updated[qIndex],
+                              type: nextType,
+                            };
                             if (
                               nextType === "single" &&
                               updated[qIndex].correctAnswerIndexes.length > 1
@@ -960,54 +1253,264 @@ function ScreeningsContent() {
                           }}
                           className="input w-full"
                         >
-                          <option value="single">Single Correct</option>
-                          <option value="multi">Multi Correct</option>
+                          {QUESTION_TYPES_FOR_SCREENING[
+                            form.screeningType
+                          ]?.map((t) => (
+                            <option key={t} value={t}>
+                              {t === "single"
+                                ? "Single Correct"
+                                : t === "multi"
+                                  ? "Multi Correct"
+                                  : t === "ranking"
+                                    ? "🔀 Ranking"
+                                    : t === "written"
+                                      ? "✍️ Written"
+                                      : t === "red_team"
+                                        ? "🛡️ Red Team"
+                                        : t === "fact_check"
+                                          ? "📋 Fact Check"
+                                          : t === "coding"
+                                            ? "💻 Coding"
+                                            : t === "multimodal"
+                                              ? "🖼️ Multimodal"
+                                              : t}
+                            </option>
+                          ))}
                         </select>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {q.options.map((opt, oIndex) => (
-                          <div key={oIndex} className="flex items-center gap-2">
-                            {q.type === "single" ? (
-                              <input
-                                type="radio"
-                                name={`correct-${qIndex}`}
-                                checked={q.correctAnswerIndexes.includes(
-                                  oIndex,
+                      {/* MCQ Options (single/multi types only) */}
+                      {(q.type === "single" || q.type === "multi") && (
+                        <>
+                          <div className="grid grid-cols-2 gap-2">
+                            {q.options.map((opt, oIndex) => (
+                              <div
+                                key={oIndex}
+                                className="flex items-center gap-2"
+                              >
+                                {q.type === "single" ? (
+                                  <input
+                                    type="radio"
+                                    name={`correct-${qIndex}`}
+                                    checked={q.correctAnswerIndexes.includes(
+                                      oIndex,
+                                    )}
+                                    onChange={() =>
+                                      toggleCorrectAnswer(qIndex, oIndex)
+                                    }
+                                    className="shrink-0"
+                                  />
+                                ) : (
+                                  <input
+                                    type="checkbox"
+                                    checked={q.correctAnswerIndexes.includes(
+                                      oIndex,
+                                    )}
+                                    onChange={() =>
+                                      toggleCorrectAnswer(qIndex, oIndex)
+                                    }
+                                    className="shrink-0"
+                                  />
                                 )}
-                                onChange={() =>
-                                  toggleCorrectAnswer(qIndex, oIndex)
+                                <input
+                                  type="text"
+                                  value={opt}
+                                  onChange={(e) =>
+                                    updateOption(qIndex, oIndex, e.target.value)
+                                  }
+                                  className="input w-full text-sm"
+                                  placeholder={`Option ${oIndex + 1}`}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-xs text-slate-500 mt-2">
+                            {q.type === "single"
+                              ? "Select the radio for the correct answer"
+                              : "Select all correct answers"}
+                          </p>
+                        </>
+                      )}
+                      {/* PATCH_94: RLHF Question Fields */}
+                      {q.type === "ranking" && (
+                        <div className="mt-3 space-y-2 p-3 rounded-lg bg-purple-500/5 border border-purple-500/20">
+                          <p className="text-xs font-medium text-purple-300">
+                            🔀 Ranking — Response Comparison
+                          </p>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-xs text-slate-500 mb-1">
+                                Response A
+                              </label>
+                              <textarea
+                                value={q.responseA || ""}
+                                onChange={(e) =>
+                                  updateQuestion(
+                                    qIndex,
+                                    "responseA",
+                                    e.target.value,
+                                  )
                                 }
-                                className="shrink-0"
+                                className="input w-full text-sm h-20 resize-none"
+                                placeholder="Enter response A for comparison..."
                               />
-                            ) : (
-                              <input
-                                type="checkbox"
-                                checked={q.correctAnswerIndexes.includes(
-                                  oIndex,
-                                )}
-                                onChange={() =>
-                                  toggleCorrectAnswer(qIndex, oIndex)
+                            </div>
+                            <div>
+                              <label className="block text-xs text-slate-500 mb-1">
+                                Response B
+                              </label>
+                              <textarea
+                                value={q.responseB || ""}
+                                onChange={(e) =>
+                                  updateQuestion(
+                                    qIndex,
+                                    "responseB",
+                                    e.target.value,
+                                  )
                                 }
-                                className="shrink-0"
+                                className="input w-full text-sm h-20 resize-none"
+                                placeholder="Enter response B for comparison..."
                               />
-                            )}
+                            </div>
+                          </div>
+                          <p className="text-xs text-slate-500">
+                            Worker will compare responses and explain which is
+                            better + why.
+                          </p>
+                        </div>
+                      )}
+                      {q.type === "written" && (
+                        <div className="mt-3 p-3 rounded-lg bg-blue-500/5 border border-blue-500/20">
+                          <p className="text-xs font-medium text-blue-300">
+                            ✍️ Written — Free-form Response
+                          </p>
+                          <div className="mt-2">
+                            <label className="block text-xs text-slate-500 mb-1">
+                              Min Words Required
+                            </label>
                             <input
-                              type="text"
-                              value={opt}
+                              type="number"
+                              min="0"
+                              value={q.minWords || 0}
                               onChange={(e) =>
-                                updateOption(qIndex, oIndex, e.target.value)
+                                updateQuestion(
+                                  qIndex,
+                                  "minWords",
+                                  parseInt(e.target.value) || 0,
+                                )
                               }
-                              className="input w-full text-sm"
-                              placeholder={`Option ${oIndex + 1}`}
+                              className="input w-24 text-sm"
+                              placeholder="50"
                             />
                           </div>
-                        ))}
-                      </div>
-                      <p className="text-xs text-slate-500 mt-2">
-                        {q.type === "single"
-                          ? "Select the radio for the correct answer"
-                          : "Select all correct answers"}
-                      </p>
+                          <p className="text-xs text-slate-500 mt-1">
+                            Worker will write a detailed response. Admin reviews
+                            quality.
+                          </p>
+                        </div>
+                      )}
+                      {q.type === "fact_check" && (
+                        <div className="mt-3 p-3 rounded-lg bg-green-500/5 border border-green-500/20">
+                          <p className="text-xs font-medium text-green-300">
+                            📋 Fact Check — Source Verification
+                          </p>
+                          <p className="text-xs text-slate-500 mt-1">
+                            Worker will provide a verdict
+                            (true/false/misleading), source URLs, and
+                            explanation. Wikipedia auto-rejected.
+                          </p>
+                        </div>
+                      )}
+                      {q.type === "coding" && (
+                        <div className="mt-3 p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/20">
+                          <p className="text-xs font-medium text-cyan-300">
+                            💻 Coding — Code Solution
+                          </p>
+                          <div className="mt-2">
+                            <label className="block text-xs text-slate-500 mb-1">
+                              Programming Language
+                            </label>
+                            <select
+                              value={q.codeLanguage || "javascript"}
+                              onChange={(e) =>
+                                updateQuestion(
+                                  qIndex,
+                                  "codeLanguage",
+                                  e.target.value,
+                                )
+                              }
+                              className="input w-40 text-sm"
+                            >
+                              <option value="javascript">JavaScript</option>
+                              <option value="python">Python</option>
+                              <option value="typescript">TypeScript</option>
+                              <option value="java">Java</option>
+                              <option value="cpp">C++</option>
+                              <option value="csharp">C#</option>
+                              <option value="go">Go</option>
+                              <option value="rust">Rust</option>
+                              <option value="sql">SQL</option>
+                              <option value="other">Other</option>
+                            </select>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1">
+                            Worker writes code solution. Admin reviews logic +
+                            correctness.
+                          </p>
+                        </div>
+                      )}
+                      {q.type === "red_team" && (
+                        <div className="mt-3 p-3 rounded-lg bg-red-500/5 border border-red-500/20">
+                          <p className="text-xs font-medium text-red-300">
+                            🛡️ Red Team — Adversarial Testing
+                          </p>
+                          <p className="text-xs text-slate-500 mt-1">
+                            Worker writes an adversarial prompt + expected
+                            vulnerability + explanation (20+ words).
+                          </p>
+                        </div>
+                      )}
+                      {q.type === "multimodal" && (
+                        <div className="mt-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
+                          <p className="text-xs font-medium text-amber-300">
+                            🖼️ Multimodal — Image Analysis
+                          </p>
+                          <div className="mt-2">
+                            <label className="block text-xs text-slate-500 mb-1">
+                              Image URL
+                            </label>
+                            <input
+                              type="url"
+                              value={q.imageUrl || ""}
+                              onChange={(e) =>
+                                updateQuestion(
+                                  qIndex,
+                                  "imageUrl",
+                                  e.target.value,
+                                )
+                              }
+                              className="input w-full text-sm"
+                              placeholder="https://example.com/image.jpg"
+                            />
+                          </div>
+                          {q.imageUrl && (
+                            <div className="mt-2">
+                              <img
+                                src={q.imageUrl}
+                                alt="Preview"
+                                className="max-h-24 rounded border border-white/10"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display =
+                                    "none";
+                                }}
+                              />
+                            </div>
+                          )}
+                          <p className="text-xs text-slate-500 mt-1">
+                            Worker describes the image, flags issues, and rates
+                            quality (1-5).
+                          </p>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

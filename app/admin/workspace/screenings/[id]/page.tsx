@@ -12,10 +12,27 @@ import { useToast } from "@/hooks/useToast";
 
 type ScreeningQuestion = {
   question: string;
-  type?: "single" | "multi" | "multiple_choice" | "text" | "file_upload";
+  type?:
+    | "single"
+    | "multi"
+    | "multiple_choice"
+    | "text"
+    | "file_upload"
+    | "ranking"
+    | "written"
+    | "red_team"
+    | "fact_check"
+    | "coding"
+    | "multimodal";
   options: string[];
   correctAnswer?: number | string;
   correctAnswers?: string[];
+  responseA?: string;
+  responseB?: string;
+  imageUrl?: string;
+  codeLanguage?: string;
+  referenceUrls?: string[];
+  minWords?: number;
 };
 
 type Screening = {
@@ -37,13 +54,40 @@ type Screening = {
     bannedWords?: string[];
     requireJustification?: boolean;
   };
+  // PATCH_94
+  screeningType?: string;
+  minJustificationWords?: number;
+  allowRanking?: boolean;
+  allowMultiResponseComparison?: boolean;
 };
+
+const RLHF_TYPES = [
+  "ranking",
+  "written",
+  "red_team",
+  "fact_check",
+  "coding",
+  "multimodal",
+];
 
 type FormQuestion = {
   question: string;
-  type: "single" | "multi";
+  type:
+    | "single"
+    | "multi"
+    | "ranking"
+    | "written"
+    | "red_team"
+    | "fact_check"
+    | "coding"
+    | "multimodal";
   options: string[];
   correctAnswerIndexes: number[];
+  responseA?: string;
+  responseB?: string;
+  imageUrl?: string;
+  codeLanguage?: string;
+  minWords?: number;
 };
 
 export default function AdminScreeningEditorPage() {
@@ -81,6 +125,11 @@ export default function AdminScreeningEditorPage() {
       bannedWords: "",
       requireJustification: false,
     },
+    // PATCH_94
+    screeningType: "mcq" as string,
+    minJustificationWords: 30,
+    allowRanking: true,
+    allowMultiResponseComparison: false,
   });
 
   const normalizeOptions = (options: string[]) =>
@@ -101,7 +150,11 @@ export default function AdminScreeningEditorPage() {
 
       const questions: FormQuestion[] = (data.questions || []).map((q) => {
         const options = Array.isArray(q.options) ? q.options : [];
-        const type = q.type === "multi" ? "multi" : "single";
+        const qType = RLHF_TYPES.includes(q.type || "")
+          ? (q.type as FormQuestion["type"])
+          : q.type === "multi"
+            ? "multi"
+            : "single";
         const correctAnswers = Array.isArray(q.correctAnswers)
           ? q.correctAnswers
           : q.correctAnswer !== undefined && q.correctAnswer !== null
@@ -118,17 +171,28 @@ export default function AdminScreeningEditorPage() {
             .filter((idx) => idx >= 0);
         }
 
-        if (type === "single" && correctAnswerIndexes.length > 1) {
+        if (qType === "single" && correctAnswerIndexes.length > 1) {
           correctAnswerIndexes = [correctAnswerIndexes[0]];
         }
 
         return {
           question: q.question || "",
-          type,
-          options: options.length ? options : ["", "", "", ""],
+          type: qType,
+          options: options.length
+            ? options
+            : RLHF_TYPES.includes(qType)
+              ? []
+              : ["", "", "", ""],
           correctAnswerIndexes: correctAnswerIndexes.length
             ? correctAnswerIndexes
-            : [0],
+            : RLHF_TYPES.includes(qType)
+              ? []
+              : [0],
+          ...(q.responseA && { responseA: q.responseA }),
+          ...(q.responseB && { responseB: q.responseB }),
+          ...(q.imageUrl && { imageUrl: q.imageUrl }),
+          ...(q.codeLanguage && { codeLanguage: q.codeLanguage }),
+          ...(q.minWords && { minWords: q.minWords }),
         };
       });
 
@@ -164,8 +228,15 @@ export default function AdminScreeningEditorPage() {
           minWords: data.autoValidationRules?.minWords || 0,
           maxWords: data.autoValidationRules?.maxWords || 0,
           bannedWords: (data.autoValidationRules?.bannedWords || []).join(", "),
-          requireJustification: data.autoValidationRules?.requireJustification || false,
+          requireJustification:
+            data.autoValidationRules?.requireJustification || false,
         },
+        // PATCH_94
+        screeningType: data.screeningType || "mcq",
+        minJustificationWords: data.minJustificationWords ?? 30,
+        allowRanking: data.allowRanking ?? true,
+        allowMultiResponseComparison:
+          data.allowMultiResponseComparison ?? false,
       });
     } catch (e: any) {
       toast(e?.message || "Failed to load screening", "error");
@@ -180,7 +251,7 @@ export default function AdminScreeningEditorPage() {
 
   const updateQuestion = (
     index: number,
-    field: keyof FormQuestion,
+    field: string,
     value: string | number | string[] | number[],
   ) => {
     const updated = [...form.questions];
@@ -241,9 +312,15 @@ export default function AdminScreeningEditorPage() {
     }
 
     for (const q of form.questions) {
+      if (!q.question.trim()) {
+        toast("Each question must have text", "error");
+        return;
+      }
+      // PATCH_94: RLHF types skip option validation
+      if (RLHF_TYPES.includes(q.type)) continue;
       const options = normalizeOptions(q.options);
-      if (!q.question.trim() || options.length < 2) {
-        toast("Each question must have at least 2 options", "error");
+      if (options.length < 2) {
+        toast("Each MCQ question must have at least 2 options", "error");
         return;
       }
       const correctAnswers = q.correctAnswerIndexes
@@ -278,10 +355,19 @@ export default function AdminScreeningEditorPage() {
           minWords: form.autoValidationRules.minWords || undefined,
           maxWords: form.autoValidationRules.maxWords || undefined,
           bannedWords: form.autoValidationRules.bannedWords
-            ? form.autoValidationRules.bannedWords.split(",").map((w: string) => w.trim()).filter(Boolean)
+            ? form.autoValidationRules.bannedWords
+                .split(",")
+                .map((w: string) => w.trim())
+                .filter(Boolean)
             : undefined,
-          requireJustification: form.autoValidationRules.requireJustification || undefined,
+          requireJustification:
+            form.autoValidationRules.requireJustification || undefined,
         },
+        // PATCH_94: RLHF screening-level fields
+        screeningType: form.screeningType,
+        minJustificationWords: form.minJustificationWords,
+        allowRanking: form.allowRanking,
+        allowMultiResponseComparison: form.allowMultiResponseComparison,
         questions: form.questions.map((q) => {
           const options = normalizeOptions(q.options);
           const correctAnswers = q.correctAnswerIndexes
@@ -292,6 +378,12 @@ export default function AdminScreeningEditorPage() {
             type: q.type,
             options,
             correctAnswers,
+            // PATCH_94: RLHF question-level fields
+            ...(q.responseA && { responseA: q.responseA }),
+            ...(q.responseB && { responseB: q.responseB }),
+            ...(q.imageUrl && { imageUrl: q.imageUrl }),
+            ...(q.codeLanguage && { codeLanguage: q.codeLanguage }),
+            ...(q.minWords && { minWords: q.minWords }),
           };
         }),
       };
@@ -444,172 +536,248 @@ export default function AdminScreeningEditorPage() {
             </button>
           </div>
 
-        {/* PATCH_90: Evaluation Mode & Rubric Settings */}
-        <div className="border-t border-white/10 pt-4 mt-2">
-          <h3 className="font-medium text-sm text-slate-300 mb-3">⚡ Evaluation Settings <span className="text-xs text-slate-500">(PATCH_90)</span></h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">Evaluation Mode</label>
-              <select
-                value={form.evaluationMode}
-                onChange={(e) => setForm({ ...form, evaluationMode: e.target.value as "auto" | "hybrid" | "manual" })}
-                className="input w-full"
-              >
-                <option value="auto">Auto (MCQ only, instant pass/fail)</option>
-                <option value="hybrid">Hybrid (auto score + admin review)</option>
-                <option value="manual">Manual (full admin review)</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">Pass Threshold (%)</label>
-              <input
-                type="number"
-                min={1}
-                max={100}
-                value={form.passThreshold}
-                onChange={(e) => setForm({ ...form, passThreshold: Number(e.target.value) || 70 })}
-                className="input w-full"
-              />
-            </div>
-          </div>
-
-          {/* Auto Validation Rules */}
-          {form.evaluationMode !== "auto" && (
-            <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10">
-              <h4 className="text-xs font-medium text-slate-400 mb-2">Auto Validation Rules</h4>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-slate-500 mb-1">Min Words</label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={form.autoValidationRules.minWords}
-                    onChange={(e) => setForm({
+          {/* PATCH_90: Evaluation Mode & Rubric Settings */}
+          <div className="border-t border-white/10 pt-4 mt-2">
+            <h3 className="font-medium text-sm text-slate-300 mb-3">
+              ⚡ Evaluation Settings{" "}
+              <span className="text-xs text-slate-500">(PATCH_90)</span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">
+                  Evaluation Mode
+                </label>
+                <select
+                  value={form.evaluationMode}
+                  onChange={(e) =>
+                    setForm({
                       ...form,
-                      autoValidationRules: { ...form.autoValidationRules, minWords: Number(e.target.value) || 0 }
-                    })}
-                    className="input w-full text-sm"
-                    placeholder="0 = no limit"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-500 mb-1">Max Words</label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={form.autoValidationRules.maxWords}
-                    onChange={(e) => setForm({
-                      ...form,
-                      autoValidationRules: { ...form.autoValidationRules, maxWords: Number(e.target.value) || 0 }
-                    })}
-                    className="input w-full text-sm"
-                    placeholder="0 = no limit"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-xs text-slate-500 mb-1">Banned Words (comma separated)</label>
-                  <input
-                    type="text"
-                    value={form.autoValidationRules.bannedWords}
-                    onChange={(e) => setForm({
-                      ...form,
-                      autoValidationRules: { ...form.autoValidationRules, bannedWords: e.target.value }
-                    })}
-                    className="input w-full text-sm"
-                    placeholder="e.g., spam, placeholder, lorem"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={form.autoValidationRules.requireJustification}
-                      onChange={(e) => setForm({
-                        ...form,
-                        autoValidationRules: { ...form.autoValidationRules, requireJustification: e.target.checked }
-                      })}
-                    />
-                    Require justification in text answers
-                  </label>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Rubric Editor */}
-          {form.evaluationMode !== "auto" && (
-            <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-xs font-medium text-slate-400">Rubric Criteria</h4>
-                <button
-                  type="button"
-                  onClick={() => setForm({
-                    ...form,
-                    rubric: [...form.rubric, { criteria: "", weight: 1, maxScore: 10 }]
-                  })}
-                  className="text-xs text-blue-400 hover:text-blue-300"
+                      evaluationMode: e.target.value as
+                        | "auto"
+                        | "hybrid"
+                        | "manual",
+                    })
+                  }
+                  className="input w-full"
                 >
-                  + Add Criteria
-                </button>
+                  <option value="auto">
+                    Auto (MCQ only, instant pass/fail)
+                  </option>
+                  <option value="hybrid">
+                    Hybrid (auto score + admin review)
+                  </option>
+                  <option value="manual">Manual (full admin review)</option>
+                </select>
               </div>
-              {form.rubric.length === 0 && (
-                <p className="text-xs text-slate-500">No rubric criteria. Admin will review without structured rubric.</p>
-              )}
-              <div className="space-y-2">
-                {form.rubric.map((r, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">
+                  Pass Threshold (%)
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={form.passThreshold}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      passThreshold: Number(e.target.value) || 70,
+                    })
+                  }
+                  className="input w-full"
+                />
+              </div>
+            </div>
+
+            {/* Auto Validation Rules */}
+            {form.evaluationMode !== "auto" && (
+              <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                <h4 className="text-xs font-medium text-slate-400 mb-2">
+                  Auto Validation Rules
+                </h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1">
+                      Min Words
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={form.autoValidationRules.minWords}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          autoValidationRules: {
+                            ...form.autoValidationRules,
+                            minWords: Number(e.target.value) || 0,
+                          },
+                        })
+                      }
+                      className="input w-full text-sm"
+                      placeholder="0 = no limit"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1">
+                      Max Words
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={form.autoValidationRules.maxWords}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          autoValidationRules: {
+                            ...form.autoValidationRules,
+                            maxWords: Number(e.target.value) || 0,
+                          },
+                        })
+                      }
+                      className="input w-full text-sm"
+                      placeholder="0 = no limit"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-xs text-slate-500 mb-1">
+                      Banned Words (comma separated)
+                    </label>
                     <input
                       type="text"
-                      value={r.criteria}
-                      onChange={(e) => {
-                        const updated = [...form.rubric];
-                        updated[idx] = { ...updated[idx], criteria: e.target.value };
-                        setForm({ ...form, rubric: updated });
-                      }}
-                      className="input flex-1 text-sm"
-                      placeholder="Criteria name"
+                      value={form.autoValidationRules.bannedWords}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          autoValidationRules: {
+                            ...form.autoValidationRules,
+                            bannedWords: e.target.value,
+                          },
+                        })
+                      }
+                      className="input w-full text-sm"
+                      placeholder="e.g., spam, placeholder, lorem"
                     />
-                    <input
-                      type="number"
-                      min={1}
-                      value={r.weight}
-                      onChange={(e) => {
-                        const updated = [...form.rubric];
-                        updated[idx] = { ...updated[idx], weight: Number(e.target.value) || 1 };
-                        setForm({ ...form, rubric: updated });
-                      }}
-                      className="input w-16 text-sm"
-                      placeholder="Wt"
-                      title="Weight"
-                    />
-                    <input
-                      type="number"
-                      min={1}
-                      value={r.maxScore}
-                      onChange={(e) => {
-                        const updated = [...form.rubric];
-                        updated[idx] = { ...updated[idx], maxScore: Number(e.target.value) || 10 };
-                        setForm({ ...form, rubric: updated });
-                      }}
-                      className="input w-16 text-sm"
-                      placeholder="Max"
-                      title="Max Score"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setForm({ ...form, rubric: form.rubric.filter((_, i) => i !== idx) })}
-                      className="text-red-400 hover:text-red-300 text-xs"
-                    >
-                      ✕
-                    </button>
                   </div>
-                ))}
+                  <div className="col-span-2">
+                    <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={form.autoValidationRules.requireJustification}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            autoValidationRules: {
+                              ...form.autoValidationRules,
+                              requireJustification: e.target.checked,
+                            },
+                          })
+                        }
+                      />
+                      Require justification in text answers
+                    </label>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
 
-        <div className="space-y-4">
+            {/* Rubric Editor */}
+            {form.evaluationMode !== "auto" && (
+              <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-medium text-slate-400">
+                    Rubric Criteria
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm({
+                        ...form,
+                        rubric: [
+                          ...form.rubric,
+                          { criteria: "", weight: 1, maxScore: 10 },
+                        ],
+                      })
+                    }
+                    className="text-xs text-blue-400 hover:text-blue-300"
+                  >
+                    + Add Criteria
+                  </button>
+                </div>
+                {form.rubric.length === 0 && (
+                  <p className="text-xs text-slate-500">
+                    No rubric criteria. Admin will review without structured
+                    rubric.
+                  </p>
+                )}
+                <div className="space-y-2">
+                  {form.rubric.map((r, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={r.criteria}
+                        onChange={(e) => {
+                          const updated = [...form.rubric];
+                          updated[idx] = {
+                            ...updated[idx],
+                            criteria: e.target.value,
+                          };
+                          setForm({ ...form, rubric: updated });
+                        }}
+                        className="input flex-1 text-sm"
+                        placeholder="Criteria name"
+                      />
+                      <input
+                        type="number"
+                        min={1}
+                        value={r.weight}
+                        onChange={(e) => {
+                          const updated = [...form.rubric];
+                          updated[idx] = {
+                            ...updated[idx],
+                            weight: Number(e.target.value) || 1,
+                          };
+                          setForm({ ...form, rubric: updated });
+                        }}
+                        className="input w-16 text-sm"
+                        placeholder="Wt"
+                        title="Weight"
+                      />
+                      <input
+                        type="number"
+                        min={1}
+                        value={r.maxScore}
+                        onChange={(e) => {
+                          const updated = [...form.rubric];
+                          updated[idx] = {
+                            ...updated[idx],
+                            maxScore: Number(e.target.value) || 10,
+                          };
+                          setForm({ ...form, rubric: updated });
+                        }}
+                        className="input w-16 text-sm"
+                        placeholder="Max"
+                        title="Max Score"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setForm({
+                            ...form,
+                            rubric: form.rubric.filter((_, i) => i !== idx),
+                          })
+                        }
+                        className="text-red-400 hover:text-red-300 text-xs"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-4">
             {form.questions.map((q, qIndex) => (
               <div
                 key={qIndex}
@@ -643,9 +811,9 @@ export default function AdminScreeningEditorPage() {
                   <select
                     value={q.type}
                     onChange={(e) => {
-                      const nextType = e.target.value as "single" | "multi";
+                      const nextType = e.target.value as FormQuestion["type"];
                       const updated = [...form.questions];
-                      updated[qIndex].type = nextType;
+                      updated[qIndex] = { ...updated[qIndex], type: nextType };
                       if (
                         nextType === "single" &&
                         updated[qIndex].correctAnswerIndexes.length > 1
@@ -660,45 +828,198 @@ export default function AdminScreeningEditorPage() {
                   >
                     <option value="single">Single Correct</option>
                     <option value="multi">Multi Correct</option>
+                    {form.screeningType !== "mcq" && (
+                      <>
+                        <option value="ranking">🔀 Ranking</option>
+                        <option value="written">✍️ Written</option>
+                        <option value="red_team">🛡️ Red Team</option>
+                        <option value="fact_check">📋 Fact Check</option>
+                        <option value="coding">💻 Coding</option>
+                        <option value="multimodal">🖼️ Multimodal</option>
+                      </>
+                    )}
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  {q.options.map((opt, oIndex) => (
-                    <div key={oIndex} className="flex items-center gap-2">
-                      {q.type === "single" ? (
-                        <input
-                          type="radio"
-                          name={`correct-${qIndex}`}
-                          checked={q.correctAnswerIndexes.includes(oIndex)}
-                          onChange={() => toggleCorrectAnswer(qIndex, oIndex)}
-                          className="shrink-0"
+                {/* MCQ Options (single/multi types only) */}
+                {(q.type === "single" || q.type === "multi") && (
+                  <>
+                    <div className="grid grid-cols-2 gap-2">
+                      {q.options.map((opt, oIndex) => (
+                        <div key={oIndex} className="flex items-center gap-2">
+                          {q.type === "single" ? (
+                            <input
+                              type="radio"
+                              name={`correct-${qIndex}`}
+                              checked={q.correctAnswerIndexes.includes(oIndex)}
+                              onChange={() =>
+                                toggleCorrectAnswer(qIndex, oIndex)
+                              }
+                              className="shrink-0"
+                            />
+                          ) : (
+                            <input
+                              type="checkbox"
+                              checked={q.correctAnswerIndexes.includes(oIndex)}
+                              onChange={() =>
+                                toggleCorrectAnswer(qIndex, oIndex)
+                              }
+                              className="shrink-0"
+                            />
+                          )}
+                          <input
+                            type="text"
+                            value={opt}
+                            onChange={(e) =>
+                              updateOption(qIndex, oIndex, e.target.value)
+                            }
+                            className="input w-full text-sm"
+                            placeholder={`Option ${oIndex + 1}`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-2">
+                      {q.type === "single"
+                        ? "Select the radio for the correct answer"
+                        : "Select all correct answers"}
+                    </p>
+                  </>
+                )}
+
+                {/* PATCH_94: RLHF Question Fields for Editor */}
+                {q.type === "ranking" && (
+                  <div className="mt-3 space-y-2 p-3 rounded-lg bg-purple-500/5 border border-purple-500/20">
+                    <p className="text-xs font-medium text-purple-300">
+                      🔀 Ranking — Response Comparison
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs text-slate-500 mb-1">
+                          Response A
+                        </label>
+                        <textarea
+                          value={q.responseA || ""}
+                          onChange={(e) =>
+                            updateQuestion(qIndex, "responseA", e.target.value)
+                          }
+                          className="input w-full text-sm h-20 resize-none"
+                          placeholder="Response A..."
                         />
-                      ) : (
-                        <input
-                          type="checkbox"
-                          checked={q.correctAnswerIndexes.includes(oIndex)}
-                          onChange={() => toggleCorrectAnswer(qIndex, oIndex)}
-                          className="shrink-0"
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-500 mb-1">
+                          Response B
+                        </label>
+                        <textarea
+                          value={q.responseB || ""}
+                          onChange={(e) =>
+                            updateQuestion(qIndex, "responseB", e.target.value)
+                          }
+                          className="input w-full text-sm h-20 resize-none"
+                          placeholder="Response B..."
                         />
-                      )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {q.type === "written" && (
+                  <div className="mt-3 p-3 rounded-lg bg-blue-500/5 border border-blue-500/20">
+                    <p className="text-xs font-medium text-blue-300">
+                      ✍️ Written — Free-form Response
+                    </p>
+                    <div className="mt-2">
+                      <label className="block text-xs text-slate-500 mb-1">
+                        Min Words
+                      </label>
                       <input
-                        type="text"
-                        value={opt}
+                        type="number"
+                        min="0"
+                        value={q.minWords || 0}
                         onChange={(e) =>
-                          updateOption(qIndex, oIndex, e.target.value)
+                          updateQuestion(
+                            qIndex,
+                            "minWords",
+                            parseInt(e.target.value) || 0,
+                          )
                         }
-                        className="input w-full text-sm"
-                        placeholder={`Option ${oIndex + 1}`}
+                        className="input w-24 text-sm"
                       />
                     </div>
-                  ))}
-                </div>
-                <p className="text-xs text-slate-500 mt-2">
-                  {q.type === "single"
-                    ? "Select the radio for the correct answer"
-                    : "Select all correct answers"}
-                </p>
+                  </div>
+                )}
+                {q.type === "coding" && (
+                  <div className="mt-3 p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/20">
+                    <p className="text-xs font-medium text-cyan-300">
+                      💻 Coding — Code Solution
+                    </p>
+                    <div className="mt-2">
+                      <label className="block text-xs text-slate-500 mb-1">
+                        Language
+                      </label>
+                      <select
+                        value={q.codeLanguage || "javascript"}
+                        onChange={(e) =>
+                          updateQuestion(qIndex, "codeLanguage", e.target.value)
+                        }
+                        className="input w-40 text-sm"
+                      >
+                        <option value="javascript">JavaScript</option>
+                        <option value="python">Python</option>
+                        <option value="typescript">TypeScript</option>
+                        <option value="java">Java</option>
+                        <option value="cpp">C++</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+                {q.type === "multimodal" && (
+                  <div className="mt-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
+                    <p className="text-xs font-medium text-amber-300">
+                      🖼️ Multimodal — Image Analysis
+                    </p>
+                    <div className="mt-2">
+                      <label className="block text-xs text-slate-500 mb-1">
+                        Image URL
+                      </label>
+                      <input
+                        type="url"
+                        value={q.imageUrl || ""}
+                        onChange={(e) =>
+                          updateQuestion(qIndex, "imageUrl", e.target.value)
+                        }
+                        className="input w-full text-sm"
+                        placeholder="https://..."
+                      />
+                    </div>
+                    {q.imageUrl && (
+                      <img
+                        src={q.imageUrl}
+                        alt="Preview"
+                        className="max-h-24 rounded border border-white/10 mt-2"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    )}
+                  </div>
+                )}
+                {q.type === "fact_check" && (
+                  <div className="mt-3 p-3 rounded-lg bg-green-500/5 border border-green-500/20">
+                    <p className="text-xs font-medium text-green-300">
+                      📋 Fact Check — Worker provides verdict + sources
+                    </p>
+                  </div>
+                )}
+                {q.type === "red_team" && (
+                  <div className="mt-3 p-3 rounded-lg bg-red-500/5 border border-red-500/20">
+                    <p className="text-xs font-medium text-red-300">
+                      🛡️ Red Team — Worker writes adversarial prompt +
+                      explanation
+                    </p>
+                  </div>
+                )}
               </div>
             ))}
           </div>
