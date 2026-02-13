@@ -15,6 +15,14 @@ type WorkPosition = {
   sortOrder?: number;
   createdAt?: string;
   updatedAt?: string;
+  hasScreening?: boolean;
+  screeningId?: { _id: string; title: string; screeningType?: string };
+  screeningIds?: Array<{
+    _id: string;
+    title: string;
+    screeningType?: string;
+    passThreshold?: number;
+  }>;
 };
 
 type Draft = {
@@ -240,7 +248,8 @@ export default function AdminWorkPositionsPage() {
           </div>
           {/* PATCH_79: Flow guidance */}
           <p className="text-xs text-cyan-400/70 mt-2">
-            Job Roles → Screenings → Workers. Each role defines eligibility requirements.
+            Job Roles → Screenings → Workers. Each role defines eligibility
+            requirements.
           </p>
         </div>
 
@@ -254,11 +263,24 @@ export default function AdminWorkPositionsPage() {
         <div className="flex items-start gap-3">
           <span className="text-2xl">ℹ️</span>
           <div className="flex-1">
-            <h3 className="text-sm font-semibold text-white mb-1">About Job Roles</h3>
+            <h3 className="text-sm font-semibold text-white mb-1">
+              About Job Roles
+            </h3>
             <ul className="text-sm text-slate-300 space-y-1">
-              <li>• Job Roles define <span className="text-cyan-400">types of work</span> available on your platform</li>
-              <li>• Each role can have a <span className="text-amber-400">screening test</span> workers must pass before working</li>
-              <li>• Workers apply for roles → Pass screening → Get assigned projects</li>
+              <li>
+                • Job Roles define{" "}
+                <span className="text-cyan-400">types of work</span> available
+                on your platform
+              </li>
+              <li>
+                • Each role can have a{" "}
+                <span className="text-amber-400">screening test</span> workers
+                must pass before working
+              </li>
+              <li>
+                • Workers apply for roles → Pass screening → Get assigned
+                projects
+              </li>
             </ul>
           </div>
         </div>
@@ -334,7 +356,8 @@ export default function AdminWorkPositionsPage() {
           {/* PATCH_79: Clear next step */}
           <div className="mt-4 p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/20 inline-block">
             <p className="text-sm text-cyan-300">
-              👉 <span className="font-medium">Next Step:</span> Create your first job role to start accepting worker applications
+              👉 <span className="font-medium">Next Step:</span> Create your
+              first job role to start accepting worker applications
             </p>
           </div>
           <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
@@ -359,9 +382,13 @@ export default function AdminWorkPositionsPage() {
                   <div className="flex items-center gap-2">
                     <p className="font-semibold text-white">{p.title}</p>
                     {p.active === false ? (
-                      <span className="px-2 py-0.5 text-xs rounded-full bg-slate-500/20 text-slate-400">Inactive</span>
+                      <span className="px-2 py-0.5 text-xs rounded-full bg-slate-500/20 text-slate-400">
+                        Inactive
+                      </span>
                     ) : (
-                      <span className="px-2 py-0.5 text-xs rounded-full bg-emerald-500/20 text-emerald-400">Active</span>
+                      <span className="px-2 py-0.5 text-xs rounded-full bg-emerald-500/20 text-emerald-400">
+                        Active
+                      </span>
                     )}
                   </div>
                   <p className="text-xs text-[#9CA3AF] mt-1">
@@ -380,11 +407,32 @@ export default function AdminWorkPositionsPage() {
               <div className="mt-4 grid grid-cols-3 gap-2">
                 {/* Screening Required? */}
                 <div className="bg-white/5 border border-white/10 rounded-lg p-3">
-                  <div className="text-xs text-slate-500 mb-1">Screening Required?</div>
-                  {(p as any).hasScreening ? (
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-emerald-400 text-lg">✓</span>
-                      <span className="text-sm font-medium text-emerald-400">Yes</span>
+                  <div className="text-xs text-slate-500 mb-1">
+                    Screening Required?
+                  </div>
+                  {p.hasScreening ? (
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-emerald-400 text-lg">✓</span>
+                        <span className="text-sm font-medium text-emerald-400">
+                          Yes
+                        </span>
+                      </div>
+                      {p.screeningIds && p.screeningIds.length > 0 ? (
+                        <div
+                          className="text-xs text-slate-400 truncate"
+                          title={p.screeningIds.map((s) => s.title).join(", ")}
+                        >
+                          {p.screeningIds.map((s) => s.title).join(", ")}
+                        </div>
+                      ) : p.screeningId?.title ? (
+                        <div
+                          className="text-xs text-slate-400 truncate"
+                          title={p.screeningId.title}
+                        >
+                          {p.screeningId.title}
+                        </div>
+                      ) : null}
                     </div>
                   ) : (
                     <div className="flex items-center gap-1.5">
@@ -407,7 +455,9 @@ export default function AdminWorkPositionsPage() {
                 </div>
                 {/* Active Workers */}
                 <div className="bg-white/5 border border-white/10 rounded-lg p-3">
-                  <div className="text-xs text-slate-500 mb-1">Active Workers</div>
+                  <div className="text-xs text-slate-500 mb-1">
+                    Active Workers
+                  </div>
                   <div className="text-lg font-bold text-cyan-400">
                     {(p as any).activeWorkerCount || 0}
                   </div>
@@ -415,7 +465,7 @@ export default function AdminWorkPositionsPage() {
               </div>
 
               {/* PATCH_79: Screening Banner - Only show if screening is required */}
-              {(p as any).hasScreening && (
+              {p.hasScreening && (
                 <div className="mt-3 p-2 rounded-lg bg-purple-500/10 border border-purple-500/20">
                   <p className="text-xs text-purple-300 flex items-center gap-2">
                     <span>🔒</span>
