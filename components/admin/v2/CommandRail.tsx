@@ -109,6 +109,8 @@ export default function CommandRail({
           href: "/admin/proofs",
           badge: badges.pendingProofs,
         },
+        { label: "RLHF Datasets", href: "/admin/datasets" },
+        { label: "RLHF Reviews", href: "/admin/rlhf-reviews" },
       ],
     },
     {

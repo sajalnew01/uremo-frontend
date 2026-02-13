@@ -110,8 +110,12 @@ function ProjectsContent() {
     deadline: "",
     screeningId: "", // PATCH_65.1: Link to screening test
     workPositionId: "", // PATCH_86: Job Role ID
+    projectType: "standard", // PATCH_95: standard | rlhf_dataset
+    datasetId: "", // PATCH_95: linked dataset
+    rewardPerTask: 0, // PATCH_95: per-task reward
   });
   const [creating, setCreating] = useState(false);
+  const [datasetOptions, setDatasetOptions] = useState<{_id:string;name:string;datasetType:string}[]>([]); // PATCH_95
 
   // Assign modal state
   const [assignModal, setAssignModal] = useState<Project | null>(null);
@@ -152,6 +156,7 @@ function ProjectsContent() {
     loadWorkers();
     loadScreenings(); // PATCH_64
     loadJobRoles(); // PATCH_86
+    loadDatasets(); // PATCH_95
   }, [filter]);
 
   const loadProjects = async () => {
@@ -203,6 +208,16 @@ function ProjectsContent() {
       setScreenings(res.screenings || []);
     } catch (e) {
       console.error("Failed to load screenings for linkage:", e);
+    }
+  };
+
+  // PATCH_95: Load datasets for RLHF project linking
+  const loadDatasets = async () => {
+    try {
+      const res = await apiRequest<any>("/api/admin/datasets", "GET", null, true);
+      setDatasetOptions((res.datasets || []).filter((d: any) => d.isActive));
+    } catch (e) {
+      console.error("Failed to load datasets:", e);
     }
   };
 
@@ -368,6 +383,9 @@ function ProjectsContent() {
         deadline: "",
         screeningId: "",
         workPositionId: "", // PATCH_86
+        projectType: "standard", // PATCH_95
+        datasetId: "", // PATCH_95
+        rewardPerTask: 0, // PATCH_95
       });
       loadProjects();
     } catch (e: any) {
@@ -827,6 +845,12 @@ function ProjectsContent() {
                     >
                       ● {project.priority}
                     </span>
+                    {/* PATCH_95: RLHF badge */}
+                    {(project as any).projectType === "rlhf_dataset" && (
+                      <span className="px-2 py-0.5 rounded-full text-xs bg-purple-500/20 text-purple-400">
+                        RLHF
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm text-slate-400 line-clamp-2">
                     {project.description}
@@ -1169,6 +1193,62 @@ function ProjectsContent() {
                   />
                 </div>
               </div>
+
+              {/* PATCH_95: Project Type & Dataset Linking */}
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Project Type</label>
+                <select
+                  value={form.projectType}
+                  onChange={(e) => setForm({ ...form, projectType: e.target.value })}
+                  className="input w-full"
+                >
+                  <option value="standard">Standard (Proof-based)</option>
+                  <option value="rlhf_dataset">RLHF Dataset (Task-based)</option>
+                </select>
+              </div>
+              {form.projectType === "rlhf_dataset" && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-1">
+                      Linked Dataset <span className="text-amber-400">*</span>
+                    </label>
+                    <select
+                      value={form.datasetId}
+                      onChange={(e) => setForm({ ...form, datasetId: e.target.value })}
+                      className="input w-full"
+                      required
+                    >
+                      <option value="">-- Select Dataset --</option>
+                      {datasetOptions.map((ds) => (
+                        <option key={ds._id} value={ds._id}>
+                          {ds.name} ({ds.datasetType})
+                        </option>
+                      ))}
+                    </select>
+                    {datasetOptions.length === 0 && (
+                      <p className="text-xs text-amber-300 mt-1">
+                        No active datasets. Create one in RLHF Datasets page first.
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-1">
+                      Reward Per Task ($)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={form.rewardPerTask}
+                      onChange={(e) => setForm({ ...form, rewardPerTask: parseFloat(e.target.value) || 0 })}
+                      className="input w-full"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">
+                      Credited to worker per approved task
+                    </p>
+                  </div>
+                </div>
+              )}
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"

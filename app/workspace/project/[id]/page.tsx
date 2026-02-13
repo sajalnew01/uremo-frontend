@@ -23,6 +23,9 @@ type Project = {
   deadline?: string;
   assignedAt?: string;
   deliverables?: { title: string; description: string; required: boolean }[];
+  projectType?: "standard" | "rlhf_dataset";
+  datasetId?: any;
+  rewardPerTask?: number;
 };
 
 type Proof = {
@@ -53,6 +56,15 @@ export default function ProjectDetailPage() {
   const [proofFiles, setProofFiles] = useState<File[]>([]);
   const [proofSubmitting, setProofSubmitting] = useState(false);
 
+  // PATCH_95: RLHF task execution state
+  const [rlhfTasks, setRlhfTasks] = useState<any[]>([]);
+  const [rlhfDataset, setRlhfDataset] = useState<any>(null);
+  const [rlhfCurrentIdx, setRlhfCurrentIdx] = useState(0);
+  const [rlhfAnswer, setRlhfAnswer] = useState<any>({});
+  const [rlhfSubmitting, setRlhfSubmitting] = useState(false);
+  const [rlhfSubmitted, setRlhfSubmitted] = useState(0);
+  const [rlhfTotal, setRlhfTotal] = useState(0);
+
   useEffect(() => {
     const loadProject = async () => {
       if (!projectId) return;
@@ -66,15 +78,38 @@ export default function ProjectDetailPage() {
         );
         setProject(res.project);
 
-        // Load existing proof
-        const proofRes = await apiRequest(
-          `/api/workspace/project/${projectId}/proof`,
-          "GET",
-          null,
-          true,
-        );
-        if (proofRes.proof) {
-          setProof(proofRes.proof);
+        // PATCH_95: If RLHF project, load tasks
+        if (res.project?.projectType === "rlhf_dataset") {
+          try {
+            const rlhfRes = await apiRequest(
+              `/api/workspace/project/${projectId}/rlhf-tasks`,
+              "GET",
+              null,
+              true,
+            );
+            setRlhfDataset(rlhfRes.dataset);
+            setRlhfTasks(rlhfRes.tasks || []);
+            setRlhfSubmitted(rlhfRes.submissionCount || 0);
+            setRlhfTotal(rlhfRes.totalTasks || 0);
+            // Jump to first unsubmitted task
+            const firstUnsub = (rlhfRes.tasks || []).findIndex(
+              (t: any) => !t.submitted,
+            );
+            if (firstUnsub >= 0) setRlhfCurrentIdx(firstUnsub);
+          } catch (rlhfErr: any) {
+            console.warn("RLHF tasks load failed:", rlhfErr?.message);
+          }
+        } else {
+          // Load existing proof (standard projects only)
+          const proofRes = await apiRequest(
+            `/api/workspace/project/${projectId}/proof`,
+            "GET",
+            null,
+            true,
+          );
+          if (proofRes.proof) {
+            setProof(proofRes.proof);
+          }
         }
       } catch (e: any) {
         setError(e?.message || "Failed to load project");
@@ -182,6 +217,39 @@ export default function ProjectDetailPage() {
       setProofSubmitting(false);
     }
   };
+
+  // PATCH_95: Submit RLHF task answer
+  const submitRlhfTask = async () => {
+    const task = rlhfTasks[rlhfCurrentIdx];
+    if (!task) return;
+    setRlhfSubmitting(true);
+    try {
+      await apiRequest(
+        `/api/workspace/project/${projectId}/rlhf-submit`,
+        "POST",
+        { taskId: task._id, answerPayload: rlhfAnswer },
+        true,
+      );
+      toast("Task submitted!", "success");
+      // Mark as submitted locally
+      const updated = [...rlhfTasks];
+      updated[rlhfCurrentIdx] = { ...updated[rlhfCurrentIdx], submitted: true };
+      setRlhfTasks(updated);
+      setRlhfSubmitted((prev) => prev + 1);
+      setRlhfAnswer({});
+      // Move to next unsubmitted
+      const nextUnsub = updated.findIndex(
+        (t, i) => i > rlhfCurrentIdx && !t.submitted,
+      );
+      if (nextUnsub >= 0) setRlhfCurrentIdx(nextUnsub);
+    } catch (e: any) {
+      toast(e?.message || "Failed to submit task", "error");
+    } finally {
+      setRlhfSubmitting(false);
+    }
+  };
+
+  const isRlhf = project?.projectType === "rlhf_dataset";
 
   if (loading) {
     return (
@@ -345,7 +413,393 @@ export default function ProjectDetailPage() {
         </div>
       )}
 
-      {project.status === "in_progress" && (
+      {/* PATCH_95: RLHF Task Execution UI */}
+      {project.status === "in_progress" && isRlhf && rlhfTasks.length > 0 && (
+        <div className="card">
+          {/* Progress Bar */}
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-medium">🧠 RLHF Task Execution</h3>
+            <span className="text-sm text-slate-400">
+              {rlhfSubmitted}/{rlhfTotal} completed
+              {project.rewardPerTask ? ` · $${project.rewardPerTask}/task` : ""}
+            </span>
+          </div>
+          <div className="w-full bg-white/10 rounded-full h-2 mb-6">
+            <div
+              className="bg-blue-500 h-2 rounded-full transition-all"
+              style={{
+                width: `${rlhfTotal > 0 ? (rlhfSubmitted / rlhfTotal) * 100 : 0}%`,
+              }}
+            />
+          </div>
+
+          {/* Dataset Info */}
+          {rlhfDataset && (
+            <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 mb-4 text-sm">
+              <span className="text-blue-300 font-medium">
+                {rlhfDataset.name}
+              </span>
+              <span className="text-slate-400 mx-2">·</span>
+              <span className="text-slate-400">
+                {rlhfDataset.datasetType?.replace("_", " ")}
+              </span>
+              <span className="text-slate-400 mx-2">·</span>
+              <span className="text-slate-400">
+                {rlhfDataset.difficultyLevel}
+              </span>
+            </div>
+          )}
+
+          {/* Task Navigation */}
+          <div className="flex items-center gap-2 mb-4">
+            <button
+              onClick={() => setRlhfCurrentIdx(Math.max(0, rlhfCurrentIdx - 1))}
+              disabled={rlhfCurrentIdx === 0}
+              className="px-3 py-1 bg-white/10 rounded text-sm disabled:opacity-30"
+            >
+              ← Prev
+            </button>
+            <span className="text-sm text-slate-400">
+              Task {rlhfCurrentIdx + 1} of {rlhfTasks.length}
+            </span>
+            <button
+              onClick={() =>
+                setRlhfCurrentIdx(
+                  Math.min(rlhfTasks.length - 1, rlhfCurrentIdx + 1),
+                )
+              }
+              disabled={rlhfCurrentIdx >= rlhfTasks.length - 1}
+              className="px-3 py-1 bg-white/10 rounded text-sm disabled:opacity-30"
+            >
+              Next →
+            </button>
+          </div>
+
+          {/* Current Task */}
+          {(() => {
+            const task = rlhfTasks[rlhfCurrentIdx];
+            if (!task) return null;
+            const dt = rlhfDataset?.datasetType || "ranking";
+
+            if (task.submitted) {
+              return (
+                <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-center">
+                  <div className="text-2xl mb-2">✅</div>
+                  <p className="text-emerald-300 font-medium">
+                    Task already submitted
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Navigate to an unsubmitted task
+                  </p>
+                </div>
+              );
+            }
+
+            return (
+              <div className="space-y-4">
+                {/* Prompt */}
+                <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                  <h4 className="text-xs text-slate-400 mb-2 uppercase tracking-wider">
+                    Prompt
+                  </h4>
+                  <p className="text-white whitespace-pre-wrap">
+                    {task.prompt}
+                  </p>
+                </div>
+
+                {/* Image (multimodal) */}
+                {task.imageUrl && (
+                  <div className="rounded-xl overflow-hidden border border-white/10">
+                    <img
+                      src={task.imageUrl}
+                      alt="Task image"
+                      className="max-h-64 object-contain mx-auto"
+                    />
+                  </div>
+                )}
+
+                {/* RANKING: Response comparison + choice + justification */}
+                {dt === "ranking" && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div
+                        onClick={() =>
+                          setRlhfAnswer({ ...rlhfAnswer, choice: "A" })
+                        }
+                        className={`p-4 rounded-xl border cursor-pointer transition ${
+                          rlhfAnswer.choice === "A"
+                            ? "border-blue-500 bg-blue-500/10"
+                            : "border-white/10 bg-white/5 hover:border-white/30"
+                        }`}
+                      >
+                        <div className="text-xs text-slate-400 mb-2 font-medium">
+                          Response A
+                        </div>
+                        <div className="text-sm text-slate-300 whitespace-pre-wrap">
+                          {task.responseA || "N/A"}
+                        </div>
+                      </div>
+                      <div
+                        onClick={() =>
+                          setRlhfAnswer({ ...rlhfAnswer, choice: "B" })
+                        }
+                        className={`p-4 rounded-xl border cursor-pointer transition ${
+                          rlhfAnswer.choice === "B"
+                            ? "border-blue-500 bg-blue-500/10"
+                            : "border-white/10 bg-white/5 hover:border-white/30"
+                        }`}
+                      >
+                        <div className="text-xs text-slate-400 mb-2 font-medium">
+                          Response B
+                        </div>
+                        <div className="text-sm text-slate-300 whitespace-pre-wrap">
+                          {task.responseB || "N/A"}
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm text-slate-400 block mb-1">
+                        Justification (min{" "}
+                        {rlhfDataset?.minJustificationWords || 30} words)
+                      </label>
+                      <textarea
+                        value={rlhfAnswer.justification || ""}
+                        onChange={(e) =>
+                          setRlhfAnswer({
+                            ...rlhfAnswer,
+                            justification: e.target.value,
+                          })
+                        }
+                        rows={4}
+                        className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                        placeholder="Explain why this response is better..."
+                      />
+                      <div className="text-xs text-slate-500 mt-1">
+                        {
+                          (rlhfAnswer.justification || "")
+                            .trim()
+                            .split(/\s+/)
+                            .filter(Boolean).length
+                        }{" "}
+                        words
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* GENERATION: Free-form text */}
+                {dt === "generation" && (
+                  <div>
+                    <label className="text-sm text-slate-400 block mb-1">
+                      Your Response (min {rlhfDataset?.minWordCount || 20}{" "}
+                      words)
+                    </label>
+                    <textarea
+                      value={rlhfAnswer.response || ""}
+                      onChange={(e) =>
+                        setRlhfAnswer({
+                          ...rlhfAnswer,
+                          response: e.target.value,
+                        })
+                      }
+                      rows={6}
+                      className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                      placeholder="Write your response..."
+                    />
+                    <div className="text-xs text-slate-500 mt-1">
+                      {
+                        (rlhfAnswer.response || "")
+                          .trim()
+                          .split(/\s+/)
+                          .filter(Boolean).length
+                      }{" "}
+                      words
+                    </div>
+                  </div>
+                )}
+
+                {/* RED_TEAM: Attack prompt + explanation */}
+                {dt === "red_team" && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm text-slate-400 block mb-1">
+                        Attack Prompt
+                      </label>
+                      <textarea
+                        value={rlhfAnswer.prompt || ""}
+                        onChange={(e) =>
+                          setRlhfAnswer({
+                            ...rlhfAnswer,
+                            prompt: e.target.value,
+                          })
+                        }
+                        rows={3}
+                        className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                        placeholder="Write an adversarial prompt..."
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm text-slate-400 block mb-1">
+                        Explanation
+                      </label>
+                      <textarea
+                        value={rlhfAnswer.explanation || ""}
+                        onChange={(e) =>
+                          setRlhfAnswer({
+                            ...rlhfAnswer,
+                            explanation: e.target.value,
+                          })
+                        }
+                        rows={3}
+                        className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                        placeholder="Why does this exploit a vulnerability?"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* FACT_CHECK: Verdict + sources + justification */}
+                {dt === "fact_check" && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm text-slate-400 block mb-2">
+                        Verdict
+                      </label>
+                      <div className="flex gap-2 flex-wrap">
+                        {["true", "false", "misleading", "unverifiable"].map(
+                          (v) => (
+                            <button
+                              key={v}
+                              onClick={() =>
+                                setRlhfAnswer({ ...rlhfAnswer, verdict: v })
+                              }
+                              className={`px-4 py-2 rounded-lg text-sm transition ${
+                                rlhfAnswer.verdict === v
+                                  ? "bg-blue-500 text-white"
+                                  : "bg-white/10 text-slate-300 hover:bg-white/20"
+                              }`}
+                            >
+                              {v.charAt(0).toUpperCase() + v.slice(1)}
+                            </button>
+                          ),
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm text-slate-400 block mb-1">
+                        Sources
+                      </label>
+                      <input
+                        value={rlhfAnswer.sources || ""}
+                        onChange={(e) =>
+                          setRlhfAnswer({
+                            ...rlhfAnswer,
+                            sources: e.target.value,
+                          })
+                        }
+                        className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                        placeholder="Links to supporting sources (comma separated)"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm text-slate-400 block mb-1">
+                        Explanation
+                      </label>
+                      <textarea
+                        value={rlhfAnswer.explanation || ""}
+                        onChange={(e) =>
+                          setRlhfAnswer({
+                            ...rlhfAnswer,
+                            explanation: e.target.value,
+                          })
+                        }
+                        rows={3}
+                        className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                        placeholder="Explain your fact-check reasoning..."
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* CODING: Code editor */}
+                {dt === "coding" && (
+                  <div>
+                    <label className="text-sm text-slate-400 block mb-1">
+                      Your Code
+                    </label>
+                    <textarea
+                      value={rlhfAnswer.code || ""}
+                      onChange={(e) =>
+                        setRlhfAnswer({ ...rlhfAnswer, code: e.target.value })
+                      }
+                      rows={10}
+                      className="w-full bg-[#0d1117] border border-white/10 rounded-lg px-3 py-2 text-sm font-mono"
+                      placeholder="// Write your code here..."
+                    />
+                  </div>
+                )}
+
+                {/* MULTIMODAL: Description + rating */}
+                {dt === "multimodal" && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm text-slate-400 block mb-1">
+                        Description
+                      </label>
+                      <textarea
+                        value={rlhfAnswer.description || ""}
+                        onChange={(e) =>
+                          setRlhfAnswer({
+                            ...rlhfAnswer,
+                            description: e.target.value,
+                          })
+                        }
+                        rows={4}
+                        className="w-full bg-[#1f2937] border border-white/10 rounded-lg px-3 py-2 text-sm"
+                        placeholder="Describe the image/content..."
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm text-slate-400 block mb-2">
+                        Rating (1-5)
+                      </label>
+                      <div className="flex gap-2">
+                        {[1, 2, 3, 4, 5].map((r) => (
+                          <button
+                            key={r}
+                            onClick={() =>
+                              setRlhfAnswer({ ...rlhfAnswer, rating: r })
+                            }
+                            className={`w-10 h-10 rounded-lg text-sm font-bold transition ${
+                              rlhfAnswer.rating === r
+                                ? "bg-blue-500 text-white"
+                                : "bg-white/10 text-slate-300 hover:bg-white/20"
+                            }`}
+                          >
+                            {r}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Submit Button */}
+                <button
+                  onClick={submitRlhfTask}
+                  disabled={rlhfSubmitting}
+                  className="btn-primary disabled:opacity-50 w-full"
+                >
+                  {rlhfSubmitting ? "Submitting..." : "Submit Answer"}
+                </button>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* Standard project: Proof of Work */}
+      {project.status === "in_progress" && !isRlhf && (
         <div className="card">
           <h3 className="font-medium mb-4">📤 Submit Proof of Work</h3>
 
