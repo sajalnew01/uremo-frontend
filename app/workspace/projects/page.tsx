@@ -22,6 +22,7 @@ type Project = {
   assignedAt?: string;
   completedAt?: string;
   earningsCredited?: number;
+  projectType?: "standard" | "rlhf_dataset"; // PATCH_97
 };
 
 const STATUS_CONFIG: Record<
@@ -156,6 +157,18 @@ export default function WorkerProjectsPage() {
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-lg">{config.icon}</span>
                         <h3 className="font-medium">{project.title}</h3>
+                        {/* PATCH_97: Project type badge */}
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                            project.projectType === "rlhf_dataset"
+                              ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                              : "bg-slate-500/20 text-slate-300 border border-slate-500/30"
+                          }`}
+                        >
+                          {project.projectType === "rlhf_dataset"
+                            ? "AI Dataset"
+                            : "Microjob"}
+                        </span>
                         <span
                           className={`px-2 py-0.5 rounded-full text-xs ${config.color}`}
                         >
@@ -187,7 +200,9 @@ export default function WorkerProjectsPage() {
                           disabled={startingId === project._id}
                           className="px-4 py-2 rounded-lg bg-blue-500/20 text-blue-300 text-sm hover:bg-blue-500/30 disabled:opacity-50"
                         >
-                          {startingId === project._id ? "Starting..." : "Start Working"}
+                          {startingId === project._id
+                            ? "Starting..."
+                            : "Start Working"}
                         </button>
                       )}
                       <Link

@@ -59,6 +59,18 @@ export default function CommandRail({
     badges.stuckOrders +
     badges.invalidScreenings;
 
+  /**
+   * PATCH_97: Restructured admin navigation
+   * Grouped by operational domain:
+   * 1. Action Queue (dashboard)
+   * 2. Marketplace (services, orders, deals, rentals, blogs)
+   * 3. Workforce (job roles, screenings, projects, workers, proofs)
+   * 4. RLHF / AI Data (datasets, reviews)
+   * 5. Hiring (applications, positions, pipeline)
+   * 6. Support (tickets, disputes, fraud)
+   * 7. Finance (wallets, payments, affiliates, withdrawals)
+   * 8. System (analytics, campaigns, jarvisx, users, settings)
+   */
   const sections: NavSection[] = [
     {
       id: "master",
@@ -68,12 +80,17 @@ export default function CommandRail({
       badge: totalUrgent > 0 ? totalUrgent : undefined,
     },
     {
-      id: "orders",
-      label: "Orders & Delivery",
-      icon: <OrdersIcon />,
+      id: "marketplace",
+      label: "Marketplace",
+      icon: <MarketplaceIcon />,
       badge: badges.pendingOrders + badges.pendingPayments,
       items: [
-        { label: "All Orders", href: "/admin/orders" },
+        { label: "Services", href: "/admin/services" },
+        {
+          label: "All Orders",
+          href: "/admin/orders",
+          badge: badges.pendingOrders,
+        },
         {
           label: "Payment Proofs",
           href: "/admin/orders/payments",
@@ -86,11 +103,14 @@ export default function CommandRail({
           warning: badges.stuckOrders > 0,
         },
         { label: "Order Messages", href: "/admin/messages" },
+        { label: "Deals & Rentals", href: "/admin/rentals" },
+        { label: "Service Requests", href: "/admin/service-requests" },
+        { label: "Blogs", href: "/admin/blogs" },
       ],
     },
     {
       id: "workspace",
-      label: "Worker Ops",
+      label: "Workforce",
       icon: <WorkspaceIcon />,
       badge: badges.pendingProofs + badges.invalidScreenings,
       items: [
@@ -109,12 +129,19 @@ export default function CommandRail({
           href: "/admin/proofs",
           badge: badges.pendingProofs,
         },
-        { label: "RLHF Datasets", href: "/admin/datasets" },
+      ],
+    },
+    {
+      id: "rlhf",
+      label: "AI Data / RLHF",
+      icon: <RLHFIcon />,
+      items: [
+        { label: "Datasets", href: "/admin/datasets" },
         { label: "RLHF Reviews", href: "/admin/rlhf-reviews" },
       ],
     },
     {
-      id: "workforce",
+      id: "hiring",
       label: "Hiring",
       icon: <WorkforceIcon />,
       badge: badges.pendingApplications,
@@ -137,17 +164,6 @@ export default function CommandRail({
         { label: "Tickets", href: "/admin/tickets", badge: badges.openTickets },
         { label: "Order Disputes", href: "/admin/tickets?type=dispute" },
         { label: "Fraud Flags", href: "/admin/tickets?type=fraud" },
-      ],
-    },
-    {
-      id: "marketplace",
-      label: "Marketplace",
-      icon: <MarketplaceIcon />,
-      items: [
-        { label: "Services", href: "/admin/services" },
-        { label: "Rentals", href: "/admin/rentals" },
-        { label: "Service Requests", href: "/admin/service-requests" },
-        { label: "Blogs", href: "/admin/blogs" },
       ],
     },
     {
@@ -431,6 +447,25 @@ function MarketplaceIcon() {
     >
       <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
       <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+  );
+}
+
+// PATCH_97: AI Data / RLHF icon
+function RLHFIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className="w-full h-full"
+    >
+      <path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z" />
+      <path d="M6 12h12" />
+      <path d="M12 12v8" />
+      <path d="M8 20h8" />
+      <circle cx="12" cy="6" r="1" />
     </svg>
   );
 }

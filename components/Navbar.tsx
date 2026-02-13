@@ -44,17 +44,14 @@ export default function Navbar() {
     };
   }, [mobileMenuOpen]);
 
+  // PATCH_97: Restructured public nav — clear marketplace + worker sections
   const userLinks = [
-    {
-      href: "/explore-services",
-      label: "Find Work & Services",
-      icon: "🧭",
-    },
-    { href: "/workspace", label: "Workspace (Jobs)", icon: "💼" },
+    { href: "/explore-services", label: "Explore Services", icon: "🧭" },
+    { href: "/rentals", label: "Rent Access", icon: "🔑" },
     { href: "/deals", label: "Deals", icon: "🏷️" },
     { href: "/orders", label: "Orders", icon: "📦" },
+    { href: "/workspace", label: "Dashboard", icon: "💼" },
     { href: "/wallet", label: "Wallet", icon: "💰" },
-    { href: "/support", label: "Support", icon: "🛟" },
   ];
 
   const adminLinks = [

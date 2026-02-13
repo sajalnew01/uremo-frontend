@@ -1081,7 +1081,21 @@ function ProjectsTab({ applications }: { applications: JobApplication[] }) {
                 href={`/workspace/project/${project._id}`}
                 className="p-4 rounded-xl border border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 transition"
               >
-                <h4 className="font-medium mb-2">{project.title}</h4>
+                <div className="flex items-center gap-2 mb-2">
+                  <h4 className="font-medium">{project.title}</h4>
+                  {/* PATCH_97: Project type badge */}
+                  <span
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                      (project as any).projectType === "rlhf_dataset"
+                        ? "bg-purple-500/20 text-purple-300"
+                        : "bg-slate-500/20 text-slate-300"
+                    }`}
+                  >
+                    {(project as any).projectType === "rlhf_dataset"
+                      ? "AI Dataset"
+                      : "Microjob"}
+                  </span>
+                </div>
                 {project.description && (
                   <p className="text-sm text-slate-400 mb-3 line-clamp-2">
                     {project.description}
