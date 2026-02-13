@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { apiRequest } from "@/lib/api";
@@ -107,6 +107,11 @@ export default function ScreeningTestPage() {
   }, [screeningId]);
 
   // Timer
+  // PATCH_96: Use ref for handleSubmit to avoid stale closure in timer
+  const handleSubmitRef = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    handleSubmitRef.current = handleSubmit;
+  });
   useEffect(() => {
     if (!started || timeRemaining <= 0) return;
 
@@ -114,7 +119,7 @@ export default function ScreeningTestPage() {
       setTimeRemaining((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          handleSubmit(); // Auto-submit when time runs out
+          handleSubmitRef.current?.(); // Use ref to get fresh handleSubmit
           return 0;
         }
         return prev - 1;

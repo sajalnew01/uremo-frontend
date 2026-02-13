@@ -32,6 +32,8 @@ export default function ServiceDetailsPage() {
   const [service, setService] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
+  // PATCH_96: Double-click guard for buy/rent actions
+  const [actionSubmitting, setActionSubmitting] = useState(false);
   // PATCH_22: Selected rental plan for rental services
   const [selectedRentalPlan, setSelectedRentalPlan] = useState<number | null>(
     null,
@@ -197,9 +199,13 @@ export default function ServiceDetailsPage() {
   }, [service?.countries]);
 
   const buyService = async (overridePlanIndex?: number | null) => {
+    // PATCH_96: Double-click protection
+    if (actionSubmitting) return;
     // PATCH_12: Hard redirect if not logged in, with next param.
     // This avoids endless "Authentication required" toasts.
     if (!ensureLoggedIn()) return;
+    setActionSubmitting(true);
+    try {
 
     // PATCH_90: Check permissions before making API calls to prevent 403 errors
     const allowed = normalizeAllowedActions(service?.allowedActions);
@@ -294,6 +300,7 @@ export default function ServiceDetailsPage() {
 
       toast(msg || "Login required", "error");
     }
+    } finally { setActionSubmitting(false); }
   };
 
   // PATCH_47: Apply to work with service context - passes serviceId to find linked job role

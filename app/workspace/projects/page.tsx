@@ -76,7 +76,11 @@ export default function WorkerProjectsPage() {
     loadProjects();
   }, []);
 
+  const [startingId, setStartingId] = useState<string | null>(null);
+
   const startProject = async (projectId: string) => {
+    if (startingId) return; // PATCH_96: Double-click guard
+    setStartingId(projectId);
     try {
       await apiRequest(
         `/api/workspace/project/${projectId}/start`,
@@ -88,6 +92,8 @@ export default function WorkerProjectsPage() {
       loadProjects();
     } catch (e: any) {
       toast(e?.message || "Failed to start project", "error");
+    } finally {
+      setStartingId(null);
     }
   };
 
@@ -178,9 +184,10 @@ export default function WorkerProjectsPage() {
                       {project.status === "assigned" && (
                         <button
                           onClick={() => startProject(project._id)}
-                          className="px-4 py-2 rounded-lg bg-blue-500/20 text-blue-300 text-sm hover:bg-blue-500/30"
+                          disabled={startingId === project._id}
+                          className="px-4 py-2 rounded-lg bg-blue-500/20 text-blue-300 text-sm hover:bg-blue-500/30 disabled:opacity-50"
                         >
-                          Start Working
+                          {startingId === project._id ? "Starting..." : "Start Working"}
                         </button>
                       )}
                       <Link

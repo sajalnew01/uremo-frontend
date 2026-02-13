@@ -795,6 +795,24 @@ export default function ProjectDetailPage() {
               </div>
             );
           })()}
+
+          {/* PATCH_96: RLHF All Tasks Complete Summary */}
+          {rlhfTotal > 0 && rlhfSubmitted >= rlhfTotal && (
+            <div className="mt-6 p-4 rounded-xl bg-green-500/10 border border-green-500/30 text-center">
+              <div className="text-3xl mb-2">🎉</div>
+              <h3 className="text-lg font-semibold text-green-300 mb-1">All Tasks Completed!</h3>
+              <p className="text-sm text-slate-400 mb-4">
+                You&apos;ve submitted {rlhfSubmitted}/{rlhfTotal} tasks. Your submissions are now under review.
+                {project.rewardPerTask ? ` Estimated earnings: $${(rlhfSubmitted * project.rewardPerTask).toFixed(2)}` : ""}
+              </p>
+              <a
+                href="/workspace"
+                className="inline-block px-6 py-2 bg-green-500/20 text-green-300 rounded-lg hover:bg-green-500/30 transition text-sm"
+              >
+                ← Back to Workspace
+              </a>
+            </div>
+          )}
         </div>
       )}
 
