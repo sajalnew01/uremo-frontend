@@ -89,25 +89,25 @@ function QuickActionsMenu() {
 
       <div className="absolute right-0 top-full mt-1 w-48 py-1 bg-[#12151e] border border-white/10 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
         <Link
-          href="/admin/services/create"
+          href="/admin/services"
           className="block px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white"
         >
           Add Service
         </Link>
         <Link
-          href="/admin/work-positions/create"
+          href="/admin/work-positions"
           className="block px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white"
         >
           Add Job Role
         </Link>
         <Link
-          href="/admin/workspace/screenings/create"
+          href="/admin/workspace/screenings"
           className="block px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white"
         >
           Add Screening
         </Link>
         <Link
-          href="/admin/blogs/create"
+          href="/admin/blogs"
           className="block px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white"
         >
           Add Blog Post
