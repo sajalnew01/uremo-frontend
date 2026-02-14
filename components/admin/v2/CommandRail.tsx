@@ -60,61 +60,48 @@ export default function CommandRail({
     badges.invalidScreenings;
 
   /**
-   * PATCH_97: Restructured admin navigation
-   * Grouped by operational domain:
-   * 1. Action Queue (dashboard)
-   * 2. Marketplace (services, orders, deals, rentals, blogs)
-   * 3. Workforce (job roles, screenings, projects, workers, proofs)
-   * 4. RLHF / AI Data (datasets, reviews)
-   * 5. Hiring (applications, positions, pipeline)
-   * 6. Support (tickets, disputes, fraud)
-   * 7. Finance (wallets, payments, affiliates, withdrawals)
-   * 8. System (analytics, campaigns, jarvisx, users, settings)
+   * PATCH_102: Enterprise admin navigation — 6 grouped sections
+   * 1. Marketplace Operations — Services, Orders, Rentals, Deals, Payments
+   * 2. Workforce Operations — Job Roles, Screenings, Workers, Projects, Proofs
+   * 3. AI Data (RLHF) — Datasets, Reviews
+   * 4. Finance — Wallet, Withdrawals
+   * 5. Support — Tickets
+   * 6. System — Settings, Analytics
    */
   const sections: NavSection[] = [
     {
       id: "master",
-      label: "Action Queue",
+      label: "Dashboard",
       icon: <CommandIcon />,
       href: "/admin",
       badge: totalUrgent > 0 ? totalUrgent : undefined,
     },
     {
       id: "marketplace",
-      label: "Marketplace",
+      label: "Marketplace Operations",
       icon: <MarketplaceIcon />,
       badge: badges.pendingOrders + badges.pendingPayments,
       items: [
         { label: "Services", href: "/admin/services" },
+        { label: "Orders", href: "/admin/orders", badge: badges.pendingOrders },
+        { label: "Rentals", href: "/admin/rentals" },
+        { label: "Deals", href: "/admin/rentals" },
         {
-          label: "All Orders",
-          href: "/admin/orders",
-          badge: badges.pendingOrders,
-        },
-        {
-          label: "Payment Proofs",
-          href: "/admin/orders/payments",
+          label: "Payments",
+          href: "/admin/payments",
           badge: badges.pendingPayments,
         },
-        {
-          label: "Stuck Orders",
-          href: "/admin/orders/stuck",
-          badge: badges.stuckOrders,
-          warning: badges.stuckOrders > 0,
-        },
-        { label: "Order Messages", href: "/admin/messages" },
-        { label: "Deals & Rentals", href: "/admin/rentals" },
-        { label: "Service Requests", href: "/admin/service-requests" },
-        { label: "Blogs", href: "/admin/blogs" },
       ],
     },
     {
-      id: "workspace",
-      label: "Workforce",
+      id: "workforce",
+      label: "Workforce Operations",
       icon: <WorkspaceIcon />,
-      badge: badges.pendingProofs + badges.invalidScreenings,
+      badge:
+        badges.pendingProofs +
+        badges.invalidScreenings +
+        badges.pendingApplications,
       items: [
-        { label: "Workspace Hub", href: "/admin/workspace/master" },
         { label: "Job Roles", href: "/admin/work-positions" },
         {
           label: "Screenings",
@@ -124,35 +111,30 @@ export default function CommandRail({
         },
         { label: "Workers", href: "/admin/workspace/workers" },
         { label: "Projects", href: "/admin/workspace/projects" },
-        {
-          label: "Proof Reviews",
-          href: "/admin/proofs",
-          badge: badges.pendingProofs,
-        },
+        { label: "Proofs", href: "/admin/proofs", badge: badges.pendingProofs },
       ],
     },
     {
       id: "rlhf",
-      label: "AI Data / RLHF",
+      label: "AI Data (RLHF)",
       icon: <RLHFIcon />,
       items: [
         { label: "Datasets", href: "/admin/datasets" },
-        { label: "RLHF Reviews", href: "/admin/rlhf-reviews" },
+        { label: "Reviews", href: "/admin/rlhf-reviews" },
       ],
     },
     {
-      id: "hiring",
-      label: "Hiring",
-      icon: <WorkforceIcon />,
-      badge: badges.pendingApplications,
+      id: "finance",
+      label: "Finance",
+      icon: <FinanceIcon />,
+      badge: badges.pendingWithdrawals,
       items: [
+        { label: "Wallet", href: "/admin/wallet" },
         {
-          label: "Applications",
-          href: "/admin/workforce",
-          badge: badges.pendingApplications,
+          label: "Withdrawals",
+          href: "/admin/affiliates/withdrawals",
+          badge: badges.pendingWithdrawals,
         },
-        { label: "Positions", href: "/admin/work-positions/manage" },
-        { label: "Screening Pipeline", href: "/admin/workforce/pipeline" },
       ],
     },
     {
@@ -162,24 +144,6 @@ export default function CommandRail({
       badge: badges.openTickets,
       items: [
         { label: "Tickets", href: "/admin/tickets", badge: badges.openTickets },
-        { label: "Order Disputes", href: "/admin/tickets?type=dispute" },
-        { label: "Fraud Flags", href: "/admin/tickets?type=fraud" },
-      ],
-    },
-    {
-      id: "finance",
-      label: "Finance",
-      icon: <FinanceIcon />,
-      badge: badges.pendingWithdrawals,
-      items: [
-        { label: "Wallets", href: "/admin/wallet" },
-        { label: "Payments", href: "/admin/payments" },
-        { label: "Affiliates", href: "/admin/affiliates" },
-        {
-          label: "Withdrawals",
-          href: "/admin/affiliates/withdrawals",
-          badge: badges.pendingWithdrawals,
-        },
       ],
     },
     {
@@ -187,11 +151,8 @@ export default function CommandRail({
       label: "System",
       icon: <SystemIcon />,
       items: [
-        { label: "Analytics", href: "/admin/analytics" },
-        { label: "Campaigns", href: "/admin/campaigns" },
-        { label: "JarvisX AI", href: "/admin/jarvisx" },
-        { label: "Users", href: "/admin/users" },
         { label: "Settings", href: "/admin/settings" },
+        { label: "Analytics", href: "/admin/analytics" },
       ],
     },
   ];

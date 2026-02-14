@@ -214,6 +214,28 @@ const JOURNEY_STEPS = [
   "working",
 ];
 
+// PATCH_102: RLHF workflow steps (visually distinct from Microjob)
+const RLHF_JOURNEY_STEPS = [
+  "applied",
+  "screening_unlocked",
+  "training_viewed",
+  "ready_to_work",
+  "assigned",
+  "working",
+];
+
+// PATCH_102: Screening status mapping for clear indicator
+const SCREENING_STATUS_MAP: Record<string, { label: string; phase: string }> = {
+  applied: { label: "Pending Approval", phase: "required" },
+  screening_unlocked: { label: "Training Available", phase: "required" },
+  screening_available: { label: "Training Available", phase: "required" },
+  training_viewed: { label: "Ready for Test", phase: "in_progress" },
+  test_submitted: { label: "Submitted — Awaiting Result", phase: "submitted" },
+  screening_passed: { label: "Approved", phase: "approved" },
+  ready_to_work: { label: "Approved — Ready to Work", phase: "approved" },
+  failed: { label: "Failed — Retry Available", phase: "failed" },
+};
+
 // PATCH_49: Tab configuration
 const TABS: { key: WorkspaceTab; label: string; icon: string }[] = [
   { key: "applications", label: "Applications", icon: "📋" },

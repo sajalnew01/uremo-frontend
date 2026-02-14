@@ -44,27 +44,25 @@ export default function Navbar() {
     };
   }, [mobileMenuOpen]);
 
-  // PATCH_97: Restructured public nav — clear marketplace + worker sections
+  // PATCH_102: Enterprise user navigation — Marketplace, Work, Wallet, Orders, Account
   const userLinks = [
-    { href: "/explore-services", label: "Explore Services", icon: "🧭" },
-    { href: "/rentals", label: "Rent Access", icon: "🔑" },
-    { href: "/deals", label: "Deals", icon: "🏷️" },
-    { href: "/orders", label: "Orders", icon: "📦" },
-    { href: "/workspace", label: "Dashboard", icon: "💼" },
-    { href: "/wallet", label: "Wallet", icon: "💰" },
+    { href: "/explore-services", label: "Marketplace" },
+    { href: "/workspace", label: "Work" },
+    { href: "/wallet", label: "Wallet" },
+    { href: "/orders", label: "Orders" },
+    { href: "/profile", label: "Account" },
   ];
 
+  // PATCH_102: Simplified admin links for mobile drawer (full nav is in CommandRail)
   const adminLinks = [
-    { href: "/admin", label: "Admin Dashboard", icon: "⚡" },
-    { href: "/admin/analytics", label: "Analytics", icon: "📊" },
-    { href: "/admin/services", label: "Services", icon: "📋" },
-    { href: "/admin/orders", label: "Orders", icon: "📦" },
-    { href: "/admin/service-requests", label: "Service Requests", icon: "🧾" },
-    { href: "/admin/payments", label: "Payments", icon: "💳" },
-    { href: "/admin/applications", label: "Applications", icon: "📝" },
-    { href: "/admin/work-positions", label: "Work Positions", icon: "👥" },
-    { href: "/admin/blogs", label: "Blogs", icon: "✍️" },
-    { href: "/admin/settings", label: "CMS Settings", icon: "⚙️" },
+    { href: "/admin", label: "Dashboard" },
+    { href: "/admin/services", label: "Services" },
+    { href: "/admin/orders", label: "Orders" },
+    { href: "/admin/workspace/master", label: "Workforce" },
+    { href: "/admin/datasets", label: "AI Data" },
+    { href: "/admin/wallet", label: "Finance" },
+    { href: "/admin/tickets", label: "Support" },
+    { href: "/admin/settings", label: "Settings" },
   ];
 
   if (!ready) {
@@ -325,7 +323,6 @@ export default function Navbar() {
                           : "text-slate-300 hover:text-white hover:bg-white/5"
                       }`}
                     >
-                      <span className="text-lg">{link.icon}</span>
                       {link.label}
                     </Link>
                   ))}
@@ -334,7 +331,6 @@ export default function Navbar() {
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-all"
                   >
-                    <span className="text-lg">💬</span>
                     {nav.supportLinkText}
                   </Link>
                 </div>
@@ -359,7 +355,6 @@ export default function Navbar() {
                             : "text-slate-300 hover:text-white hover:bg-white/5"
                         }`}
                       >
-                        <span className="text-lg">{link.icon}</span>
                         {link.label}
                       </Link>
                     ))}
