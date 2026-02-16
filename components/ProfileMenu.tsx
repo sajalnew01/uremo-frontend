@@ -81,7 +81,7 @@ export default function ProfileMenu() {
               onClick={() => setOpen(false)}
               className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-200 hover:bg-white/5 transition-colors"
             >
-              <span className="text-base">👤</span>
+              <span className="text-base">Me</span>
               Profile
             </Link>
 
@@ -91,7 +91,7 @@ export default function ProfileMenu() {
               onClick={() => setOpen(false)}
               className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-200 hover:bg-white/5 transition-colors"
             >
-              <span className="text-base">📦</span>
+              <span className="text-base">Ord</span>
               My Orders
             </Link>
 
@@ -101,7 +101,7 @@ export default function ProfileMenu() {
               onClick={() => setOpen(false)}
               className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-200 hover:bg-white/5 transition-colors"
             >
-              <span className="text-base">💼</span>
+              <span className="text-base">Work</span>
               Apply to Work
             </Link>
 
@@ -111,7 +111,7 @@ export default function ProfileMenu() {
               onClick={() => setOpen(false)}
               className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-200 hover:bg-white/5 transition-colors"
             >
-              <span className="text-base">💬</span>
+              <span className="text-base">Help</span>
               Support
             </Link>
 
@@ -124,7 +124,7 @@ export default function ProfileMenu() {
                   onClick={() => setOpen(false)}
                   className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-amber-300 hover:bg-amber-500/10 transition-colors"
                 >
-                  <span className="text-base">⚡</span>
+                  <span className="text-base">Admin</span>
                   Admin Panel
                 </Link>
               </>
@@ -141,7 +141,7 @@ export default function ProfileMenu() {
               }}
               className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
             >
-              <span className="text-base">🚪</span>
+              <span className="text-base">Exit</span>
               Sign Out
             </button>
           </div>

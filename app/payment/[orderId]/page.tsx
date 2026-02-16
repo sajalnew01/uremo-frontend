@@ -379,7 +379,7 @@ export default function PaymentPage() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <h3 className="font-semibold text-emerald-100">
-                💳 Pay with Wallet
+                Pay with Wallet
               </h3>
               <p className="text-sm text-emerald-200/80 mt-1">
                 Your wallet balance:{" "}

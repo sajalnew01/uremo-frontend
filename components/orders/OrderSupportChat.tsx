@@ -92,7 +92,7 @@ function scrollToBottom(el: HTMLElement) {
 function getStatusIcon(status: MessageStatus): string | null {
   switch (status) {
     case "sending":
-      return "⏳";
+      return "...";
     case "sent":
       return "✓";
     case "delivered":
@@ -100,7 +100,7 @@ function getStatusIcon(status: MessageStatus): string | null {
     case "seen":
       return "✓✓";
     case "failed":
-      return "⚠️";
+      return "!";
     default:
       return null;
   }
@@ -234,7 +234,7 @@ const MessageList = memo(function MessageList(props: {
                               rel="noreferrer"
                               className="block text-xs opacity-90 hover:opacity-100 underline"
                             >
-                              📎 {att.filename}
+                              File: {att.filename}
                             </a>
                           )}
                         </div>
@@ -481,7 +481,7 @@ export default function OrderSupportChat(props: Props) {
           <div className="flex-1 min-h-0 overflow-y-auto p-3 flex items-center justify-center">
             <div className="text-center max-w-sm">
               <div className="mx-auto w-14 h-14 rounded-2xl border border-blue-500/20 bg-blue-500/10 flex items-center justify-center text-2xl text-blue-300">
-                💬
+                Chat
               </div>
               <p className="mt-4 text-sm text-slate-200 font-medium">
                 {ui.emptyChatTitle}
@@ -537,7 +537,7 @@ export default function OrderSupportChat(props: Props) {
                   key={idx}
                   className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded px-3 py-1 text-xs"
                 >
-                  <span className="text-slate-300">📎 {att.filename}</span>
+                  <span className="text-slate-300">File: {att.filename}</span>
                   <button
                     type="button"
                     onClick={() => removeAttachment(idx)}
@@ -568,7 +568,7 @@ export default function OrderSupportChat(props: Props) {
                 className="shrink-0 w-10 h-10 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 disabled:opacity-60"
                 title="Attach files (images, PDF, ZIP, TXT)"
               >
-                {uploading ? "⏳" : "📎"}
+                {uploading ? "..." : "+"}
               </button>
               <input
                 ref={(node) => {

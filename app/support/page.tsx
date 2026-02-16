@@ -79,7 +79,7 @@ export default function SupportPage() {
           {/* Email Support */}
           <div className="p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition">
             <div className="flex items-start gap-4">
-              <div className="text-2xl">📧</div>
+              <div className="text-2xl">Email</div>
               <div className="flex-1">
                 <h3 className="font-semibold text-white mb-1">Email Support</h3>
                 <p className="text-sm text-slate-300 mb-3">
@@ -99,7 +99,7 @@ export default function SupportPage() {
           {whatsappDigits ? (
             <div className="p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition">
               <div className="flex items-start gap-4">
-                <div className="text-2xl">💬</div>
+                <div className="text-2xl">Chat</div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-white mb-1">
                     WhatsApp Support
@@ -130,7 +130,7 @@ export default function SupportPage() {
           {/* Order Chat */}
           <div className="p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition">
             <div className="flex items-start gap-4">
-              <div className="text-2xl">💬</div>
+              <div className="text-2xl">Chat</div>
               <div className="flex-1">
                 <h3 className="font-semibold text-white mb-1">Order Chat</h3>
                 <p className="text-sm text-slate-300 mb-3">
@@ -156,8 +156,8 @@ export default function SupportPage() {
         className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/10"
       >
         <p className="text-sm text-blue-100">
-          <span className="font-semibold">💡 Tip:</span> If your issue is tied
-          to an order, replying inside the order chat is fastest—your specialist
+          <span className="font-semibold">Tip:</span> If your issue is tied to
+          an order, replying inside the order chat is fastest—your specialist
           sees it immediately.
         </p>
       </motion.div>

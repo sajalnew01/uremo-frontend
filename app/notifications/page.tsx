@@ -20,12 +20,12 @@ interface Notification {
 }
 
 const typeIcons: Record<string, string> = {
-  order: "📦",
-  ticket: "🎫",
-  wallet: "💰",
-  affiliate: "🤝",
-  rental: "🔑",
-  system: "🔔",
+  order: "Order",
+  ticket: "Ticket",
+  wallet: "Wallet",
+  affiliate: "Affiliate",
+  rental: "Rental",
+  system: "System",
 };
 
 const typeColors: Record<string, string> = {
@@ -181,7 +181,7 @@ export default function NotificationsPage() {
           </div>
         ) : notifications.length === 0 ? (
           <EmptyState
-            icon="🔔"
+            icon="System"
             title="No notifications yet"
             description="When you receive orders, wallet updates, or important alerts, they'll appear here. Start using UREMO to get your first notification!"
             ctaText="Explore Services"
@@ -205,7 +205,7 @@ export default function NotificationsPage() {
                   <span
                     className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-lg border ${typeColors[n.type] || typeColors.system}`}
                   >
-                    {typeIcons[n.type] || "🔔"}
+                    {typeIcons[n.type] || "System"}
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">

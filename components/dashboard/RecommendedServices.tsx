@@ -91,7 +91,7 @@ export default function RecommendedServices() {
     <div className="mb-8">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-white">
-          🎯 {categoryLabels[interestCategory] || "Recommended For You"}
+          {categoryLabels[interestCategory] || "Recommended For You"}
         </h2>
         <Link
           href={

@@ -17,17 +17,17 @@ const badges = [
     description: "Each order is verified by our team",
   },
   {
-    icon: "👥",
+    icon: "People",
     text: "Human Assistance",
     description: "Real support, not bots",
   },
   {
-    icon: "🔒",
+    icon: "Lock",
     text: "Secure Payments",
     description: "Multiple payment options",
   },
   {
-    icon: "📊",
+    icon: "Track",
     text: "Transparent Tracking",
     description: "Follow your order status",
   },

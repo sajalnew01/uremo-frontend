@@ -55,31 +55,31 @@ const PROJECT_TIMELINE_STEPS = [
   {
     id: "assigned",
     label: "Assigned",
-    icon: "📋",
+    icon: "Step",
     description: "Project assigned to worker",
   },
   {
     id: "started",
     label: "Started",
-    icon: "⚡",
+    icon: "Go",
     description: "Work in progress",
   },
   {
     id: "proof_submitted",
     label: "Proof Submitted",
-    icon: "📎",
+    icon: "Proof",
     description: "Waiting for review",
   },
   {
     id: "approved",
     label: "Approved",
-    icon: "✅",
+    icon: "OK",
     description: "Proof accepted",
   },
   {
     id: "credited",
     label: "Credited",
-    icon: "💰",
+    icon: "$",
     description: "Earnings credited",
   },
 ];
@@ -113,7 +113,7 @@ export function ActiveProjectCard({
     return (
       <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-5">
         <div className="flex items-center gap-3 mb-3">
-          <span className="text-2xl">⚠️</span>
+          <span className="text-2xl">!</span>
           <div>
             <h3 className="text-lg font-semibold text-red-400">
               Project Data Missing
@@ -142,7 +142,7 @@ export function ActiveProjectCard({
     return (
       <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
         <div className="flex items-center gap-3">
-          <span className="text-2xl opacity-50">📋</span>
+          <span className="text-2xl opacity-50">Info</span>
           <div>
             <h3 className="text-lg font-semibold text-slate-400">
               No Active Project
@@ -166,7 +166,7 @@ export function ActiveProjectCard({
       <div className="p-5 border-b border-slate-700/50">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
-            <span className="text-2xl">📦</span>
+            <span className="text-2xl">Proj</span>
             <div>
               <h3 className="text-lg font-semibold text-white">
                 {project.title}
@@ -279,7 +279,7 @@ export function ActiveProjectCard({
           <div className="mt-4 pt-3 border-t border-slate-700/50">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-slate-400">📎 Proof:</span>
+                <span className="text-slate-400">Proof:</span>
                 <span
                   className={`px-2 py-0.5 rounded text-xs ${
                     proof.status === "approved"
@@ -308,7 +308,7 @@ export function ActiveProjectCard({
         {earnings?.credited && (
           <div className="mt-3 pt-3 border-t border-slate-700/50 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-emerald-400">💰 Earnings Credited:</span>
+              <span className="text-emerald-400">Earnings Credited:</span>
               <span className="text-emerald-400 font-medium">
                 ${earnings.amount?.toFixed(2) || "0.00"}
               </span>
@@ -329,7 +329,7 @@ export function ActiveProjectCard({
             onClick={onViewProject}
             className="w-full px-4 py-2 bg-slate-700/50 hover:bg-slate-600/50 text-white rounded-lg text-sm transition flex items-center justify-center gap-2"
           >
-            👁️ View Project Details
+            View Project Details
           </button>
         </div>
       )}
@@ -351,7 +351,7 @@ export function ActiveProjectBadge({
   if ((workerStatus === "assigned" || workerStatus === "working") && !project) {
     return (
       <span className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs flex items-center gap-1">
-        ⚠️ No project
+        ! No project
       </span>
     );
   }
@@ -366,7 +366,7 @@ export function ActiveProjectBadge({
 
   return (
     <span className="px-2 py-1 bg-cyan-500/20 text-cyan-400 rounded text-xs flex items-center gap-1 max-w-[150px] truncate">
-      📦 {project.title}
+      Proj {project.title}
     </span>
   );
 }

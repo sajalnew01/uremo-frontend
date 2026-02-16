@@ -378,27 +378,27 @@ const SCREENING_PHASE_CONFIG: Record<
   required: {
     label: "Required",
     color: "text-amber-400 bg-amber-500/10 border-amber-500/20",
-    icon: "⚠️",
+    icon: "!",
   },
   in_progress: {
     label: "In Progress",
     color: "text-blue-400 bg-blue-500/10 border-blue-500/20",
-    icon: "📝",
+    icon: "...",
   },
   submitted: {
     label: "Submitted",
     color: "text-purple-400 bg-purple-500/10 border-purple-500/20",
-    icon: "📤",
+    icon: "Sent",
   },
   approved: {
     label: "Approved",
     color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
-    icon: "✅",
+    icon: "OK",
   },
   failed: {
     label: "Failed",
     color: "text-red-400 bg-red-500/10 border-red-500/20",
-    icon: "❌",
+    icon: "X",
   },
 };
 

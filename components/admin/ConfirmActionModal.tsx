@@ -5,7 +5,7 @@ import React, { useState } from "react";
 /**
  * PATCH-64: Safety Guardrail Confirmation Modal
  * For ALL critical admin actions that affect money, status, or access
- * Uses emoji icons for compatibility (no external icon library)
+ * Uses simple text tokens for compatibility (no external icon library)
  */
 
 export type ActionType =
@@ -63,19 +63,19 @@ interface ConfirmActionModalProps {
   isDangerous?: boolean;
 }
 
-// Emoji icons for each action type (no external library needed)
+// Lightweight icon tokens for each action type (no external library needed)
 const ACTION_ICONS: Record<ActionType, string> = {
-  payment_verify: "💳",
-  wallet_credit: "💰",
-  wallet_debit: "💸",
-  worker_approve: "👤",
-  worker_reject: "🚫",
-  worker_status_change: "🔄",
-  project_assign: "📋",
-  screening_save: "📝",
-  affiliate_withdrawal_approve: "✅",
-  affiliate_withdrawal_reject: "❌",
-  generic: "🛡️",
+  payment_verify: "Pay",
+  wallet_credit: "Credit",
+  wallet_debit: "Debit",
+  worker_approve: "Worker",
+  worker_reject: "Block",
+  worker_status_change: "Change",
+  project_assign: "Assign",
+  screening_save: "Save",
+  affiliate_withdrawal_approve: "Approve",
+  affiliate_withdrawal_reject: "Reject",
+  generic: "Guard",
 };
 
 export function ConfirmActionModal({
@@ -301,7 +301,7 @@ export function ConfirmActionModal({
           {/* Warning */}
           {warningMessage && (
             <div className="flex items-start gap-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-              <span className="text-amber-500 flex-shrink-0 text-lg">⚠️</span>
+              <span className="text-amber-500 flex-shrink-0 text-lg">!</span>
               <p className="text-sm text-amber-200">{warningMessage}</p>
             </div>
           )}

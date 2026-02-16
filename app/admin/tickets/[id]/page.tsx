@@ -577,7 +577,7 @@ export default function AdminTicketViewPage() {
                             rel="noreferrer"
                             className="text-xs text-blue-400 hover:underline flex items-center gap-1"
                           >
-                            📎 {att.filename || "Attachment"}
+                            Attachment: {att.filename || "Attachment"}
                           </a>
                         ))}
                       </div>
@@ -598,7 +598,7 @@ export default function AdminTicketViewPage() {
           className="flex items-center justify-between w-full text-left"
         >
           <span className="font-medium text-sm flex items-center gap-2">
-            📝 Internal Notes ({internalNotes.length})
+            Internal Notes ({internalNotes.length})
             <span className="text-xs text-[#9CA3AF]">(Admin only)</span>
           </span>
           <span className="text-[#9CA3AF]">{showNotes ? "▲" : "▼"}</span>
@@ -693,7 +693,7 @@ export default function AdminTicketViewPage() {
               disabled={uploading}
               className="btn-secondary text-sm"
             >
-              {uploading ? "Uploading..." : "📎 Attach"}
+              {uploading ? "Uploading..." : "Attach"}
             </button>
           </div>
 

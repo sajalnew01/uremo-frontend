@@ -21,7 +21,7 @@ export default function FilePreview(props: {
   const label = props.label || "Open";
   const resolved = useMemo(
     () => detectFileType(url, props.type),
-    [url, props.type]
+    [url, props.type],
   );
 
   const [open, setOpen] = useState(false);
@@ -108,7 +108,7 @@ export default function FilePreview(props: {
                   onClick={() => setOpen(false)}
                   className="ml-2 px-3 py-1.5 text-xs rounded-lg bg-red-500/20 border border-red-500/30 text-red-200 hover:bg-red-500/30 transition font-medium"
                 >
-                  ✕ Close
+                  Close
                 </button>
               </div>
             </div>

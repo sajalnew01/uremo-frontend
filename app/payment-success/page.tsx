@@ -9,7 +9,7 @@ function PaymentSuccessContent() {
 
   return (
     <div style={{ padding: "2rem" }}>
-      <h1>Payment Successful ✅</h1>
+      <h1>Payment Successful</h1>
       {orderId && <p>Order ID: {orderId}</p>}
       <p>
         Thank you for your payment. Our team will process your order shortly.

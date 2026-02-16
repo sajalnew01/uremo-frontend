@@ -95,19 +95,19 @@ export default function HowItWorksPage() {
         <div className="grid md:grid-cols-3 gap-6">
           <StepCard
             step={1}
-            icon="🔍"
+            icon="Browse"
             title="Browse Services"
             description="Explore our marketplace of verified services. Filter by category, price, or delivery time to find exactly what you need."
           />
           <StepCard
             step={2}
-            icon="📦"
+            icon="Order"
             title="Place an Order"
             description="Choose your service, select options, and place your order. Pay securely through our wallet system with proof-of-delivery protection."
           />
           <StepCard
             step={3}
-            icon="✅"
+            icon="Done"
             title="Get Delivery"
             description="Workers complete your task with verified proof of work. Review, approve, and release payment when satisfied."
           />
@@ -124,25 +124,25 @@ export default function HowItWorksPage() {
         <div className="grid md:grid-cols-4 gap-6">
           <StepCard
             step={1}
-            icon="📝"
+            icon="Apply"
             title="Apply"
             description="Browse open positions and apply for roles that match your skills. No experience needed for many entry-level tasks."
           />
           <StepCard
             step={2}
-            icon="🎓"
+            icon="Train"
             title="Get Screened"
             description="Complete screening tests to verify your skills. Our training materials help you prepare and succeed."
           />
           <StepCard
             step={3}
-            icon="💼"
+            icon="Work"
             title="Work on Projects"
             description="Once qualified, get assigned to real projects. Complete microjobs or AI data tasks at your own pace."
           />
           <StepCard
             step={4}
-            icon="💰"
+            icon="Pay"
             title="Get Paid"
             description="Submit proof of work, get verified by admin, and earn directly to your wallet. Withdraw anytime."
           />
@@ -159,32 +159,32 @@ export default function HowItWorksPage() {
         <div className="grid md:grid-cols-3 gap-6">
           {[
             {
-              icon: "🔒",
+              icon: "Wallet",
               title: "Secure Wallet",
               desc: "Built-in wallet with atomic transactions. Fund once, pay for multiple services.",
             },
             {
-              icon: "📸",
+              icon: "Proof",
               title: "Proof of Work",
               desc: "Workers submit verified proof for every task. Clients see exactly what was delivered.",
             },
             {
-              icon: "🤖",
+              icon: "AI",
               title: "AI Data & RLHF",
               desc: "Specialized dataset tasks for AI training — labeling, annotation, and human feedback.",
             },
             {
-              icon: "🎫",
+              icon: "Help",
               title: "Support Tickets",
               desc: "Direct support channel with real-time responses from our team.",
             },
             {
-              icon: "🔗",
+              icon: "Link",
               title: "Affiliate Program",
               desc: "Refer clients or workers and earn commissions on every transaction they make.",
             },
             {
-              icon: "📊",
+              icon: "Dash",
               title: "Real-time Dashboard",
               desc: "Track your orders, earnings, projects, and wallet balance all in one place.",
             },

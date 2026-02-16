@@ -138,70 +138,70 @@ const STATUS_CONFIG: Record<
     label: "Applied",
     humanMessage: "Application Received",
     color: "bg-slate-500/20 text-slate-300 border-slate-500/30",
-    icon: "📝",
+    icon: "Applied",
     description: "Your application is under review",
   },
   screening_unlocked: {
     label: "Training Available",
     humanMessage: "Training Available",
     color: "bg-amber-500/20 text-amber-300 border-amber-500/30",
-    icon: "📚",
+    icon: "Training",
     description: "Review training materials to proceed",
   },
   training_viewed: {
     label: "Ready for Test",
     humanMessage: "Training Completed",
     color: "bg-orange-500/20 text-orange-300 border-orange-500/30",
-    icon: "✅",
+    icon: "OK",
     description: "You can now take the screening test",
   },
   test_submitted: {
     label: "Test Submitted",
     humanMessage: "Test Submitted",
     color: "bg-purple-500/20 text-purple-300 border-purple-500/30",
-    icon: "📤",
+    icon: "Sent",
     description: "Awaiting result from admin",
   },
   failed: {
     label: "Test Failed",
     humanMessage: "Test Failed – Retry Available",
     color: "bg-red-500/20 text-red-300 border-red-500/30",
-    icon: "❌",
+    icon: "X",
     description: "You can retry the test",
   },
   ready_to_work: {
     label: "Ready To Work",
     humanMessage: "Ready To Work",
     color: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
-    icon: "✅",
+    icon: "OK",
     description: "Waiting for project assignment",
   },
   assigned: {
     label: "Assigned",
     humanMessage: "Project Assigned",
     color: "bg-blue-500/20 text-blue-300 border-blue-500/30",
-    icon: "💼",
+    icon: "Work",
     description: "You have an active project",
   },
   working: {
     label: "Working",
     humanMessage: "Working",
     color: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
-    icon: "⚡",
+    icon: "Live",
     description: "Project in progress",
   },
   completed: {
     label: "Completed",
     humanMessage: "Work Completed",
     color: "bg-green-500/20 text-green-300 border-green-500/30",
-    icon: "🏆",
+    icon: "Done",
     description: "Work successfully completed",
   },
   suspended: {
     label: "Suspended",
     humanMessage: "Account Suspended",
     color: "bg-red-500/20 text-red-300 border-red-500/30",
-    icon: "⏸️",
+    icon: "Hold",
     description: "Contact support for assistance",
   },
   // Legacy fallbacks
@@ -250,26 +250,26 @@ function getStatusCTA(app: JobApplication): {
   switch (app.workerStatus) {
     case "applied":
       return {
-        text: "⏳ Waiting for Admin Approval",
+        text: "Waiting for Admin Approval",
         action: null,
         disabled: true,
       };
     case "screening_unlocked":
-      return { text: "📚 Start Training", action: "training", href: undefined };
+      return { text: "Start Training", action: "training", href: undefined };
     case "training_viewed":
       return {
-        text: "📝 Take Screening Test",
+        text: "Take Screening Test",
         action: "test",
         href: app.screening
           ? `/workspace/screening/${app.screening._id}?position=${app._id}`
           : undefined,
       };
     case "test_submitted":
-      return { text: "⏳ Awaiting Result", action: null, disabled: true };
+      return { text: "Awaiting Result", action: null, disabled: true };
     case "failed":
       if (attemptsLeft > 0) {
         return {
-          text: `🔄 Retry Test (${attemptsLeft} Attempt${attemptsLeft > 1 ? "s" : ""} Left)`,
+          text: `Retry Test (${attemptsLeft} Attempt${attemptsLeft > 1 ? "s" : ""} Left)`,
           action: "retry",
           href: app.screening
             ? `/workspace/screening/${app.screening._id}?position=${app._id}`
@@ -277,19 +277,19 @@ function getStatusCTA(app: JobApplication): {
         };
       }
       return {
-        text: "⏳ Waiting for Admin Reset",
+        text: "Waiting for Admin Reset",
         action: null,
         disabled: true,
       };
     case "ready_to_work":
       return {
-        text: "⏳ Waiting For Project Assignment",
+        text: "Waiting For Project Assignment",
         action: null,
         disabled: true,
       };
     case "assigned":
       return {
-        text: "📂 Open Project",
+        text: "Open Project",
         action: "project",
         href: app.assignedProjects?.[0]
           ? `/workspace/project/${app.assignedProjects[0]._id}`
@@ -297,30 +297,30 @@ function getStatusCTA(app: JobApplication): {
       };
     case "working":
       return {
-        text: "📤 Submit Work",
+        text: "Submit Work",
         action: "submit",
         href: app.assignedProjects?.[0]
           ? `/workspace/project/${app.assignedProjects[0]._id}`
           : "/workspace/projects",
       };
     case "suspended":
-      return { text: "❌ Account Suspended", action: null, disabled: true };
+      return { text: "Account Suspended", action: null, disabled: true };
     // Legacy statuses (backwards compat)
     case "fresh":
       return {
-        text: "⏳ Waiting for Admin Approval",
+        text: "Waiting for Admin Approval",
         action: null,
         disabled: true,
       };
     case "screening_available":
       return {
-        text: "📚 Start Training",
+        text: "Start Training",
         action: "training",
         href: "/workspace",
       };
     case "inactive":
       return {
-        text: "⏳ Inactive",
+        text: "Inactive",
         action: null,
         disabled: true,
       };

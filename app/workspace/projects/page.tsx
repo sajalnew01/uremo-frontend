@@ -32,22 +32,22 @@ const STATUS_CONFIG: Record<
   assigned: {
     label: "Assigned",
     color: "bg-blue-500/20 text-blue-300",
-    icon: "📋",
+    icon: "Assigned",
   },
   in_progress: {
     label: "In Progress",
     color: "bg-amber-500/20 text-amber-300",
-    icon: "⏳",
+    icon: "...",
   },
   completed: {
     label: "Completed",
     color: "bg-emerald-500/20 text-emerald-300",
-    icon: "✅",
+    icon: "OK",
   },
   cancelled: {
     label: "Cancelled",
     color: "bg-red-500/20 text-red-300",
-    icon: "❌",
+    icon: "X",
   },
 };
 
@@ -130,13 +130,12 @@ export default function WorkerProjectsPage() {
       {/* Active Projects */}
       <div className="card">
         <h2 className="font-semibold mb-4 flex items-center gap-2">
-          <span className="text-xl">📋</span>
           Active Projects ({activeProjects.length})
         </h2>
 
         {activeProjects.length === 0 ? (
           <div className="text-center py-8 text-slate-400">
-            <div className="text-4xl mb-3">📦</div>
+            <div className="text-4xl mb-3">Work</div>
             <p>No active projects assigned yet</p>
             <p className="text-sm mt-2">
               Projects will appear here when admin assigns them to you
@@ -182,12 +181,12 @@ export default function WorkerProjectsPage() {
                       )}
                       <div className="flex flex-wrap gap-4 text-sm">
                         <span className="text-emerald-400">
-                          💰 ${project.payRate}{" "}
+                          Pay: ${project.payRate}{" "}
                           {project.payType.replace("_", " ")}
                         </span>
                         {project.deadline && (
                           <span className="text-amber-400">
-                            📅 Due:{" "}
+                            Due:{" "}
                             {new Date(project.deadline).toLocaleDateString()}
                           </span>
                         )}
@@ -224,7 +223,6 @@ export default function WorkerProjectsPage() {
       {completedProjects.length > 0 && (
         <div className="card">
           <h2 className="font-semibold mb-4 flex items-center gap-2">
-            <span className="text-xl">✅</span>
             Completed Projects ({completedProjects.length})
           </h2>
           <div className="space-y-3">

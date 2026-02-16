@@ -103,7 +103,7 @@ export function getWorkerNextStep(workerStatus: string): {
       actionLabel: "Approve Application",
       action: "approve",
       variant: "warning",
-      icon: "✅",
+      icon: "OK",
     },
     approved: {
       title: "Send Screening Test",
@@ -111,7 +111,7 @@ export function getWorkerNextStep(workerStatus: string): {
       actionLabel: "Send Test",
       action: "send_test",
       variant: "info",
-      icon: "📝",
+      icon: "Test",
     },
     screening_unlocked: {
       title: "Waiting for Test",
@@ -120,7 +120,7 @@ export function getWorkerNextStep(workerStatus: string): {
       actionLabel: "View Test Status",
       action: "view_test",
       variant: "info",
-      icon: "⏳",
+      icon: "Wait",
     },
     test_submitted: {
       title: "Grade Test Submission",
@@ -128,7 +128,7 @@ export function getWorkerNextStep(workerStatus: string): {
       actionLabel: "Grade Test",
       action: "grade_test",
       variant: "warning",
-      icon: "📋",
+      icon: "Review",
     },
     ready_to_work: {
       title: "Assign Project",
@@ -136,7 +136,7 @@ export function getWorkerNextStep(workerStatus: string): {
       actionLabel: "Assign Project",
       action: "assign_project",
       variant: "success",
-      icon: "📁",
+      icon: "Assign",
     },
     assigned: {
       title: "Monitor Progress",
@@ -145,7 +145,7 @@ export function getWorkerNextStep(workerStatus: string): {
       actionLabel: "View Project",
       action: "view_project",
       variant: "info",
-      icon: "👀",
+      icon: "View",
     },
     working: {
       title: "Review Proof",
@@ -153,7 +153,7 @@ export function getWorkerNextStep(workerStatus: string): {
       actionLabel: "Check Proofs",
       action: "check_proofs",
       variant: "warning",
-      icon: "📸",
+      icon: "Proof",
     },
     suspended: {
       title: "Review Suspension",
@@ -161,7 +161,7 @@ export function getWorkerNextStep(workerStatus: string): {
       actionLabel: "Reinstate Worker",
       action: "reinstate",
       variant: "warning",
-      icon: "🔓",
+      icon: "Unlock",
     },
   };
 

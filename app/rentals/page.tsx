@@ -131,7 +131,7 @@ export default function MyRentalsPage() {
       {rentals.length === 0 ? (
         <div className="card">
           <EmptyState
-            icon="🔄"
+            icon="Rent"
             title="No active rentals"
             description="Rent premium services on a subscription basis for ongoing access."
             ctaText="Find Work & Services"
@@ -158,7 +158,7 @@ export default function MyRentalsPage() {
                     />
                   ) : (
                     <div className="w-16 h-16 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
-                      <span className="text-2xl">🔄</span>
+                      <span className="text-2xl">Rent</span>
                     </div>
                   )}
                   <div>

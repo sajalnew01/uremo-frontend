@@ -301,7 +301,7 @@ function OrderDetailsContent() {
   const getMessageStatusIcon = (status: MessageStatus): string | null => {
     switch (status) {
       case "sending":
-        return "⏳";
+        return "...";
       case "sent":
         return "✓";
       case "delivered":
@@ -309,7 +309,7 @@ function OrderDetailsContent() {
       case "seen":
         return "✓✓";
       case "failed":
-        return "⚠️";
+        return "!";
       default:
         return null;
     }
@@ -457,7 +457,7 @@ function OrderDetailsContent() {
                     : "bg-amber-500/10 border border-amber-500/20 text-amber-200"
                 }`}
               >
-                {order.orderType === "rental" ? "🔄 Rental" : "🤝 Deal"}
+                {order.orderType === "rental" ? "Rental" : "Deal"}
               </span>
               {order.country && (
                 <span className="ml-2 inline-block px-2 py-1 rounded text-xs bg-white/5 border border-white/10 text-slate-300">
@@ -508,7 +508,7 @@ function OrderDetailsContent() {
       {order.orderType === "rental" && order.rentalId && (
         <div className="border border-purple-500/20 rounded-lg p-6 bg-[#0F172A]">
           <h3 className="font-semibold text-lg mb-4 text-purple-200">
-            🔄 Rental Details
+            Rental Details
           </h3>
           <div className="grid grid-cols-2 gap-4">
             <div>

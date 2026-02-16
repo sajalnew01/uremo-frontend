@@ -98,7 +98,7 @@ export default function PendingActionQueue({
     return (
       <div className="text-center py-16">
         <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-emerald-500/10 flex items-center justify-center">
-          <span className="text-4xl">✅</span>
+          <span className="text-4xl">OK</span>
         </div>
         <h3 className="text-xl font-bold text-white mb-2">All Caught Up!</h3>
         <p className="text-slate-400">No pending actions right now.</p>
@@ -118,7 +118,7 @@ export default function PendingActionQueue({
           <div className="p-4 border-b border-white/5 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                📝
+                App
               </span>
               <div>
                 <h3 className="font-semibold text-white">
@@ -186,7 +186,7 @@ export default function PendingActionQueue({
           <div className="p-4 border-b border-white/5 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                📋
+                Scr
               </span>
               <div>
                 <h3 className="font-semibold text-white">
@@ -255,7 +255,7 @@ export default function PendingActionQueue({
           <div className="p-4 border-b border-white/5 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                📎
+                Proof
               </span>
               <div>
                 <h3 className="font-semibold text-white">Proofs to Approve</h3>
@@ -318,7 +318,7 @@ export default function PendingActionQueue({
           <div className="p-4 border-b border-white/5 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                💰
+                $
               </span>
               <div>
                 <h3 className="font-semibold text-white">Earnings to Credit</h3>
@@ -355,7 +355,7 @@ export default function PendingActionQueue({
                   disabled={actionLoading === credit._id}
                   className="px-4 py-1.5 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg disabled:opacity-50 shrink-0 ml-4"
                 >
-                  {actionLoading === credit._id ? "..." : "💰 Credit Now"}
+                  {actionLoading === credit._id ? "..." : "Credit Now"}
                 </button>
               </div>
             ))}

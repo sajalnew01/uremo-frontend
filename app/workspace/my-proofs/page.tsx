@@ -68,13 +68,13 @@ export default function MyProofsPage() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "pending":
-        return "⏳";
+        return "...";
       case "approved":
-        return "✅";
+        return "OK";
       case "rejected":
-        return "❌";
+        return "X";
       default:
-        return "📄";
+        return "Doc";
     }
   };
 
@@ -157,7 +157,7 @@ export default function MyProofsPage() {
                   </p>
                   {proof.attachments && proof.attachments.length > 0 && (
                     <p className="text-xs text-slate-500 mt-2">
-                      📎 {proof.attachments.length} attachment(s)
+                      {proof.attachments.length} attachment(s)
                     </p>
                   )}
                   {proof.status === "rejected" && proof.rejectionReason && (

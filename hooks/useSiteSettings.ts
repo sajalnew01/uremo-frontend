@@ -316,7 +316,7 @@ export const DEFAULT_PUBLIC_SITE_SETTINGS: PublicSiteSettings = {
   site: {
     brandName: "UREMO",
     bannerText:
-      "⚠️ All services are processed manually. Verification & approval may take time.",
+      "Important: All services are processed manually. Verification & approval may take time.",
   },
   support: {
     whatsappNumber: "",
@@ -370,22 +370,22 @@ export const DEFAULT_PUBLIC_SITE_SETTINGS: PublicSiteSettings = {
     howItWorksTitle: "How UREMO Works",
     howItWorksSteps: [
       {
-        icon: "🧭",
+        icon: "Step 1",
         title: "Pick a service",
         desc: "Choose the exact manual operation you need.",
       },
       {
-        icon: "🧾",
+        icon: "Step 2",
         title: "Submit requirements",
         desc: "We collect what’s needed to deliver accurately.",
       },
       {
-        icon: "🔎",
+        icon: "Step 3",
         title: "Manual review",
         desc: "A real operator processes your request carefully.",
       },
       {
-        icon: "✅",
+        icon: "Step 4",
         title: "Delivery + support",
         desc: "Track status and chat with the team in your order.",
       },
@@ -406,24 +406,24 @@ export const DEFAULT_PUBLIC_SITE_SETTINGS: PublicSiteSettings = {
     whyChooseTitle: "Why Choose UREMO",
     whyChooseFeatures: [
       {
-        icon: "🔒",
+        icon: "Security",
         title: "Manual Verification",
         desc: "Every request is reviewed by real humans, not bots.",
       },
       {
-        icon: "⚡",
+        icon: "Payments",
         title: "Flexible Payments",
         desc: "PayPal, Crypto (USDT), or Binance—your choice.",
       },
       {
-        icon: "🌐",
+        icon: "Work",
         title: "Work Opportunities",
         desc: "Join our team as a manual operations specialist.",
       },
     ],
 
     trustDisclaimerText:
-      "⚠️ All services are processed manually. Verification, approval, and delivery times may vary. UREMO is not responsible for delays outside our control. By using our services, you acknowledge that manual processing takes time.",
+      "Important: All services are processed manually. Verification, approval, and delivery times may vary. UREMO is not responsible for delays outside our control. By using our services, you acknowledge that manual processing takes time.",
   },
   payment: {
     beginnerSteps: [
@@ -601,14 +601,14 @@ export const DEFAULT_PUBLIC_SITE_SETTINGS: PublicSiteSettings = {
       supportBannerTitle: "Need faster delivery?",
       supportBannerBody:
         "Chat with UREMO support for verification & delivery updates.",
-      supportActivePill: "🟢 Support active",
+      supportActivePill: "Support active",
       supportActiveHint: "Replies usually within 5–10 minutes",
       chatNowText: "Chat Now",
       orderIdLabel: "Order ID",
       serviceLabel: "Service",
       amountLabel: "Amount",
       statusLabel: "Status",
-      paymentVerifiedText: "Payment verified ✅",
+      paymentVerifiedText: "Payment verified",
       completePaymentText: "Complete payment",
       timelineTitle: "Timeline",
       noTimelineText: "No timeline events yet.",
@@ -674,11 +674,11 @@ export const DEFAULT_PUBLIC_SITE_SETTINGS: PublicSiteSettings = {
       existingPendingText:
         "Your application is under review. We'll notify you once a decision is made.",
       existingApprovedText:
-        "✅ Congratulations! Your application has been approved. Please check your email for next steps.",
+        "Congratulations! Your application has been approved. Please check your email for next steps.",
       existingRejectedText:
         "Your application was not accepted at this time. Feel free to reapply in the future.",
       trustNoteText:
-        "⚠️ Submitting an application does not guarantee approval. UREMO reviews applications manually based on current operational needs.",
+        "Important: Submitting an application does not guarantee approval. UREMO reviews applications manually based on current operational needs.",
 
       faqTitle: "Apply-to-work FAQ",
     },
@@ -687,7 +687,7 @@ export const DEFAULT_PUBLIC_SITE_SETTINGS: PublicSiteSettings = {
 
   // legacy convenience
   bannerText:
-    "⚠️ All services are processed manually. Verification & approval may take time.",
+    "Important: All services are processed manually. Verification & approval may take time.",
   faq: {
     global: [],
     payment: [

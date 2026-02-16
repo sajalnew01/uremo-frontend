@@ -31,7 +31,7 @@ export default function PaymentPage() {
         "POST",
         fd,
         true,
-        true
+        true,
       );
       toast("Payment submitted. Manual verification in progress.", "success");
       window.location.href = "/orders";
@@ -131,7 +131,7 @@ export default function PaymentPage() {
       {/* Legal / Trust */}
       <Card>
         <p className="text-xs text-[#9CA3AF]">
-          ⚠️ UREMO is an independent service provider. Payments are reviewed
+          UREMO is an independent service provider. Payments are reviewed
           manually. We are not affiliated with any third-party platform.
         </p>
       </Card>

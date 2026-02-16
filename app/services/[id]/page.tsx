@@ -206,101 +206,104 @@ export default function ServiceDetailsPage() {
     if (!ensureLoggedIn()) return;
     setActionSubmitting(true);
     try {
+      // PATCH_90: Check permissions before making API calls to prevent 403 errors
+      const allowed = normalizeAllowedActions(service?.allowedActions);
 
-    // PATCH_90: Check permissions before making API calls to prevent 403 errors
-    const allowed = normalizeAllowedActions(service?.allowedActions);
+      // Resolve final plan index: direct param > state > null
+      const finalPlanIndex =
+        overridePlanIndex !== undefined
+          ? overridePlanIndex
+          : selectedRentalPlan;
 
-    // Resolve final plan index: direct param > state > null
-    const finalPlanIndex =
-      overridePlanIndex !== undefined ? overridePlanIndex : selectedRentalPlan;
-
-    // PATCH_22: Validate rental plan selection for rental services
-    if (service?.isRental && finalPlanIndex === null) {
-      // PATCH_90: Only prompt for rental plan if rent is actually allowed
-      if (!allowed.rent) {
-        toast(
-          "Rentals are not available for this service. Try Buy instead.",
-          "error",
-        );
+      // PATCH_22: Validate rental plan selection for rental services
+      if (service?.isRental && finalPlanIndex === null) {
+        // PATCH_90: Only prompt for rental plan if rent is actually allowed
+        if (!allowed.rent) {
+          toast(
+            "Rentals are not available for this service. Try Buy instead.",
+            "error",
+          );
+          return;
+        }
+        toast("Please select a rental plan", "error");
         return;
       }
-      toast("Please select a rental plan", "error");
-      return;
-    }
 
-    // PATCH_22: For rental services, create a rental order instead
-    if (service?.isRental && finalPlanIndex !== null) {
-      // PATCH_90: Verify rent permission before calling API
-      if (!allowed.rent) {
-        toast(
-          "Rentals are not available for this service. Try Buy instead.",
-          "error",
-        );
+      // PATCH_22: For rental services, create a rental order instead
+      if (service?.isRental && finalPlanIndex !== null) {
+        // PATCH_90: Verify rent permission before calling API
+        if (!allowed.rent) {
+          toast(
+            "Rentals are not available for this service. Try Buy instead.",
+            "error",
+          );
+          return;
+        }
+        try {
+          const res = await apiRequest(
+            "/api/rentals/create",
+            "POST",
+            {
+              serviceId: service._id,
+              planIndex: finalPlanIndex,
+              // PATCH_92: Include country if selected
+              ...(rentCountry ? { country: rentCountry } : {}),
+            },
+            true,
+          );
+          const orderId = res?.order?._id || res?.orderId;
+          if (!orderId) throw new Error("Failed to create rental order");
+
+          toast("Rental reserved. Complete payment to confirm.", "success");
+          router.push(`/payment/${orderId}`);
+        } catch (e: any) {
+          toast(e?.message || "Failed to create rental order", "error");
+        }
         return;
       }
+
       try {
         const res = await apiRequest(
-          "/api/rentals/create",
+          "/api/orders",
           "POST",
-          {
-            serviceId: service._id,
-            planIndex: finalPlanIndex,
-            // PATCH_92: Include country if selected
-            ...(rentCountry ? { country: rentCountry } : {}),
-          },
+          { serviceId: service._id },
           true,
         );
-        const orderId = res?.order?._id || res?.orderId;
-        if (!orderId) throw new Error("Failed to create rental order");
+        const orderId = res?.orderId;
+        if (!orderId) throw new Error("Failed to create order");
 
-        toast("Rental reserved. Complete payment to confirm.", "success");
+        toast("Order reserved. Complete payment to confirm.", "success");
         router.push(`/payment/${orderId}`);
       } catch (e: any) {
-        toast(e?.message || "Failed to create rental order", "error");
-      }
-      return;
-    }
+        const msg = String(e?.message || "").trim();
+        const isAuthError =
+          (msg && msg.toLowerCase().includes("authentication required")) ||
+          (msg && msg.toLowerCase().includes("unauthorized"));
 
-    try {
-      const res = await apiRequest(
-        "/api/orders",
-        "POST",
-        { serviceId: service._id },
-        true,
-      );
-      const orderId = res?.orderId;
-      if (!orderId) throw new Error("Failed to create order");
+        if (isAuthError) {
+          const now = Date.now();
+          if (now - lastAuthToastAtRef.current >= 2000) {
+            lastAuthToastAtRef.current = now;
+            toast("Please login to continue.", "error");
+          }
 
-      toast("Order reserved. Complete payment to confirm.", "success");
-      router.push(`/payment/${orderId}`);
-    } catch (e: any) {
-      const msg = String(e?.message || "").trim();
-      const isAuthError =
-        (msg && msg.toLowerCase().includes("authentication required")) ||
-        (msg && msg.toLowerCase().includes("unauthorized"));
-
-      if (isAuthError) {
-        const now = Date.now();
-        if (now - lastAuthToastAtRef.current >= 2000) {
-          lastAuthToastAtRef.current = now;
-          toast("Please login to continue.", "error");
+          const next =
+            typeof window !== "undefined" && window.location?.pathname
+              ? window.location.pathname
+              : `/services/${String(id || "")}`;
+          if (typeof window !== "undefined") {
+            window.location.href = `/login?next=${encodeURIComponent(next)}`;
+          } else {
+            router.push("/login");
+          }
+          return;
         }
 
-        const next =
-          typeof window !== "undefined" && window.location?.pathname
-            ? window.location.pathname
-            : `/services/${String(id || "")}`;
-        if (typeof window !== "undefined") {
-          window.location.href = `/login?next=${encodeURIComponent(next)}`;
-        } else {
-          router.push("/login");
-        }
-        return;
+        toast(msg || "Login required", "error");
       }
-
-      toast(msg || "Login required", "error");
+    } finally {
+      setActionSubmitting(false);
     }
-    } finally { setActionSubmitting(false); }
   };
 
   // PATCH_47: Apply to work with service context - passes serviceId to find linked job role
@@ -519,7 +522,7 @@ export default function ServiceDetailsPage() {
               {allowed.buy && (
                 <div className="flex gap-3 text-sm text-slate-200">
                   <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-300">
-                    💳
+                    Pay
                   </span>
                   <div>
                     <p className="font-medium text-white">Buyers</p>
@@ -532,7 +535,7 @@ export default function ServiceDetailsPage() {
               {allowed.apply && (
                 <div className="flex gap-3 text-sm text-slate-200">
                   <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-300">
-                    💼
+                    Work
                   </span>
                   <div>
                     <p className="font-medium text-white">Workers</p>
@@ -545,7 +548,7 @@ export default function ServiceDetailsPage() {
               {allowed.rent && (
                 <div className="flex gap-3 text-sm text-slate-200">
                   <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300">
-                    🔑
+                    Key
                   </span>
                   <div>
                     <p className="font-medium text-white">Renters</p>
@@ -558,7 +561,7 @@ export default function ServiceDetailsPage() {
               {allowed.deal && (
                 <div className="flex gap-3 text-sm text-slate-200">
                   <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-300">
-                    🤝
+                    Deal
                   </span>
                   <div>
                     <p className="font-medium text-white">Deal Seekers</p>
@@ -728,7 +731,7 @@ export default function ServiceDetailsPage() {
               <div className="mt-4" ref={rentSectionRef}>
                 <div className="mb-3">
                   <p className="text-sm font-semibold text-purple-300">
-                    🔄 Rent Access
+                    Rent Access
                   </p>
                   <p className="mt-1 text-xs text-slate-400">
                     Select country, plan, then rent.
@@ -774,7 +777,7 @@ export default function ServiceDetailsPage() {
                           </span>
                           {plan.isPopular && (
                             <span className="text-xs bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded-full">
-                              ⭐ Popular
+                              Popular
                             </span>
                           )}
                         </div>
@@ -872,7 +875,7 @@ export default function ServiceDetailsPage() {
             {allowed.deal && (
               <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg">🚧</span>
+                  <span className="text-lg">Soon</span>
                   <p className="text-sm text-amber-200 font-semibold">
                     Deals Coming Soon
                   </p>

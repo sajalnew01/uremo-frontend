@@ -67,26 +67,26 @@ export function getStatusColor(status: string | undefined | null): string {
  * Status icons
  */
 export const STATUS_ICONS: Record<string, string> = {
-  pending: "⏳",
-  in_progress: "⚡",
-  waiting_user: "🔍",
-  completed: "🎉",
-  cancelled: "❌",
-  active: "✅",
-  expired: "⏰",
-  renewed: "🔄",
-  fresh: "🌱",
-  screening_available: "📋",
-  ready_to_work: "✅",
-  assigned: "💼",
-  inactive: "⏸️",
+  pending: "Pending",
+  in_progress: "In progress",
+  waiting_user: "Needs you",
+  completed: "Done",
+  cancelled: "Cancelled",
+  active: "Active",
+  expired: "Expired",
+  renewed: "Renewed",
+  fresh: "New",
+  screening_available: "Screening",
+  ready_to_work: "Ready",
+  assigned: "Assigned",
+  inactive: "Paused",
 };
 
 /**
  * Get icon for a status
  */
 export function getStatusIcon(status: string | undefined | null): string {
-  if (!status) return "📦";
+  if (!status) return "Status";
   const normalized = status.toLowerCase().trim();
-  return STATUS_ICONS[normalized] || "📦";
+  return STATUS_ICONS[normalized] || "Status";
 }

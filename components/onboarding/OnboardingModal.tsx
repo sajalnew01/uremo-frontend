@@ -17,7 +17,7 @@ interface OnboardingModalProps {
 const categories = [
   {
     id: "microjobs",
-    icon: "💼",
+    icon: "Work",
     title: "Microjobs & Gigs",
     desc: "AI training, data entry, and freelance work",
     color: "from-blue-500/20 to-blue-600/10",
@@ -26,7 +26,7 @@ const categories = [
   },
   {
     id: "forex_crypto",
-    icon: "📈",
+    icon: "FX",
     title: "Forex & Crypto",
     desc: "Trading accounts and exchange verification",
     color: "from-emerald-500/20 to-emerald-600/10",
@@ -35,7 +35,7 @@ const categories = [
   },
   {
     id: "banks_gateways_wallets",
-    icon: "🏦",
+    icon: "Pay",
     title: "Banks & Wallets",
     desc: "Bank accounts, payment gateways, and e-wallets",
     color: "from-purple-500/20 to-purple-600/10",
@@ -44,7 +44,7 @@ const categories = [
   },
   {
     id: "rentals",
-    icon: "🔑",
+    icon: "Rent",
     title: "Account Rentals",
     desc: "Rent verified accounts on flexible plans",
     color: "from-amber-500/20 to-amber-600/10",
@@ -53,7 +53,7 @@ const categories = [
   },
   {
     id: "general",
-    icon: "🔍",
+    icon: "All",
     title: "Just Exploring",
     desc: "I want to browse all services",
     color: "from-slate-500/20 to-slate-600/10",
@@ -120,7 +120,7 @@ export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/20 to-emerald-500/20 border border-white/10 mb-4">
-            <span className="text-3xl">👋</span>
+            <span className="text-3xl">Hi</span>
           </div>
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
             Welcome to UREMO

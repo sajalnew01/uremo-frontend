@@ -241,11 +241,11 @@ function AdminOrdersContent() {
 
   // PATCH_66: Order flow stages for timeline display
   const orderFlowStages = [
-    { key: "created", label: "Created", icon: "📝" },
-    { key: "payment_pending", label: "Payment Pending", icon: "💳" },
-    { key: "payment_submitted", label: "Proof Submitted", icon: "📤" },
+    { key: "created", label: "Created", icon: "•" },
+    { key: "payment_pending", label: "Payment Pending", icon: "$" },
+    { key: "payment_submitted", label: "Proof Submitted", icon: "•" },
     { key: "in_progress", label: "Verified", icon: "✓" },
-    { key: "completed", label: "Completed", icon: "✅" },
+    { key: "completed", label: "Completed", icon: "✓" },
   ];
 
   const getOrderStageIndex = (orderStatus: string) => {
@@ -313,18 +313,18 @@ function AdminOrdersContent() {
       {/* PATCH_56: Professional Tab Bar */}
       <div className="flex items-center gap-1 p-1 bg-white/5 rounded-xl border border-white/10 overflow-x-auto">
         {[
-          { key: "all", label: "All", icon: "📋" },
+          { key: "all", label: "All", icon: "•" },
           {
             key: "payment_submitted",
             label: "Payment Submitted",
-            icon: "⚠️",
+            icon: "!",
             alert: true,
           },
-          { key: "pending", label: "Pending", icon: "📦" },
-          { key: "in_progress", label: "In Progress", icon: "🔄" },
-          { key: "waiting_user", label: "Waiting User", icon: "⏳" },
-          { key: "completed", label: "Completed", icon: "✅" },
-          { key: "cancelled", label: "Cancelled", icon: "❌" },
+          { key: "pending", label: "Pending", icon: "•" },
+          { key: "in_progress", label: "In Progress", icon: "↻" },
+          { key: "waiting_user", label: "Waiting User", icon: "..." },
+          { key: "completed", label: "Completed", icon: "✓" },
+          { key: "cancelled", label: "Cancelled", icon: "x" },
         ].map((t) => {
           const active = status === t.key;
           return (

@@ -9,27 +9,27 @@
 
 const TRUST_SIGNALS = [
   {
-    icon: "🔍",
+    icon: "Verify",
     title: "Manual Admin Verification",
     description: "Every order is reviewed by our team before processing",
   },
   {
-    icon: "📋",
+    icon: "Proof",
     title: "Proof-Based Delivery",
     description: "All deliveries include verification proofs you can review",
   },
   {
-    icon: "💰",
+    icon: "Wallet",
     title: "Secure Wallet System",
     description: "Funds are protected in your UREMO wallet until delivery",
   },
   {
-    icon: "👥",
+    icon: "People",
     title: "Human-Reviewed Workers",
     description: "All workers pass screening and identity verification",
   },
   {
-    icon: "🎧",
+    icon: "Support",
     title: "Dedicated Support",
     description: "Real human support available for any issues or questions",
   },
@@ -41,7 +41,7 @@ export default function ServiceTrustPanel() {
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
-          <span className="text-xl">🛡️</span>
+          <span className="text-xl">Safe</span>
         </div>
         <div>
           <h2 className="text-xl font-bold text-white">

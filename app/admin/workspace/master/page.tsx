@@ -79,12 +79,12 @@ type ExecutionState = "draft" | "running" | "paused" | "locked" | "completed";
 
 // Category mapping for linkage
 const CATEGORIES = [
-  { key: "microjobs", label: "Microjobs", icon: "⚡" },
-  { key: "writing", label: "Writing", icon: "✍️" },
-  { key: "teaching", label: "Teaching", icon: "📚" },
-  { key: "coding_math", label: "Coding & Math", icon: "💻" },
-  { key: "outlier", label: "Outlier", icon: "🎯" },
-  { key: "other", label: "Other", icon: "📦" },
+  { key: "microjobs", label: "Microjobs", icon: "MJ" },
+  { key: "writing", label: "Writing", icon: "WR" },
+  { key: "teaching", label: "Teaching", icon: "TC" },
+  { key: "coding_math", label: "Coding & Math", icon: "CM" },
+  { key: "outlier", label: "Outlier", icon: "OT" },
+  { key: "other", label: "Other", icon: "--" },
 ];
 
 export default function MasterWorkspacePage() {
@@ -334,7 +334,7 @@ export default function MasterWorkspacePage() {
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-3xl">🎯</span>
+            <span className="text-3xl">WS</span>
             <div>
               <h1 className="text-2xl font-bold">Master Workspace</h1>
               <p className="text-slate-400 text-sm">
@@ -348,7 +348,7 @@ export default function MasterWorkspacePage() {
               disabled={loading}
               className="btn-secondary text-sm"
             >
-              {loading ? "Loading..." : "🔄 Refresh"}
+              {loading ? "Loading..." : "Refresh"}
             </button>
           </div>
         </div>
@@ -363,7 +363,7 @@ export default function MasterWorkspacePage() {
             exit={{ opacity: 0 }}
             className="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400"
           >
-            ⚠️ {error}
+            Error: {error}
           </motion.div>
         )}
         {success && (
@@ -373,7 +373,7 @@ export default function MasterWorkspacePage() {
             exit={{ opacity: 0 }}
             className="mb-4 p-3 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400"
           >
-            ✅ {success}
+            Success: {success}
           </motion.div>
         )}
       </AnimatePresence>
@@ -394,7 +394,7 @@ export default function MasterWorkspacePage() {
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                📝 Screening Mode
+                Screening Mode
               </button>
               <button
                 onClick={() => setMode("project")}
@@ -404,7 +404,7 @@ export default function MasterWorkspacePage() {
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                📋 Project Mode
+                Project Mode
               </button>
             </div>
           </div>
@@ -442,28 +442,28 @@ export default function MasterWorkspacePage() {
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="card text-center">
-          <div className="text-3xl mb-2">📝</div>
+          <div className="text-3xl mb-2">Scr</div>
           <div className="text-2xl font-bold text-white">
             {stats.totalScreenings}
           </div>
           <div className="text-sm text-slate-400">Total Screenings</div>
         </div>
         <div className="card text-center">
-          <div className="text-3xl mb-2">📋</div>
+          <div className="text-3xl mb-2">Prj</div>
           <div className="text-2xl font-bold text-white">
             {stats.totalProjects}
           </div>
           <div className="text-sm text-slate-400">Total Projects</div>
         </div>
         <div className="card text-center">
-          <div className="text-3xl mb-2">⏳</div>
+          <div className="text-3xl mb-2">...</div>
           <div className="text-2xl font-bold text-amber-400">
             {stats.draftProjects}
           </div>
           <div className="text-sm text-slate-400">Draft Projects</div>
         </div>
         <div className="card text-center">
-          <div className="text-3xl mb-2">✅</div>
+          <div className="text-3xl mb-2">OK</div>
           <div className="text-2xl font-bold text-emerald-400">
             {stats.completedProjects}
           </div>
@@ -474,7 +474,7 @@ export default function MasterWorkspacePage() {
       {/* Linkage & Traceability Panel */}
       <div className="card mb-6">
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          🔗 Linkage & Traceability
+          Linkage & Traceability
           <span className="text-xs text-slate-400 font-normal ml-2">
             (Implicit linking via Category)
           </span>
@@ -540,7 +540,7 @@ export default function MasterWorkspacePage() {
                                 className="ml-1 text-amber-400"
                                 title={`${invalidScreeningCount} screening(s) have 0 questions`}
                               >
-                                ⚠️
+                                !
                               </span>
                             )}
                           </span>
@@ -596,7 +596,7 @@ export default function MasterWorkspacePage() {
                           >
                             {promotion.valid
                               ? "➕ Create Project"
-                              : "⏸️ Not Ready"}
+                              : "Not Ready"}
                           </button>
                           {/* PATCH_62: Detailed tooltip for disabled state */}
                           {!promotion.valid && (
@@ -629,7 +629,7 @@ export default function MasterWorkspacePage() {
                           {/* Screenings List */}
                           <div>
                             <h4 className="text-sm font-medium text-cyan-400 mb-2">
-                              📝 Screenings
+                              Screenings
                             </h4>
                             {data.screenings.length === 0 ? (
                               <p className="text-sm text-slate-500">
@@ -659,7 +659,7 @@ export default function MasterWorkspacePage() {
                                             className="text-red-400 text-xs"
                                             title="0 questions - invalid"
                                           >
-                                            ⚠️ Invalid
+                                            Invalid
                                           </span>
                                         )}
                                       </Link>
@@ -694,7 +694,7 @@ export default function MasterWorkspacePage() {
                           {/* Projects List */}
                           <div>
                             <h4 className="text-sm font-medium text-purple-400 mb-2">
-                              📋 Projects
+                              Projects
                             </h4>
                             {data.projects.length === 0 ? (
                               <p className="text-sm text-slate-500">
@@ -749,7 +749,7 @@ export default function MasterWorkspacePage() {
       {/* Action Control Panel */}
       <div className="card mb-6">
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          ⚡ Quick Actions
+          Quick Actions
           <span className="text-xs text-slate-400 font-normal ml-2">
             (Permission-gated)
           </span>
@@ -761,7 +761,7 @@ export default function MasterWorkspacePage() {
             className="p-4 rounded-xl bg-gradient-to-br from-cyan-500/20 to-cyan-600/10 border border-cyan-500/30 hover:border-cyan-500/50 transition-all"
           >
             <div className="flex items-center gap-3">
-              <span className="text-2xl">📝</span>
+              <span className="text-2xl">New</span>
               <div>
                 <h3 className="font-medium text-white">Create Screening</h3>
                 <p className="text-xs text-slate-400">
@@ -776,7 +776,7 @@ export default function MasterWorkspacePage() {
             className="p-4 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-500/30 hover:border-purple-500/50 transition-all"
           >
             <div className="flex items-center gap-3">
-              <span className="text-2xl">📋</span>
+              <span className="text-2xl">New</span>
               <div>
                 <h3 className="font-medium text-white">Create Project</h3>
                 <p className="text-xs text-slate-400">
@@ -791,7 +791,7 @@ export default function MasterWorkspacePage() {
             className="p-4 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/30 hover:border-emerald-500/50 transition-all"
           >
             <div className="flex items-center gap-3">
-              <span className="text-2xl">👷</span>
+              <span className="text-2xl">WF</span>
               <div>
                 <h3 className="font-medium text-white">Worker Pipeline</h3>
                 <p className="text-xs text-slate-400">
@@ -806,7 +806,7 @@ export default function MasterWorkspacePage() {
       {/* Activity & State View */}
       <div className="card">
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          📊 Recent Activity
+          Recent Activity
           <span className="text-xs text-slate-400 font-normal ml-2">
             (Session log)
           </span>
@@ -842,7 +842,7 @@ export default function MasterWorkspacePage() {
       {/* Documentation Notice - PATCH_62 Updated */}
       <div className="mt-6 p-4 rounded-xl bg-slate-800/50 border border-slate-700">
         <h3 className="text-sm font-medium text-slate-400 mb-2">
-          📌 PATCH_62: System Status
+          PATCH_62: System Status
         </h3>
         <ul className="text-xs text-slate-500 space-y-1">
           <li>

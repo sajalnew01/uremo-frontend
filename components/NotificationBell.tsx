@@ -17,12 +17,12 @@ interface Notification {
 }
 
 const typeIcons: Record<string, string> = {
-  order: "📦",
-  ticket: "🎫",
-  wallet: "💰",
-  affiliate: "🤝",
-  rental: "🔑",
-  system: "🔔",
+  order: "Order",
+  ticket: "Ticket",
+  wallet: "Wallet",
+  affiliate: "Affiliate",
+  rental: "Rental",
+  system: "System",
 };
 
 const typeColors: Record<string, string> = {
@@ -255,7 +255,7 @@ export default function NotificationBell() {
                     <span
                       className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-sm ${typeColors[n.type] || typeColors.system}`}
                     >
-                      {typeIcons[n.type] || "🔔"}
+                      {typeIcons[n.type] || "System"}
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">

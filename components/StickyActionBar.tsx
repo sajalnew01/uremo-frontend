@@ -210,7 +210,7 @@ export default function StickyActionBar({
                 onClick={onHelp}
                 className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg border border-white/10 text-slate-400 hover:text-white hover:border-white/20 transition-all text-sm"
               >
-                <span>💬</span>
+                <span>Help</span>
                 <span className="hidden lg:inline">Need help?</span>
               </button>
 

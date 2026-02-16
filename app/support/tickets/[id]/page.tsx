@@ -344,7 +344,7 @@ export default function TicketViewPage() {
                             rel="noreferrer"
                             className="block text-xs text-blue-400 hover:underline"
                           >
-                            📎 {att.filename}
+                            Attachment: {att.filename}
                           </a>
                         ))}
                       </div>
@@ -357,7 +357,7 @@ export default function TicketViewPage() {
                         rel="noreferrer"
                         className="mt-2 inline-block text-xs text-blue-400 hover:underline"
                       >
-                        📎 View Attachment
+                        View Attachment
                       </a>
                     )}
                   </div>
@@ -388,7 +388,9 @@ export default function TicketViewPage() {
                   key={idx}
                   className="flex items-center gap-2 bg-[#1F2937] border border-[#374151] rounded px-3 py-1 text-xs"
                 >
-                  <span className="text-[#9CA3AF]">📎 {att.filename}</span>
+                  <span className="text-[#9CA3AF]">
+                    Attachment: {att.filename}
+                  </span>
                   <button
                     type="button"
                     onClick={() => removeAttachment(idx)}
@@ -417,7 +419,7 @@ export default function TicketViewPage() {
                 disabled={uploading}
                 className="btn-secondary text-sm disabled:opacity-50"
               >
-                {uploading ? "Uploading..." : "📎 Attach Files"}
+                {uploading ? "Uploading..." : "Attach Files"}
               </button>
             </div>
             <button

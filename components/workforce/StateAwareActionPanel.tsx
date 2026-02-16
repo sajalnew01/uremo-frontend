@@ -64,7 +64,7 @@ const ALL_ACTIONS: ActionDef[] = [
   {
     id: "unlock_screening",
     label: "Unlock Screening",
-    icon: "🔓",
+    icon: "Unlock",
     targetStatus: "screening_unlocked",
     color: "amber",
     description: "Grant access to training & screening test",
@@ -89,7 +89,7 @@ const ALL_ACTIONS: ActionDef[] = [
   {
     id: "allow_retry",
     label: "Allow Retry",
-    icon: "🔄",
+    icon: "Retry",
     targetStatus: "screening_unlocked",
     color: "amber",
     description: "Reset screening and allow another attempt",
@@ -97,7 +97,7 @@ const ALL_ACTIONS: ActionDef[] = [
   {
     id: "assign_project",
     label: "Assign Project",
-    icon: "📋",
+    icon: "Assign",
     targetStatus: "assigned",
     color: "blue",
     description: "Assign a project to this worker",
@@ -105,7 +105,7 @@ const ALL_ACTIONS: ActionDef[] = [
   {
     id: "start_work",
     label: "Start Working",
-    icon: "⚡",
+    icon: "Work",
     targetStatus: "working",
     color: "cyan",
     description: "Mark worker as actively working",
@@ -113,7 +113,7 @@ const ALL_ACTIONS: ActionDef[] = [
   {
     id: "complete_project",
     label: "Complete Project",
-    icon: "🏆",
+    icon: "Done",
     targetStatus: "completed",
     color: "emerald",
     description: "Mark project as completed",
@@ -121,7 +121,7 @@ const ALL_ACTIONS: ActionDef[] = [
   {
     id: "unassign",
     label: "Unassign Project",
-    icon: "↩️",
+    icon: "Back",
     targetStatus: "ready_to_work",
     color: "amber",
     description: "Remove current project assignment",
@@ -129,7 +129,7 @@ const ALL_ACTIONS: ActionDef[] = [
   {
     id: "suspend",
     label: "Suspend Worker",
-    icon: "🚫",
+    icon: "Hold",
     targetStatus: "suspended",
     color: "red",
     description: "Temporarily block worker access",
@@ -250,7 +250,7 @@ export function StateAwareActionPanel({
     return (
       <div className="px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg">
         <p className="text-sm text-red-400">
-          ⚠️ Worker identity is missing. Actions are disabled.
+          ! Worker identity is missing. Actions are disabled.
         </p>
       </div>
     );
@@ -269,7 +269,7 @@ export function StateAwareActionPanel({
 
     return (
       <div className="px-4 py-3 bg-slate-700/50 text-slate-300 rounded-lg flex items-center gap-2">
-        <span className="animate-pulse">⏳</span>
+        <span className="animate-pulse">...</span>
         <span>{message}</span>
       </div>
     );
@@ -287,7 +287,7 @@ export function StateAwareActionPanel({
               className={`px-5 py-2.5 rounded-lg font-medium transition flex items-center gap-2 ${colorClasses[action.color]} disabled:opacity-50`}
             >
               {isLoading === action.id ? (
-                <span className="animate-spin">⏳</span>
+                <span className="animate-pulse">...</span>
               ) : (
                 <span>{action.icon}</span>
               )}
@@ -305,7 +305,7 @@ export function StateAwareActionPanel({
               )}
               {action.isDangerous && (
                 <p className="text-xs text-red-400 mt-1">
-                  ⚠️ This action is irreversible
+                  ! This action is irreversible
                 </p>
               )}
             </div>

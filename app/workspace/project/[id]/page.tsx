@@ -266,7 +266,7 @@ export default function ProjectDetailPage() {
     return (
       <div className="u-container max-w-3xl">
         <div className="card text-center py-12">
-          <div className="text-4xl mb-4">❌</div>
+          <div className="text-4xl mb-4">X</div>
           <h2 className="text-xl font-semibold text-red-300 mb-2">
             Something went wrong
           </h2>
@@ -276,7 +276,7 @@ export default function ProjectDetailPage() {
               onClick={() => window.location.reload()}
               className="px-4 py-2 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition"
             >
-              🔄 Retry
+              Retry
             </button>
             <Link
               href="/workspace/projects"
@@ -288,7 +288,7 @@ export default function ProjectDetailPage() {
               href="/support"
               className="px-4 py-2 bg-purple-500/20 text-purple-300 rounded-lg hover:bg-purple-500/30 transition"
             >
-              📞 Contact Support
+              Contact Support
             </Link>
           </div>
         </div>
@@ -484,7 +484,7 @@ export default function ProjectDetailPage() {
             if (task.submitted) {
               return (
                 <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-center">
-                  <div className="text-2xl mb-2">✅</div>
+                  <div className="text-2xl mb-2">OK</div>
                   <p className="text-emerald-300 font-medium">
                     Task already submitted
                   </p>
@@ -799,11 +799,16 @@ export default function ProjectDetailPage() {
           {/* PATCH_96: RLHF All Tasks Complete Summary */}
           {rlhfTotal > 0 && rlhfSubmitted >= rlhfTotal && (
             <div className="mt-6 p-4 rounded-xl bg-green-500/10 border border-green-500/30 text-center">
-              <div className="text-3xl mb-2">🎉</div>
-              <h3 className="text-lg font-semibold text-green-300 mb-1">All Tasks Completed!</h3>
+              <div className="text-3xl mb-2">Done</div>
+              <h3 className="text-lg font-semibold text-green-300 mb-1">
+                All Tasks Completed!
+              </h3>
               <p className="text-sm text-slate-400 mb-4">
-                You&apos;ve submitted {rlhfSubmitted}/{rlhfTotal} tasks. Your submissions are now under review.
-                {project.rewardPerTask ? ` Estimated earnings: $${(rlhfSubmitted * project.rewardPerTask).toFixed(2)}` : ""}
+                You&apos;ve submitted {rlhfSubmitted}/{rlhfTotal} tasks. Your
+                submissions are now under review.
+                {project.rewardPerTask
+                  ? ` Estimated earnings: $${(rlhfSubmitted * project.rewardPerTask).toFixed(2)}`
+                  : ""}
               </p>
               <a
                 href="/workspace"
@@ -819,7 +824,7 @@ export default function ProjectDetailPage() {
       {/* Standard project: Proof of Work */}
       {project.status === "in_progress" && !isRlhf && (
         <div className="card">
-          <h3 className="font-medium mb-4">📤 Submit Proof of Work</h3>
+          <h3 className="font-medium mb-4">Submit Proof of Work</h3>
 
           {/* Existing proof status */}
           {proof && (
@@ -913,7 +918,7 @@ export default function ProjectDetailPage() {
           )}
 
           <div className="mt-6 pt-6 border-t border-white/10">
-            <h3 className="font-medium mb-2">✅ Submit Project for Review</h3>
+            <h3 className="font-medium mb-2">Submit Project for Review</h3>
             <p className="text-slate-400 text-sm mb-4">
               When you're done, submit completion notes. Admin will review and
               credit your earnings.
@@ -947,7 +952,7 @@ export default function ProjectDetailPage() {
 
       {project.status === "completed" && (
         <div className="card text-center py-8">
-          <div className="text-4xl mb-4">🎉</div>
+          <div className="text-4xl mb-4">Done</div>
           <p className="text-emerald-400 font-medium">
             This project has been completed!
           </p>

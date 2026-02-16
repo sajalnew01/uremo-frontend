@@ -14,9 +14,9 @@ interface OrderStepperProps {
 }
 
 const STEPS = [
-  { key: "pending", label: "Pending", icon: "⏳" },
-  { key: "in_progress", label: "In Progress", icon: "⚡" },
-  { key: "completed", label: "Completed", icon: "🎉" },
+  { key: "pending", label: "Pending", icon: "1" },
+  { key: "in_progress", label: "In Progress", icon: "2" },
+  { key: "completed", label: "Completed", icon: "3" },
 ];
 
 export default function OrderStepper({ status }: OrderStepperProps) {
@@ -45,7 +45,7 @@ export default function OrderStepper({ status }: OrderStepperProps) {
     return (
       <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
         <div className="flex items-center gap-3">
-          <span className="text-2xl">❌</span>
+          <span className="text-2xl">X</span>
           <div>
             <p className="font-semibold text-red-200">Order Cancelled</p>
             <p className="text-sm text-red-300/80">
@@ -111,22 +111,22 @@ export default function OrderStepper({ status }: OrderStepperProps) {
       <div className="mt-4 pt-4 border-t border-white/10">
         {status === "pending" && (
           <p className="text-sm text-slate-300">
-            📋 Your order is pending. Please complete payment to proceed.
+            Your order is pending. Please complete payment to proceed.
           </p>
         )}
         {status === "waiting_user" && (
           <p className="text-sm text-amber-300">
-            🔍 Payment submitted! We're verifying your payment proof.
+            Payment submitted. We're verifying your payment proof.
           </p>
         )}
         {status === "in_progress" && (
           <p className="text-sm text-purple-300">
-            ⚡ Your order is being processed. We'll update you on progress.
+            Your order is being processed. We'll update you on progress.
           </p>
         )}
         {status === "completed" && (
           <p className="text-sm text-emerald-300">
-            🎉 Order completed! Thank you for your purchase.
+            Order completed. Thank you for your purchase.
           </p>
         )}
       </div>

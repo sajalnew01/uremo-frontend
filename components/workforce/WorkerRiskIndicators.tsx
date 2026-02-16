@@ -9,11 +9,11 @@ import React from "react";
  * Uses ONLY existing data - no new metrics calculated.
  *
  * Signals:
- * - ⚠️ Failed screening
- * - ⏳ Stuck in same state > X days
- * - 🚫 Previously suspended
- * - 📉 No completed projects
- * - 🧪 Screening incomplete or invalid
+ * - Failed screening
+ * - Stuck in same state > X days
+ * - Previously suspended
+ * - No completed projects
+ * - Screening incomplete or invalid
  */
 
 interface WorkerRiskIndicatorsProps {
@@ -65,37 +65,37 @@ export function WorkerRiskIndicators({
     severity: "error" | "warning" | "info";
   }> = [];
 
-  // ⚠️ Failed screening
+  // Failed screening
   if (isFailed || workerStatus === "failed") {
     signals.push({
-      icon: "⚠️",
+      icon: "Issue",
       label: "Failed Screening",
       tooltip: `Failed screening test (Attempt ${attemptCount}/${maxAttempts})`,
       severity: "error",
     });
   }
 
-  // 🚫 Currently suspended
+  // Currently suspended
   if (isSuspended || workerStatus === "suspended") {
     signals.push({
-      icon: "🚫",
+      icon: "Susp",
       label: "Suspended",
       tooltip: "Worker account is currently suspended",
       severity: "error",
     });
   }
 
-  // 🔄 Previously suspended (if not currently suspended)
+  // Previously suspended (if not currently suspended)
   if (wasSuspended && !isSuspended && workerStatus !== "suspended") {
     signals.push({
-      icon: "🔄",
+      icon: "Prev",
       label: "Was Suspended",
       tooltip: "This worker was previously suspended",
       severity: "warning",
     });
   }
 
-  // ⏳ Stuck in same state > 14 days
+  // Stuck in same state > 14 days
   const daysInState = daysSince(updatedAt || createdAt);
   const stuckThreshold = 14;
   if (
@@ -103,25 +103,25 @@ export function WorkerRiskIndicators({
     !["working", "completed", "suspended"].includes(workerStatus)
   ) {
     signals.push({
-      icon: "⏳",
+      icon: "Stuck",
       label: `${daysInState}d Stuck`,
       tooltip: `Worker has been in "${workerStatus}" state for ${daysInState} days`,
       severity: "warning",
     });
   }
 
-  // 📉 No completed projects (only for ready_to_work or higher)
+  // No completed projects (only for ready_to_work or higher)
   const activeStatuses = ["ready_to_work", "assigned", "working"];
   if (activeStatuses.includes(workerStatus) && projectsCompleted === 0) {
     signals.push({
-      icon: "📉",
+      icon: "Info",
       label: "No Projects",
       tooltip: "Worker has not completed any projects yet",
       severity: "info",
     });
   }
 
-  // 🧪 Screening incomplete (only relevant for early stages)
+  // Screening incomplete (only relevant for early stages)
   if (
     workerStatus === "screening_unlocked" ||
     workerStatus === "training_viewed"
@@ -129,7 +129,7 @@ export function WorkerRiskIndicators({
     const daysSinceUnlock = daysSince(updatedAt || createdAt);
     if (daysSinceUnlock > 7) {
       signals.push({
-        icon: "🧪",
+        icon: "Test",
         label: "Screening Pending",
         tooltip: `Screening unlocked ${daysSinceUnlock} days ago but not completed`,
         severity: "warning",
@@ -137,32 +137,32 @@ export function WorkerRiskIndicators({
     }
   }
 
-  // 🔁 Multiple screening attempts
+  // Multiple screening attempts
   if (attemptCount > 1 && attemptCount < maxAttempts) {
     signals.push({
-      icon: "🔁",
+      icon: "Try",
       label: `Attempt ${attemptCount}`,
       tooltip: `Worker is on screening attempt ${attemptCount} of ${maxAttempts}`,
       severity: "info",
     });
   }
 
-  // 🚨 Last attempt remaining
+  // Last attempt remaining
   if (attemptCount === maxAttempts - 1 && workerStatus === "test_submitted") {
     signals.push({
-      icon: "🚨",
+      icon: "Alert",
       label: "Last Attempt",
       tooltip: "This is the worker's final screening attempt",
       severity: "warning",
     });
   }
 
-  // 📋 Pending application
+  // Pending application
   if (workerStatus === "applied" && applicationStatus === "pending") {
     const daysPending = daysSince(createdAt);
     if (daysPending > 3) {
       signals.push({
-        icon: "📋",
+        icon: "Queue",
         label: `${daysPending}d Pending`,
         tooltip: `Application pending for ${daysPending} days`,
         severity: "info",
@@ -245,16 +245,16 @@ export function WorkerRiskBadges({
 >) {
   const badges: string[] = [];
 
-  if (isFailed || workerStatus === "failed") badges.push("⚠️");
-  if (isSuspended || workerStatus === "suspended") badges.push("🚫");
-  if (wasSuspended && !isSuspended) badges.push("🔄");
+  if (isFailed || workerStatus === "failed") badges.push("Issue");
+  if (isSuspended || workerStatus === "suspended") badges.push("Susp");
+  if (wasSuspended && !isSuspended) badges.push("Prev");
 
   const daysInState = daysSince(updatedAt || createdAt);
   if (
     daysInState > 14 &&
     !["working", "completed", "suspended"].includes(workerStatus)
   ) {
-    badges.push("⏳");
+    badges.push("Stuck");
   }
 
   if (badges.length === 0) return null;

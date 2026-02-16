@@ -41,7 +41,7 @@ export default function AuditTrail({
     return (
       <div className="bg-[#0a0d14] border border-white/5 rounded-xl p-4">
         <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-          <span>📜</span> {title}
+          <span>Log</span> {title}
         </h3>
         <div className="flex items-center justify-center py-6 text-slate-500 text-sm">
           <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2" />
@@ -55,7 +55,7 @@ export default function AuditTrail({
     return (
       <div className="bg-[#0a0d14] border border-white/5 rounded-xl p-4">
         <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-          <span>📜</span> {title}
+          <span>Log</span> {title}
         </h3>
         <p className="text-slate-500 text-sm py-4 text-center">
           No activity recorded yet
@@ -67,7 +67,7 @@ export default function AuditTrail({
   return (
     <div className="bg-[#0a0d14] border border-white/5 rounded-xl p-4">
       <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-        <span>📜</span> {title}
+        <span>Log</span> {title}
         <span className="ml-auto text-xs text-slate-500">
           {events.length} event{events.length !== 1 ? "s" : ""}
         </span>
@@ -105,18 +105,18 @@ function AuditEventRow({
   const [showDetails, setShowDetails] = useState(false);
 
   const actionIcons: Record<string, string> = {
-    create: "➕",
-    update: "✏️",
-    delete: "🗑️",
-    approve: "✅",
-    reject: "❌",
-    assign: "🔗",
-    suspend: "⏸️",
-    credit: "💰",
-    debit: "💸",
+    create: "+",
+    update: "Edit",
+    delete: "Del",
+    approve: "OK",
+    reject: "No",
+    assign: "Link",
+    suspend: "Hold",
+    credit: "Cr",
+    debit: "Db",
     verify: "✓",
-    login: "🔐",
-    default: "📝",
+    login: "Auth",
+    default: "Log",
   };
 
   const getIcon = () => {

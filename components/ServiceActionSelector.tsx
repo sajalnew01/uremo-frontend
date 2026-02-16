@@ -44,7 +44,7 @@ type ServiceActionSelectorProps = {
 // Action card configurations
 const ACTION_CONFIG = {
   buy: {
-    icon: "🛒",
+    icon: "Buy",
     title: "Buy & Use Instantly",
     bullets: [
       "One-time purchase",
@@ -58,7 +58,7 @@ const ACTION_CONFIG = {
     highlightGlow: "shadow-[0_0_30px_rgba(59,130,246,0.3)]",
   },
   apply: {
-    icon: "💼",
+    icon: "Work",
     title: "Apply & Earn",
     bullets: [
       "Pass screening test",
@@ -72,7 +72,7 @@ const ACTION_CONFIG = {
     highlightGlow: "shadow-[0_0_30px_rgba(16,185,129,0.3)]",
   },
   rent: {
-    icon: "🔑",
+    icon: "Rent",
     title: "Rent Access",
     bullets: ["Weekly / Monthly access", "Managed usage", "Cancel anytime"],
     gradient: "from-purple-500 to-pink-600",
@@ -82,7 +82,7 @@ const ACTION_CONFIG = {
     highlightGlow: "shadow-[0_0_30px_rgba(168,85,247,0.3)]",
   },
   deal: {
-    icon: "🤝",
+    icon: "Deal",
     title: "Deal at Percentage",
     bullets: [
       "Complete tasks together",
@@ -219,14 +219,14 @@ export default function ServiceActionSelector({
             )}
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center text-2xl shadow-lg">
-                🤝
+                Deal
               </div>
               <h3 className="text-lg font-bold text-white">
                 Deal at Percentage
               </h3>
             </div>
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-lg">🚧</span>
+              <span className="text-lg">Soon</span>
               <p className="text-sm text-amber-200 font-semibold">
                 Coming Soon
               </p>
@@ -425,7 +425,7 @@ function RentActionCard({
                 </span>
                 {plan.isPopular && (
                   <span className="text-[10px] bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded-full">
-                    ⭐ Popular
+                    Popular
                   </span>
                 )}
               </div>

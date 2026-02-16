@@ -36,7 +36,7 @@ function scrubAdminGreetingForPublicWidget(text: string) {
       "JarvisX incorrectly returned admin greeting in public widget",
     );
     return raw
-      .replace(/Yes boss\s*✅/gi, "Hello!")
+      .replace(/Yes boss\s*/gi, "Hello!")
       .replace(/\bYes boss\b/gi, "Hello");
   }
   return raw;
@@ -343,7 +343,7 @@ export default function JarvisWidget() {
       const ok = !!res?.ok;
       const msg =
         String(res?.message || "").trim() ||
-        (ok ? "Request sent to admin ✅" : "Unable to send request.");
+        (ok ? "Request sent to admin" : "Unable to send request.");
 
       setMessages((prev) => [
         ...prev,
@@ -458,7 +458,7 @@ export default function JarvisWidget() {
       } else if (nextDraft.unitPrice == null) {
         prompt = "What’s your target price per account? (e.g., $8)";
       } else {
-        prompt = "Perfect ✅ Tap ‘Create request to Admin’ to send it.";
+        prompt = "Perfect. Tap ‘Create request to Admin’ to send it.";
       }
 
       if (prompt) {
@@ -742,7 +742,7 @@ export default function JarvisWidget() {
                     Create request to Admin
                   </button>
                   <span className="text-[11px] text-slate-500">
-                    {customServiceDraft.sent ? "Captured ✅" : "Capturing…"}
+                    {customServiceDraft.sent ? "Captured" : "Capturing…"}
                   </span>
                 </div>
               </div>

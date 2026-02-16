@@ -116,91 +116,91 @@ const STATUS_CONFIG: Record<
     label: "Applied",
     humanMessage: "Application Received",
     color: "bg-slate-500/20 text-slate-300 border-slate-500/30",
-    icon: "📝",
+    icon: "Note",
     description: "Your application is under review",
   },
   screening_unlocked: {
     label: "Training Available",
     humanMessage: "Training Available",
     color: "bg-amber-500/20 text-amber-300 border-amber-500/30",
-    icon: "📚",
+    icon: "Learn",
     description: "Review training materials to proceed",
   },
   training_viewed: {
     label: "Ready for Test",
     humanMessage: "Training Completed",
     color: "bg-orange-500/20 text-orange-300 border-orange-500/30",
-    icon: "✅",
+    icon: "OK",
     description: "You can now take the screening test",
   },
   test_submitted: {
     label: "Test Submitted",
     humanMessage: "Test Submitted",
     color: "bg-purple-500/20 text-purple-300 border-purple-500/30",
-    icon: "📤",
+    icon: "Sent",
     description: "Awaiting result from admin",
   },
   failed: {
     label: "Test Failed",
     humanMessage: "Test Failed – Retry Available",
     color: "bg-red-500/20 text-red-300 border-red-500/30",
-    icon: "❌",
+    icon: "X",
     description: "You can retry the test",
   },
   ready_to_work: {
     label: "Ready To Work",
     humanMessage: "Ready To Work",
     color: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
-    icon: "✅",
+    icon: "OK",
     description: "Waiting for project assignment",
   },
   assigned: {
     label: "Assigned",
     humanMessage: "Project Assigned",
     color: "bg-blue-500/20 text-blue-300 border-blue-500/30",
-    icon: "💼",
+    icon: "Work",
     description: "You have an active project",
   },
   working: {
     label: "Working",
     humanMessage: "Working",
     color: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
-    icon: "⚡",
+    icon: "Run",
     description: "Project in progress",
   },
   completed: {
     label: "Completed",
     humanMessage: "Work Completed",
     color: "bg-green-500/20 text-green-300 border-green-500/30",
-    icon: "🏆",
+    icon: "Done",
     description: "Work successfully completed",
   },
   suspended: {
     label: "Suspended",
     humanMessage: "Account Suspended",
     color: "bg-red-500/20 text-red-300 border-red-500/30",
-    icon: "⏸️",
+    icon: "Paused",
     description: "Contact support for assistance",
   },
   fresh: {
     label: "Applied",
     humanMessage: "Application Received",
     color: "bg-slate-500/20 text-slate-300 border-slate-500/30",
-    icon: "📝",
+    icon: "Note",
     description: "Waiting for admin review",
   },
   screening_available: {
     label: "Training Available",
     humanMessage: "Training Available",
     color: "bg-amber-500/20 text-amber-300 border-amber-500/30",
-    icon: "📚",
+    icon: "Learn",
     description: "Complete training to proceed",
   },
   inactive: {
     label: "Suspended",
     humanMessage: "Account Suspended",
     color: "bg-red-500/20 text-red-300 border-red-500/30",
-    icon: "⏸️",
+    icon: "Paused",
     description: "Account suspended",
   },
 };
@@ -238,9 +238,9 @@ const SCREENING_STATUS_MAP: Record<string, { label: string; phase: string }> = {
 
 // PATCH_49: Tab configuration
 const TABS: { key: WorkspaceTab; label: string; icon: string }[] = [
-  { key: "applications", label: "Applications", icon: "📋" },
-  { key: "screenings", label: "Screenings", icon: "📚" },
-  { key: "projects", label: "Projects", icon: "💼" },
+  { key: "applications", label: "Applications", icon: "Apps" },
+  { key: "screenings", label: "Screenings", icon: "Tests" },
+  { key: "projects", label: "Projects", icon: "Work" },
 ];
 
 // PATCH_49: Smart default tab determination
@@ -291,18 +291,18 @@ function getStatusCTA(app: JobApplication): {
   switch (app.workerStatus) {
     case "applied":
       return {
-        text: "⏳ Waiting for Admin Approval",
+        text: "Waiting for Admin Approval",
         action: null,
         disabled: true,
       };
     case "screening_unlocked":
-      return { text: "📚 Start Training", action: "training", href: undefined };
+      return { text: "Start Training", action: "training", href: undefined };
     case "training_viewed":
       return {
         text:
           totalRequired > 1
-            ? `📝 Take Screening Test (${passedCount}/${totalRequired} passed)`
-            : "📝 Take Screening Test",
+            ? `Take Screening Test (${passedCount}/${totalRequired} passed)`
+            : "Take Screening Test",
         action: "test",
         href:
           nextScreening || app.screening
@@ -310,11 +310,11 @@ function getStatusCTA(app: JobApplication): {
             : undefined,
       };
     case "test_submitted":
-      return { text: "⏳ Awaiting Result", action: null, disabled: true };
+      return { text: "Awaiting Result", action: null, disabled: true };
     case "failed":
       if (attemptsLeft > 0) {
         return {
-          text: `🔄 Retry Test (${attemptsLeft} Attempt${attemptsLeft > 1 ? "s" : ""} Left)`,
+          text: `Retry Test (${attemptsLeft} Attempt${attemptsLeft > 1 ? "s" : ""} Left)`,
           action: "retry",
           href:
             nextScreening || app.screening
@@ -323,19 +323,19 @@ function getStatusCTA(app: JobApplication): {
         };
       }
       return {
-        text: "⏳ Waiting for Admin Reset",
+        text: "Waiting for Admin Reset",
         action: null,
         disabled: true,
       };
     case "ready_to_work":
       return {
-        text: "⏳ Waiting For Project Assignment",
+        text: "Waiting For Project Assignment",
         action: null,
         disabled: true,
       };
     case "assigned":
       return {
-        text: "📂 Open Project",
+        text: "Open Project",
         action: "project",
         href: app.assignedProjects?.[0]
           ? `/workspace/project/${app.assignedProjects[0]._id}`
@@ -343,23 +343,23 @@ function getStatusCTA(app: JobApplication): {
       };
     case "working":
       return {
-        text: "📤 Submit Work",
+        text: "Submit Work",
         action: "submit",
         href: app.assignedProjects?.[0]
           ? `/workspace/project/${app.assignedProjects[0]._id}`
           : "/workspace/projects",
       };
     case "suspended":
-      return { text: "❌ Account Suspended", action: null, disabled: true };
+      return { text: "Account Suspended", action: null, disabled: true };
     case "fresh":
     case "screening_available":
       return {
-        text: "📚 Start Training",
+        text: "Start Training",
         action: "training",
         href: "/workspace",
       };
     case "inactive":
-      return { text: "⏳ Inactive", action: null, disabled: true };
+      return { text: "Inactive", action: null, disabled: true };
     default:
       return {
         text: "View Details",
@@ -506,7 +506,7 @@ function JobCard({
       {app.adminMessage && (
         <div className="mb-4 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
           <p className="text-sm text-blue-300">
-            <span className="font-medium">📢 Admin Message:</span>{" "}
+            <span className="font-medium">Admin Message:</span>{" "}
             {app.adminMessage}
           </p>
         </div>
@@ -522,7 +522,7 @@ function JobCard({
             <div className="space-y-4">
               <div className="bg-amber-500/10 rounded-xl p-4 border border-amber-500/20">
                 <h4 className="font-medium text-amber-300 mb-2 flex items-center gap-2">
-                  📚 Training Materials
+                  Training Materials
                   <span className="text-xs bg-amber-500/30 px-2 py-0.5 rounded-full">
                     Required
                   </span>
@@ -539,9 +539,9 @@ function JobCard({
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 text-sm text-amber-200 hover:text-amber-100 p-2 rounded-lg hover:bg-amber-500/10 transition"
                     >
-                      {m.type === "video" && "🎥"}
-                      {m.type === "pdf" && "📄"}
-                      {m.type === "link" && "🔗"}
+                      {m.type === "video" && "Video"}
+                      {m.type === "pdf" && "PDF"}
+                      {m.type === "link" && "Link"}
                       <span className="flex-1">{m.title}</span>
                       <span className="text-xs text-slate-500">→</span>
                     </a>
@@ -553,7 +553,7 @@ function JobCard({
                 disabled={markingViewed}
                 className="w-full btn-primary disabled:opacity-50"
               >
-                {markingViewed ? "⏳ Saving..." : "✅ I've Completed Training"}
+                {markingViewed ? "Saving..." : "I've Completed Training"}
               </button>
             </div>
           )}
@@ -565,7 +565,7 @@ function JobCard({
             <div className="space-y-4">
               <div className="bg-emerald-500/10 rounded-xl p-4 border border-emerald-500/20">
                 <h4 className="font-medium text-emerald-300 mb-2 flex items-center gap-2">
-                  ✅ No Training Required
+                  No Training Required
                 </h4>
                 <p className="text-xs text-slate-400 mb-3">
                   You can proceed directly to the screening test
@@ -576,7 +576,7 @@ function JobCard({
                 disabled={markingViewed}
                 className="w-full btn-primary disabled:opacity-50"
               >
-                {markingViewed ? "⏳ Saving..." : "📝 Proceed to Test"}
+                {markingViewed ? "Saving..." : "Proceed to Test"}
               </button>
             </div>
           )}
@@ -589,7 +589,7 @@ function JobCard({
             <div className="space-y-4">
               <div className="bg-red-500/10 rounded-xl p-4 border border-red-500/20">
                 <h4 className="font-medium text-red-300 mb-2">
-                  ❌ Test Failed - Review Materials
+                  Test Failed - Review Materials
                 </h4>
                 <p className="text-xs text-slate-400 mb-3">
                   Review the training materials again before retrying
@@ -603,9 +603,9 @@ function JobCard({
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 text-sm text-red-200 hover:text-red-100 p-2 rounded-lg hover:bg-red-500/10 transition"
                     >
-                      {m.type === "video" && "🎥"}
-                      {m.type === "pdf" && "📄"}
-                      {m.type === "link" && "🔗"}
+                      {m.type === "video" && "Video"}
+                      {m.type === "pdf" && "PDF"}
+                      {m.type === "link" && "Link"}
                       <span className="flex-1">{m.title}</span>
                     </a>
                   ))}
@@ -616,7 +616,7 @@ function JobCard({
                   href={`/workspace/screening/${app.screening._id}?position=${app._id}`}
                   className="w-full btn-primary text-center block"
                 >
-                  🔄 Retry Test ({app.maxAttempts - app.attemptCount} Attempt
+                  Retry Test ({app.maxAttempts - app.attemptCount} Attempt
                   {app.maxAttempts - app.attemptCount !== 1 ? "s" : ""} Left)
                 </Link>
               )}
@@ -636,10 +636,10 @@ function JobCard({
                 href={`/workspace/screening/${app.screening._id}?position=${app._id}`}
                 className="btn-primary inline-flex items-center gap-2"
               >
-                📝 Take Screening Test
+                Take Screening Test
               </Link>
               <p className="text-xs text-slate-500">
-                ⏱️ {app.screening.timeLimit} min • 🎯 Pass:{" "}
+                Time: {app.screening.timeLimit} min • Pass:{" "}
                 {app.screening.passingScore}%
               </p>
             </div>
@@ -697,7 +697,7 @@ function JobCard({
           app.maxAttempts - app.attemptCount <= 0 && (
             <div className="text-center">
               <div className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium bg-slate-700/50 text-slate-400">
-                ⏳ Waiting for Admin Reset
+                Waiting for Admin Reset
               </div>
               <div className="mt-3">
                 <p className="text-xs text-slate-500 mb-2">
@@ -707,7 +707,7 @@ function JobCard({
                   href="/support"
                   className="text-sm text-blue-400 hover:text-blue-300"
                 >
-                  📞 Contact Support
+                  Contact Support
                 </Link>
               </div>
             </div>
@@ -744,7 +744,7 @@ function JobCard({
         {app.completedProjects.length > 0 && (
           <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
             <span className="text-xs text-slate-400">
-              ✅ Completed: {app.completedProjects.length} project
+              Completed: {app.completedProjects.length} project
               {app.completedProjects.length !== 1 ? "s" : ""}
             </span>
             <span className="text-xs text-emerald-400">
@@ -781,8 +781,7 @@ function ApplicationsTab({
       {pendingApps.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <span className="text-amber-400">⏳</span> Pending Review (
-            {pendingApps.length})
+            Pending Review ({pendingApps.length})
           </h3>
           <div className="space-y-4">
             {pendingApps.map((app) => (
@@ -800,8 +799,7 @@ function ApplicationsTab({
       {approvedApps.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <span className="text-emerald-400">✅</span> Active Jobs (
-            {approvedApps.length})
+            Active Jobs ({approvedApps.length})
           </h3>
           <div className="space-y-4">
             {approvedApps.map((app) => (
@@ -819,8 +817,7 @@ function ApplicationsTab({
       {rejectedApps.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <span className="text-red-400">❌</span> Rejected (
-            {rejectedApps.length})
+            Rejected ({rejectedApps.length})
           </h3>
           <div className="space-y-4 opacity-60">
             {rejectedApps.map((app) => (
@@ -832,7 +829,7 @@ function ApplicationsTab({
 
       {applications.length === 0 && (
         <EmptyState
-          icon="📋"
+          icon="List"
           title="You haven't applied to any work yet"
           description="Browse available work positions to find opportunities that match your skills. Start earning today!"
           ctaText="Apply to Work"
@@ -908,7 +905,7 @@ function ScreeningsTab({
         <>
           <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-xl p-4 border border-amber-500/20">
             <p className="text-sm text-amber-200">
-              📚 <strong>Complete your screenings</strong> to unlock work
+              <strong>Complete your screenings</strong> to unlock work
               opportunities. Review training materials carefully before taking
               tests.
             </p>
@@ -933,7 +930,7 @@ function ScreeningsTab({
                   {allScreenings.length > 1 && (
                     <div className="ml-4 p-4 rounded-xl border border-purple-500/20 bg-purple-500/5">
                       <h4 className="text-sm font-semibold text-purple-300 mb-3">
-                        📋 Required Screening Tests ({completedIds.length}/
+                        Required Screening Tests ({completedIds.length}/
                         {allScreenings.length} passed)
                       </h4>
                       <div className="space-y-2">
@@ -950,7 +947,7 @@ function ScreeningsTab({
                             >
                               <div className="flex items-center gap-3">
                                 <span className="text-lg">
-                                  {passed ? "✅" : "📝"}
+                                  {passed ? "OK" : "..."}
                                 </span>
                                 <div>
                                   <p className="text-sm font-medium">
@@ -991,7 +988,7 @@ function ScreeningsTab({
       {allCompletedScreenings.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center gap-3 mb-3">
-            <span className="text-xl">📜</span>
+            <span className="text-xl">History</span>
             <div>
               <h3 className="text-lg font-semibold text-white">
                 Screening History
@@ -1015,7 +1012,7 @@ function ScreeningsTab({
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-3 flex-1">
-                    <span className="text-2xl">{sc.passed ? "✅" : "❌"}</span>
+                    <span className="text-2xl">{sc.passed ? "OK" : "X"}</span>
                     <div className="flex-1">
                       <p className="font-medium text-white">
                         {sc.screeningTitle}
@@ -1060,7 +1057,7 @@ function ScreeningsTab({
       {/* Empty State - only show if no active OR completed screenings */}
       {screeningApps.length === 0 && allCompletedScreenings.length === 0 && (
         <EmptyState
-          icon="📚"
+          icon="Info"
           title="No Screenings Yet"
           description="Apply to positions to unlock screening tests. Pass the screening to become an approved worker!"
           ctaText="Apply to New Position"
@@ -1093,8 +1090,7 @@ function ProjectsTab({ applications }: { applications: JobApplication[] }) {
       {allProjects.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <span className="text-blue-400">💼</span> Active Projects (
-            {allProjects.length})
+            Active Projects ({allProjects.length})
           </h3>
           <div className="grid gap-4 md:grid-cols-2">
             {allProjects.map((project) => (
@@ -1139,8 +1135,7 @@ function ProjectsTab({ applications }: { applications: JobApplication[] }) {
       {readyApps.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <span className="text-emerald-400">✅</span> Ready for Projects (
-            {readyApps.length})
+            Ready for Projects ({readyApps.length})
           </h3>
           <div className="space-y-3">
             {readyApps.map((app) => (
@@ -1167,7 +1162,7 @@ function ProjectsTab({ applications }: { applications: JobApplication[] }) {
       {allCompleted.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <span className="text-green-400">🏆</span> Completed (
+            <span className="text-green-400">Done</span> Completed (
             {allCompleted.length})
           </h3>
           <div className="grid gap-3 md:grid-cols-2">
@@ -1198,7 +1193,7 @@ function ProjectsTab({ applications }: { applications: JobApplication[] }) {
 
       {allProjects.length === 0 && readyApps.length === 0 && (
         <EmptyState
-          icon="💼"
+          icon="Work"
           title="No Projects Yet"
           description="Complete your screenings to become eligible for project assignments."
           ctaText="View Screenings"
@@ -1314,7 +1309,7 @@ export default function WorkspacePage() {
           <p className="mt-2 text-sm text-[#9CA3AF]">Work & Earn</p>
         </div>
         <div className="card text-center py-8">
-          <div className="text-5xl mb-4">⚠️</div>
+          <div className="text-5xl mb-4">!</div>
           <h2 className="text-xl font-semibold text-red-300 mb-2">
             Something went wrong
           </h2>
@@ -1325,19 +1320,19 @@ export default function WorkspacePage() {
               disabled={retrying}
               className="px-4 py-2 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition disabled:opacity-50"
             >
-              {retrying ? "⏳ Retrying..." : "🔄 Retry"}
+              {retrying ? "Retrying..." : "Retry"}
             </button>
             <Link
               href="/dashboard"
               className="px-4 py-2 bg-slate-500/20 text-slate-300 rounded-lg hover:bg-slate-500/30 transition"
             >
-              🏠 Go Home
+              Go Home
             </Link>
             <Link
               href="/support"
               className="px-4 py-2 bg-purple-500/20 text-purple-300 rounded-lg hover:bg-purple-500/30 transition"
             >
-              📞 Contact Support
+              Contact Support
             </Link>
           </div>
         </div>
@@ -1354,7 +1349,7 @@ export default function WorkspacePage() {
           <p className="mt-2 text-sm text-[#9CA3AF]">Work & Earn</p>
         </div>
         <EmptyState
-          icon="💼"
+          icon="Work"
           title="No Workspace Profile"
           description="Apply to a work position to get started. Complete screenings, get assigned projects, and earn money."
           ctaText="Browse Work Positions"
@@ -1414,10 +1409,10 @@ export default function WorkspacePage() {
           + Apply to New Position
         </Link>
         <Link href="/workspace/my-proofs" className="btn-secondary">
-          📋 My Proofs
+          My Proofs
         </Link>
         <Link href="/wallet" className="btn-secondary">
-          💰 Wallet
+          Wallet
         </Link>
       </div>
 
@@ -1450,7 +1445,7 @@ export default function WorkspacePage() {
                       : "text-slate-400 hover:text-slate-200"
                 }`}
               >
-                <span>{isProjectsLocked ? "🔒" : tab.icon}</span>
+                <span>{isProjectsLocked ? "Lock" : tab.icon}</span>
                 <span>{tab.label}</span>
                 {isProjectsLocked && (
                   <span className="ml-1 text-xs text-amber-400">(Locked)</span>

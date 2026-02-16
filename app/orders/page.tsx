@@ -16,13 +16,13 @@ import { getStatusLabel, getStatusColor } from "@/lib/statusConfig";
 
 // Status icons map
 const STATUS_ICONS: Record<string, string> = {
-  pending: "⏳",
-  in_progress: "⚡",
-  waiting_user: "🔍",
-  completed: "🎉",
-  cancelled: "❌",
+  pending: "Pending",
+  in_progress: "In progress",
+  waiting_user: "Verifying",
+  completed: "Done",
+  cancelled: "Cancelled",
 };
-const getStatusIcon = (status: string) => STATUS_ICONS[status] || "📦";
+const getStatusIcon = (status: string) => STATUS_ICONS[status] || "Status";
 
 export default function OrdersPage() {
   const router = useRouter();
@@ -162,7 +162,7 @@ export default function OrdersPage() {
                 onClick={() => router.push(`/payment/${o._id}`)}
                 className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium text-sm hover:from-blue-500 hover:to-blue-400 transition-all shadow-lg shadow-blue-500/20"
               >
-                💳 {copy.completePaymentText}
+                {copy.completePaymentText}
               </button>
             )}
 
@@ -171,7 +171,7 @@ export default function OrdersPage() {
                 onClick={() => router.push(`/payment/${o._id}`)}
                 className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 to-orange-500 text-white font-medium text-sm hover:from-orange-500 hover:to-orange-400 transition-all"
               >
-                🔄 Retry Payment
+                Retry Payment
               </button>
             )}
 
@@ -179,7 +179,7 @@ export default function OrdersPage() {
               onClick={() => router.push(`/orders/${o._id}`)}
               className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 text-slate-200 font-medium text-sm hover:bg-white/10 transition-all"
             >
-              📋 {copy.viewDetailsText}
+              {copy.viewDetailsText}
             </button>
 
             <button
@@ -187,13 +187,12 @@ export default function OrdersPage() {
               onClick={() => router.push(`/orders/${o._id}?chat=1`)}
               className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 text-slate-200 text-sm hover:bg-white/10 transition-all flex items-center justify-center gap-1"
             >
-              💬 {copy.openChatText}
+              {copy.openChatText}
             </button>
           </div>
 
           {o.status === "pending" && o.expiresAt && (
             <div className="mt-3 flex items-center gap-1 text-xs text-orange-400/80">
-              <span>⏰</span>
               <span>
                 {copy.expiresPrefix} {new Date(o.expiresAt).toLocaleString()}
               </span>
@@ -277,7 +276,7 @@ export default function OrdersPage() {
 
       {!loading && orders.length === 0 && (
         <EmptyState
-          icon="📦"
+          icon="Info"
           title="You haven't purchased any services yet"
           description="Explore our marketplace to find professional services for your needs, or apply to work and start earning."
           ctaText="Explore Services"

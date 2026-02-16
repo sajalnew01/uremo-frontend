@@ -381,7 +381,7 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({
-  icon = "📭",
+  icon = "Info",
   title,
   description,
   action,
@@ -515,8 +515,8 @@ export function WarningBanner({
   action,
 }: WarningBannerProps) {
   const icons = {
-    warning: "⚠️",
-    error: "🚨",
+    warning: "!",
+    error: "!",
     info: "ℹ️",
   };
 

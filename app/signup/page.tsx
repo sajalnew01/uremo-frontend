@@ -211,7 +211,7 @@ function SignupForm() {
       {referralCode && (
         <div className="mb-4 p-3 rounded-lg bg-purple-500/10 border border-purple-500/30">
           <p className="text-sm text-purple-200">
-            🎉 Referral code applied:{" "}
+            Referral code applied:{" "}
             <span className="font-mono font-bold">{referralCode}</span>
           </p>
         </div>

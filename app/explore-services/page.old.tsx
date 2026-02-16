@@ -761,7 +761,7 @@ export default function AvailServicePage() {
                           {s.title}
                         </h3>
                         <p className="mt-2 text-sm text-orange-300/80">
-                          ⚠️ Not available in{" "}
+                          Not available in{" "}
                           {s.selectedCountry || filters.country}
                         </p>
                       </div>
@@ -778,7 +778,7 @@ export default function AvailServicePage() {
                         onClick={() => handleRequestService(s)}
                         className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-500/30 text-orange-200 font-medium hover:from-orange-500/30 hover:to-amber-500/30 hover:border-orange-500/50 transition-all"
                       >
-                        📩 Request This Service
+                        Request This Service
                       </button>
                       <p className="mt-2 text-xs text-slate-400 text-center">
                         We&apos;ll notify you when available

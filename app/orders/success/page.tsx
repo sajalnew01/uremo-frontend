@@ -95,7 +95,7 @@ function OrderSuccessContent() {
         {/* Next Steps */}
         <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 p-6 mb-6 text-left">
           <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-            <span>📋</span> What Happens Next
+            What Happens Next
           </h3>
           <ol className="space-y-3 text-sm text-slate-200">
             <li className="flex gap-3">

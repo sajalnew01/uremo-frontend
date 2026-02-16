@@ -65,7 +65,7 @@ export function ProjectCompletionConfirmation({
       {/* Header */}
       <div className="flex items-center gap-3 mb-3">
         <span className="text-2xl">
-          {isFullyClosed ? "✅" : hasProblem ? "⚠️" : "⏳"}
+          {isFullyClosed ? "OK" : hasProblem ? "!" : "..."}
         </span>
         <div>
           <h4
@@ -198,13 +198,7 @@ export function CompletionStatusBadge({
               : "bg-slate-700/50 text-slate-500"
       }`}
     >
-      {isComplete
-        ? "✅ Paid"
-        : hasProblem
-          ? "⚠️ Issue"
-          : isPending
-            ? "⏳ Pending"
-            : "—"}
+      {isComplete ? "Paid" : hasProblem ? "Issue" : isPending ? "Pending" : "—"}
     </span>
   );
 }

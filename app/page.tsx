@@ -30,35 +30,35 @@ const AUDIENCE_TABS: AudienceTab[] = [
   {
     id: "beginners",
     label: "Beginners",
-    icon: "🌱",
+    icon: "New",
     description:
       "New to online work? UREMO guides you step-by-step with training materials, screening tests, and supervised projects. No experience required.",
   },
   {
     id: "freelancers",
     label: "Freelancers",
-    icon: "💻",
+    icon: "Pro",
     description:
       "Expand your income streams with verified gigs, microjobs, and project-based work. Get paid securely through our wallet system.",
   },
   {
     id: "students",
     label: "Students",
-    icon: "📚",
+    icon: "Study",
     description:
       "Earn while you learn with flexible work opportunities. Complete tasks on your schedule and build real-world skills.",
   },
   {
     id: "side-hustlers",
     label: "Side Hustlers",
-    icon: "🚀",
+    icon: "Extra",
     description:
       "Looking for extra income? Pick up verified microjobs and projects that fit around your main job or commitments.",
   },
   {
     id: "entrepreneurs",
     label: "Digital Entrepreneurs",
-    icon: "🏆",
+    icon: "Biz",
     description:
       "Access premium digital services, account rentals, and tools to scale your online business. Build your affiliate network.",
   },
@@ -170,7 +170,7 @@ export default function LandingPage() {
                   transition={{ delay: 0.2 }}
                   className="card p-6 bg-gradient-to-br from-blue-500/10 to-blue-500/5"
                 >
-                  <div className="text-4xl mb-3">🛒</div>
+                  <div className="text-4xl mb-3">Shop</div>
                   <h3 className="font-semibold text-white">Buy Services</h3>
                   <p className="text-sm text-slate-400 mt-1">
                     Verified digital services
@@ -182,7 +182,7 @@ export default function LandingPage() {
                   transition={{ delay: 0.3 }}
                   className="card p-6 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5"
                 >
-                  <div className="text-4xl mb-3">💰</div>
+                  <div className="text-4xl mb-3">Earn</div>
                   <h3 className="font-semibold text-white">Earn Money</h3>
                   <p className="text-sm text-slate-400 mt-1">
                     Complete verified tasks
@@ -194,7 +194,7 @@ export default function LandingPage() {
                   transition={{ delay: 0.4 }}
                   className="card p-6 bg-gradient-to-br from-purple-500/10 to-purple-500/5"
                 >
-                  <div className="text-4xl mb-3">📚</div>
+                  <div className="text-4xl mb-3">Learn</div>
                   <h3 className="font-semibold text-white">Learn Skills</h3>
                   <p className="text-sm text-slate-400 mt-1">
                     Training & screening
@@ -206,7 +206,7 @@ export default function LandingPage() {
                   transition={{ delay: 0.5 }}
                   className="card p-6 bg-gradient-to-br from-amber-500/10 to-amber-500/5"
                 >
-                  <div className="text-4xl mb-3">🤝</div>
+                  <div className="text-4xl mb-3">Help</div>
                   <h3 className="font-semibold text-white">Human Support</h3>
                   <p className="text-sm text-slate-400 mt-1">
                     Real people helping you
@@ -241,7 +241,7 @@ export default function LandingPage() {
             whileHover={{ y: -8 }}
             className="card p-8 bg-gradient-to-br from-blue-500/10 via-transparent to-blue-500/5 border-blue-500/20 hover:border-blue-500/40 transition-all"
           >
-            <div className="text-5xl mb-6">🛒</div>
+            <div className="text-5xl mb-6">Shop</div>
             <h3 className="text-xl font-bold text-white mb-4">
               Explore Services
             </h3>
@@ -272,7 +272,7 @@ export default function LandingPage() {
             whileHover={{ y: -8 }}
             className="card p-8 bg-gradient-to-br from-emerald-500/10 via-transparent to-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40 transition-all"
           >
-            <div className="text-5xl mb-6">🧑‍💻</div>
+            <div className="text-5xl mb-6">Work</div>
             <h3 className="text-xl font-bold text-white mb-4">Apply To Work</h3>
             <ul className="space-y-3 text-slate-300">
               <li className="flex items-start gap-2">
@@ -301,7 +301,7 @@ export default function LandingPage() {
             whileHover={{ y: -8 }}
             className="card p-8 bg-gradient-to-br from-purple-500/10 via-transparent to-purple-500/5 border-purple-500/20 hover:border-purple-500/40 transition-all"
           >
-            <div className="text-5xl mb-6">💼</div>
+            <div className="text-5xl mb-6">WS</div>
             <h3 className="text-xl font-bold text-white mb-4">Workspace</h3>
             <ul className="space-y-3 text-slate-300">
               <li className="flex items-start gap-2">
@@ -344,25 +344,25 @@ export default function LandingPage() {
           {[
             {
               step: 1,
-              icon: "🔍",
+              icon: "Browse",
               title: "Explore or Apply",
               desc: "Browse services or apply to work positions",
             },
             {
               step: 2,
-              icon: "✅",
+              icon: "Verify",
               title: "Get Verified",
               desc: "Complete screening & verification process",
             },
             {
               step: 3,
-              icon: "⚡",
+              icon: "Work",
               title: "Start Working",
               desc: "Begin tasks or avail services",
             },
             {
               step: 4,
-              icon: "💰",
+              icon: "Pay",
               title: "Earn or Receive",
               desc: "Get paid or receive your delivery",
             },
@@ -402,36 +402,35 @@ export default function LandingPage() {
             Built with security and transparency in mind
           </p>
         </div>
-
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[
             {
-              icon: "🔍",
+              icon: "Verify",
               title: "Manual Human Verification",
               desc: "Every user, service, and transaction is reviewed by real humans — no bots or automation.",
             },
             {
-              icon: "👨‍💼",
+              icon: "Admin",
               title: "Admin Moderated Jobs",
               desc: "All job roles, screenings, and projects are created and managed by UREMO admins.",
             },
             {
-              icon: "🛡️",
+              icon: "Safe",
               title: "No Auto-Payout Scams",
               desc: "Earnings are manually credited after proof verification. No automatic deductions or fake payouts.",
             },
             {
-              icon: "💳",
+              icon: "Wallet",
               title: "Wallet-Based Secure System",
               desc: "All payments flow through a secure wallet system with full transaction history.",
             },
             {
-              icon: "🎫",
+              icon: "Help",
               title: "Support Ticket System",
               desc: "Real support tickets with human responses. Get help when you need it.",
             },
             {
-              icon: "🔒",
+              icon: "Lock",
               title: "Private Proof Of Work",
               desc: "Your work submissions are private by default. Only visible to admins for verification.",
             },
@@ -469,12 +468,12 @@ export default function LandingPage() {
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {[
-            { icon: "📊", title: "Smart Workspace" },
-            { icon: "💰", title: "Wallet System" },
-            { icon: "🤝", title: "Affiliate Program" },
-            { icon: "🏠", title: "Rentals & Subs" },
-            { icon: "🔔", title: "Notifications" },
-            { icon: "🤖", title: "JarvisX AI" },
+            { icon: "Dash", title: "Smart Workspace" },
+            { icon: "Wallet", title: "Wallet System" },
+            { icon: "Aff", title: "Affiliate Program" },
+            { icon: "Rent", title: "Rentals & Subs" },
+            { icon: "Notify", title: "Notifications" },
+            { icon: "AI", title: "JarvisX AI" },
           ].map((item) => (
             <motion.div
               key={item.title}

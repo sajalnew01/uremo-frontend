@@ -72,7 +72,7 @@ export default function ForgotPassword() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900">
         <div className="w-full max-w-sm border border-slate-700 rounded-lg p-6 bg-slate-800 text-center">
-          <div className="mb-4 text-4xl">📧</div>
+          <div className="mb-4 text-4xl">Email</div>
           <h1 className="text-xl font-semibold mb-2 text-white">
             Check Your Email
           </h1>

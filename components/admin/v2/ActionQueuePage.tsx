@@ -422,7 +422,7 @@ export default function ActionQueuePage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white flex items-center gap-3">
           <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center text-base shadow-lg">
-            ⚡
+            AQ
           </span>
           Action Queue
         </h1>
@@ -436,23 +436,23 @@ export default function ActionQueuePage() {
       {/* System Health Strip */}
       {health && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-          <HealthCard label="Users" value={health.totalUsers} icon="👥" />
+          <HealthCard label="Users" value={health.totalUsers} icon="U" />
           <HealthCard
             label="Active Workers"
             value={health.activeWorkers}
-            icon="👷"
+            icon="WF"
           />
           <HealthCard
             label="Orders Today"
             value={health.ordersToday}
-            icon="📦"
+            icon="Ord"
             target={`Target: ${health.ordersTarget}/day`}
             isGood={health.ordersToday >= health.ordersTarget}
           />
           <HealthCard
             label="Revenue Today"
             value={`$${health.revenueToday}`}
-            icon="💰"
+            icon="$"
             color="emerald"
             target={`Avg: $${health.revenueAvg}/day`}
             isGood={health.revenueToday >= health.revenueAvg}
@@ -460,7 +460,7 @@ export default function ActionQueuePage() {
           <HealthCard
             label="Avg Resolution"
             value={health.avgResolutionTime}
-            icon="⏱️"
+            icon="Avg"
             target={`Goal: <${health.resolutionGoal}`}
           />
         </div>
@@ -538,7 +538,7 @@ export default function ActionQueuePage() {
           </div>
         ) : filteredActions.length === 0 ? (
           <div className="p-12 text-center">
-            <div className="text-4xl mb-3">🎉</div>
+            <div className="text-4xl mb-3">OK</div>
             <div className="text-white font-medium">Queue Empty</div>
             <div className="text-slate-500 text-sm">
               No pending items in this view. Check back later or refresh.
@@ -697,19 +697,19 @@ function ActionRow({ action }: { action: ActionItem }) {
   };
 
   const typeIcons: Record<string, string> = {
-    payment: "💳",
-    proof: "📋",
-    order: "📦",
-    screening: "📝",
-    withdrawal: "💸",
-    ticket: "🎫",
-    application: "👤",
+    payment: "$",
+    proof: "Proof",
+    order: "Order",
+    screening: "Test",
+    withdrawal: "Cash",
+    ticket: "Ticket",
+    application: "App",
   };
 
   const style = priorityStyles[action.priority];
 
   const formatWaitTime = (hours: number) => {
-    if (hours >= 999) return "⚠️ Invalid";
+    if (hours >= 999) return "Invalid";
     if (hours < 1) return "Just now";
     if (hours < 24) return `Waiting: ${hours}h`;
     const days = Math.floor(hours / 24);

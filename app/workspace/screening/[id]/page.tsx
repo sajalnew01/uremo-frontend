@@ -235,7 +235,7 @@ export default function ScreeningTestPage() {
     return (
       <div className="u-container max-w-3xl">
         <div className="card text-center py-12">
-          <div className="text-4xl mb-4">❌</div>
+          <div className="text-4xl mb-4">X</div>
           <h2 className="text-xl font-semibold text-red-300 mb-2">
             Something went wrong
           </h2>
@@ -247,7 +247,7 @@ export default function ScreeningTestPage() {
               onClick={() => window.location.reload()}
               className="px-4 py-2 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition"
             >
-              🔄 Retry
+              Retry
             </button>
             <Link
               href="/workspace"
@@ -259,7 +259,7 @@ export default function ScreeningTestPage() {
               href="/support"
               className="px-4 py-2 bg-purple-500/20 text-purple-300 rounded-lg hover:bg-purple-500/30 transition"
             >
-              📞 Contact Support
+              Contact Support
             </Link>
           </div>
         </div>
@@ -280,7 +280,7 @@ export default function ScreeningTestPage() {
           {/* PATCH_90: Pending Review state for hybrid/manual */}
           {isPendingReview ? (
             <>
-              <div className="text-6xl mb-4">⏳</div>
+              <div className="text-6xl mb-4">...</div>
               <h1 className="text-2xl font-bold mb-2">Submission Received</h1>
               {result.autoScore !== undefined && (
                 <p className="text-3xl font-bold text-cyan-400 mb-2">
@@ -340,8 +340,8 @@ export default function ScreeningTestPage() {
 
               <div className="rounded-xl bg-cyan-500/10 border border-cyan-500/20 p-3 mb-6 max-w-md mx-auto">
                 <p className="text-sm text-cyan-300">
-                  📋 Your test has been submitted for admin review. You&apos;ll
-                  be notified once it&apos;s evaluated.
+                  Your test has been submitted for admin review. You&apos;ll be
+                  notified once it&apos;s evaluated.
                 </p>
               </div>
 
@@ -352,7 +352,7 @@ export default function ScreeningTestPage() {
           ) : (
             <>
               {/* Original pass/fail display for auto-graded results */}
-              <div className="text-6xl mb-4">{result.passed ? "🎉" : "😔"}</div>
+              <div className="text-6xl mb-4">{result.passed ? "OK" : "X"}</div>
               <h1 className="text-2xl font-bold mb-2">
                 {result.passed ? "Congratulations!" : "Not Quite"}
               </h1>
@@ -424,7 +424,7 @@ export default function ScreeningTestPage() {
       <div className="u-container max-w-3xl">
         <div className="card">
           <div className="text-center mb-8">
-            <div className="text-4xl mb-4">📝</div>
+            <div className="text-4xl mb-4">Test</div>
             <h1 className="text-2xl font-bold">{screening.title}</h1>
             {screening.description && (
               <p className="text-slate-400 mt-2">{screening.description}</p>
@@ -453,7 +453,7 @@ export default function ScreeningTestPage() {
           </div>
 
           <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-4 mb-6">
-            <h3 className="font-medium text-amber-300 mb-2">⚠️ Important</h3>
+            <h3 className="font-medium text-amber-300 mb-2">Important</h3>
             <ul className="text-sm text-slate-300 space-y-1">
               <li>• Once started, the timer cannot be paused</li>
               <li>• Answer all questions before submitting</li>
@@ -712,11 +712,11 @@ export default function ScreeningTestPage() {
                       }`}
                     >
                       {v === "true"
-                        ? "✅ True"
+                        ? "True"
                         : v === "false"
-                          ? "❌ False"
+                          ? "False"
                           : v === "misleading"
-                            ? "⚠️ Misleading"
+                            ? "Misleading"
                             : "❓ Unverifiable"}
                     </button>
                   ))}
@@ -949,7 +949,7 @@ export default function ScreeningTestPage() {
 
         {!allAnswered && isLastQuestion && (
           <p className="text-center text-amber-400 text-sm mt-4">
-            ⚠️ Please answer all questions before submitting
+            Please answer all questions before submitting
           </p>
         )}
       </div>

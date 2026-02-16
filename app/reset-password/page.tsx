@@ -174,7 +174,7 @@ function ResetPasswordForm() {
   if (!token) {
     return (
       <div className="w-full max-w-sm border border-slate-700 rounded-lg p-6 bg-slate-800 text-center">
-        <div className="mb-4 text-4xl">⚠️</div>
+        <div className="mb-4 text-4xl">!</div>
         <h1 className="text-xl font-semibold mb-2 text-white">Invalid Link</h1>
         <p className="text-slate-400 mb-4">
           This password reset link is invalid or has expired.
@@ -192,7 +192,7 @@ function ResetPasswordForm() {
   if (success) {
     return (
       <div className="w-full max-w-sm border border-slate-700 rounded-lg p-6 bg-slate-800 text-center">
-        <div className="mb-4 text-4xl">✅</div>
+        <div className="mb-4 text-4xl">OK</div>
         <h1 className="text-xl font-semibold mb-2 text-white">
           Password Reset!
         </h1>
