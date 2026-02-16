@@ -199,7 +199,7 @@ export default function WorkerPipelineCard({
             onClick={() => onAction("assign_project", worker.applicationId)}
             className="w-full px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
           >
-            📋 Assign Project
+            Assign Project
           </button>
         );
 
@@ -212,14 +212,14 @@ export default function WorkerPipelineCard({
                 onClick={() => onAction("assign_project", worker.applicationId)}
                 className="flex-1 px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
               >
-                📋 Assign
+                Assign
               </button>
               <button
                 onClick={() => onAction("reset_to_ready", worker.applicationId)}
                 className="flex-1 px-3 py-1.5 text-xs font-medium bg-amber-600/50 hover:bg-amber-600 text-white rounded-lg transition-colors"
                 title="Reset worker to Ready to Work status"
               >
-                🔄 Reset
+                Reset
               </button>
             </div>
           );
@@ -229,7 +229,7 @@ export default function WorkerPipelineCard({
             onClick={() => onAction("view_project", worker.applicationId)}
             className="w-full px-3 py-1.5 text-xs font-medium bg-slate-600/50 hover:bg-slate-600 text-white rounded-lg transition-colors"
           >
-            👁 View Project
+            View Project
           </button>
         );
 
@@ -269,7 +269,7 @@ export default function WorkerPipelineCard({
             onClick={() => onAction("reset_attempts", worker.applicationId)}
             className="w-full px-3 py-1.5 text-xs font-medium bg-amber-600/50 hover:bg-amber-600 text-white rounded-lg transition-colors"
           >
-            🔄 Reset & Allow Retry
+            Reset & Allow Retry
           </button>
         );
 
@@ -316,7 +316,7 @@ export default function WorkerPipelineCard({
           className="px-1.5 py-0.5 text-[10px] bg-cyan-500/20 text-cyan-300 rounded truncate max-w-[120px]"
           title={worker.currentProject.title}
         >
-          📦 {worker.currentProject.title}
+          Proj: {worker.currentProject.title}
         </span>,
       );
     }
@@ -327,7 +327,7 @@ export default function WorkerPipelineCard({
           key="screening"
           className="px-1.5 py-0.5 text-[10px] bg-purple-500/20 text-purple-300 rounded"
         >
-          📝 Review Test
+          Review Test
         </span>,
       );
     }
@@ -338,7 +338,7 @@ export default function WorkerPipelineCard({
           key="proof"
           className="px-1.5 py-0.5 text-[10px] bg-amber-500/20 text-amber-300 rounded"
         >
-          📎 Proof Pending
+          Proof Pending
         </span>,
       );
     }
@@ -349,7 +349,7 @@ export default function WorkerPipelineCard({
           key="payment"
           className="px-1.5 py-0.5 text-[10px] bg-emerald-500/20 text-emerald-300 rounded"
         >
-          💰 Payment Due
+          Payment Due
         </span>,
       );
     }

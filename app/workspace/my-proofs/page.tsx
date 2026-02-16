@@ -120,7 +120,7 @@ export default function MyProofsPage() {
               ? "You haven't submitted any proofs yet. Complete a project and submit your work!"
               : `No ${filter} proofs found.`
           }
-          icon="📄"
+          icon="Doc"
           ctaText="View My Projects"
           ctaHref="/workspace/projects"
         />

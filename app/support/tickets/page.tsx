@@ -306,7 +306,7 @@ export default function SupportTicketsPage() {
         </div>
       ) : tickets.length === 0 ? (
         <EmptyState
-          icon="🎫"
+          icon="Ticket"
           title="No support tickets yet"
           description="Have a question or need help? Create a support ticket and our team will assist you."
           ctaText="Create Ticket"

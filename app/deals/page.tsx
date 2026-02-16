@@ -20,7 +20,7 @@ export default function DealsPage() {
       {/* Coming Soon Banner */}
       <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 via-slate-900/50 to-orange-500/5 p-8 text-center">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 mb-4">
-          <span className="text-3xl">🚧</span>
+          <span className="text-3xl">Soon</span>
         </div>
 
         <h2 className="text-2xl font-bold text-white mb-2">

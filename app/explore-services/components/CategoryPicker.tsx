@@ -14,19 +14,19 @@ const CATEGORIES: Category[] = [
     id: "microjobs",
     label: "Microjobs",
     description: "AI training, data annotation, and freelance platform gigs",
-    icon: "🎯",
+    icon: "Work",
   },
   {
     id: "forex_crypto",
     label: "Forex / Crypto",
     description: "Trading platforms, exchanges, and crypto wallet accounts",
-    icon: "📈",
+    icon: "Trade",
   },
   {
     id: "banks_gateways_wallets",
     label: "Banks / Gateways / Wallets",
     description: "Payment gateways, bank accounts, and e-wallet services",
-    icon: "🏦",
+    icon: "Bank",
   },
   // PATCH_21: Rentals category for account rental services
   {
@@ -34,7 +34,7 @@ const CATEGORIES: Category[] = [
     label: "Rentals",
     description:
       "Rent verified accounts: WhatsApp Business, LinkedIn Premium, and more",
-    icon: "🔑",
+    icon: "Rent",
   },
 ];
 

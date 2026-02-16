@@ -110,9 +110,9 @@ export default function AdminPaymentsPage() {
       {/* PATCH_56: Tab Bar */}
       <div className="flex items-center gap-1 p-1 bg-white/5 rounded-xl border border-white/10">
         {[
-          { key: "transactions", label: "Transactions", icon: "💳" },
-          { key: "methods", label: "Payment Methods", icon: "⚙️" },
-          { key: "config", label: "Configuration", icon: "🔧" },
+          { key: "transactions", label: "Transactions", icon: "Txn" },
+          { key: "methods", label: "Payment Methods", icon: "Method" },
+          { key: "config", label: "Configuration", icon: "Config" },
         ].map((t) => {
           const active = activeTab === t.key;
           return (
@@ -136,7 +136,7 @@ export default function AdminPaymentsPage() {
       {activeTab === "transactions" && (
         <Card>
           <div className="text-center py-12">
-            <span className="text-4xl block mb-3">💳</span>
+            <span className="text-4xl block mb-3">Txn</span>
             <h3 className="text-xl font-bold text-white mb-2">
               Transaction History
             </h3>
@@ -309,7 +309,7 @@ export default function AdminPaymentsPage() {
       {activeTab === "config" && (
         <Card>
           <div className="text-center py-12">
-            <span className="text-4xl block mb-3">🔧</span>
+            <span className="text-4xl block mb-3">Config</span>
             <h3 className="text-xl font-bold text-white mb-2">
               Payment Configuration
             </h3>

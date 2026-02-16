@@ -179,7 +179,7 @@ export default function AffiliatePage() {
       {/* Stats Cards - 4 Cards as required */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="card text-center border border-emerald-500/30">
-          <p className="text-xs text-slate-400 mb-1">💰 Total Earnings</p>
+          <p className="text-xs text-slate-400 mb-1">Total Earnings</p>
           <p className="text-3xl font-bold text-emerald-300">
             $
             {(
@@ -190,7 +190,7 @@ export default function AffiliatePage() {
           </p>
         </div>
         <div className="card text-center border border-blue-500/30">
-          <p className="text-xs text-slate-400 mb-1">💵 Available Balance</p>
+          <p className="text-xs text-slate-400 mb-1">Available Balance</p>
           <p className="text-3xl font-bold text-blue-300">
             $
             {(
@@ -201,13 +201,13 @@ export default function AffiliatePage() {
           </p>
         </div>
         <div className="card text-center border border-purple-500/30">
-          <p className="text-xs text-slate-400 mb-1">📤 Withdrawn Amount</p>
+          <p className="text-xs text-slate-400 mb-1">Withdrawn Amount</p>
           <p className="text-3xl font-bold text-purple-300">
             ${(summary?.withdrawnAmount || 0).toFixed(2)}
           </p>
         </div>
         <div className="card text-center border border-orange-500/30">
-          <p className="text-xs text-slate-400 mb-1">🎯 Successful Referrals</p>
+          <p className="text-xs text-slate-400 mb-1">Successful Referrals</p>
           <p className="text-3xl font-bold text-orange-300">
             {successfulReferrals}
           </p>
@@ -231,7 +231,7 @@ export default function AffiliatePage() {
               onClick={copyReferralLink}
               className="btn-secondary text-sm"
             >
-              📋 Copy Referral Link
+              Copy Referral Link
             </button>
             {(summary?.availableBalance || stats?.affiliateBalance || 0) >=
               (stats?.minimumWithdrawal || 10) && (
@@ -239,7 +239,7 @@ export default function AffiliatePage() {
                 onClick={() => setShowWithdrawModal(true)}
                 className="btn-primary text-sm"
               >
-                💸 Request Withdrawal
+                Request Withdrawal
               </button>
             )}
           </div>
@@ -269,10 +269,10 @@ export default function AffiliatePage() {
             }`}
           >
             {tab === "overview"
-              ? "📊 Overview"
+              ? "Overview"
               : tab === "commissions"
-                ? "💵 Referral History"
-                : "📤 Withdrawals"}
+                ? "Referral History"
+                : "Withdrawals"}
           </button>
         ))}
       </div>
@@ -318,7 +318,7 @@ export default function AffiliatePage() {
 
           <div className="mt-6 p-4 rounded-lg bg-purple-500/10 border border-purple-500/30">
             <p className="text-sm text-purple-200">
-              <strong>💡 Pro Tip:</strong> The more you share, the more you
+              <strong>Pro Tip:</strong> The more you share, the more you
               earn! Your commission is credited automatically when your
               referrals make purchases.
             </p>
@@ -332,7 +332,7 @@ export default function AffiliatePage() {
           {commissions.length === 0 ? (
             <div className="card">
               <EmptyState
-                icon="💰"
+                icon="$"
                 title="No commissions yet"
                 description="Share your unique referral link with friends and earn 10% commission on every purchase they make. It's that simple!"
                 ctaText="Copy Referral Link"

@@ -124,7 +124,7 @@ export default function BlogsPage() {
         ) : blogs.length === 0 ? (
           <div className="text-center py-20">
             <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
-              <span className="text-3xl">📝</span>
+              <span className="text-3xl">Blog</span>
             </div>
             <h3 className="text-xl font-semibold text-white mb-2">
               No articles found

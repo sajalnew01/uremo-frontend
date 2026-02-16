@@ -208,7 +208,7 @@ export default function WorkerTimelineModal({
         actions.push({
           id: "reset_attempts",
           label: "Reset & Allow Retry",
-          icon: "🔄",
+          icon: "Retry",
           color: "bg-amber-600",
         });
         break;
@@ -216,7 +216,7 @@ export default function WorkerTimelineModal({
         actions.push({
           id: "assign_project",
           label: "Assign Project",
-          icon: "📋",
+          icon: "Assign",
           color: "bg-blue-600",
         });
         break;
@@ -328,7 +328,7 @@ export default function WorkerTimelineModal({
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                📜 Timeline
+                Timeline
               </button>
               <button
                 onClick={() => setActiveTab("actions")}

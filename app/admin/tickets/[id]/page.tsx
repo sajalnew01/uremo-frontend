@@ -469,7 +469,7 @@ export default function AdminTicketViewPage() {
             </span>
             {ticket.status === "closed" ? (
               <div className="text-xs text-[#9CA3AF] bg-[#1F2937] rounded px-3 py-2 border border-[#374151]">
-                <span className="text-red-400">🔒 Ticket Closed</span>
+                <span className="text-red-400">Ticket Closed</span>
                 <p className="mt-1 opacity-75">
                   This ticket has been resolved. Create a new ticket for
                   follow-up issues.

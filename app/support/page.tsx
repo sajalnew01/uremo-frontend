@@ -50,7 +50,7 @@ export default function SupportPage() {
       >
         <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 hover:bg-emerald-500/15 transition">
           <div className="flex items-start gap-4">
-            <div className="text-2xl">🎫</div>
+            <div className="text-2xl">Ticket</div>
             <div className="flex-1">
               <h3 className="font-semibold text-white mb-1">Support Tickets</h3>
               <p className="text-sm text-slate-300 mb-3">

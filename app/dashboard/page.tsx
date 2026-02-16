@@ -628,7 +628,7 @@ export default function Dashboard() {
 
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-white">
-                  Welcome back, {firstName} 👋
+                  Welcome back, {firstName}
                 </h1>
                 <p className="text-slate-400 text-sm sm:text-base mt-0.5">
                   You&apos;re doing great — let&apos;s continue building your
@@ -699,7 +699,7 @@ export default function Dashboard() {
                 <div className="relative flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div className="hidden sm:flex w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 items-center justify-center text-white text-lg">
-                      🎉
+                      OK
                     </div>
                     <div>
                       <p className="font-medium text-white">
@@ -739,7 +739,7 @@ export default function Dashboard() {
             >
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-semibold text-white">
-                  🚀 Get Started
+                  Get Started
                 </h2>
                 <span className="text-xs text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">
                   New User Guide

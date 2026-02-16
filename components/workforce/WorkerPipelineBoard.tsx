@@ -23,14 +23,14 @@ const PIPELINE_COLUMNS: PipelineColumn[] = [
     id: "applied",
     label: "Applied",
     statuses: ["applied"],
-    icon: "📝",
+    icon: "App",
     color: "border-slate-500/30",
   },
   {
     id: "screening",
     label: "Screening",
     statuses: ["screening_unlocked", "training_viewed"],
-    icon: "📚",
+    icon: "Screen",
     color: "border-amber-500/30",
   },
   {
@@ -51,7 +51,7 @@ const PIPELINE_COLUMNS: PipelineColumn[] = [
     id: "assigned",
     label: "Assigned",
     statuses: ["assigned"],
-    icon: "📋",
+    icon: "Assign",
     color: "border-blue-500/30",
   },
   {
@@ -65,14 +65,14 @@ const PIPELINE_COLUMNS: PipelineColumn[] = [
     id: "proof_pending",
     label: "Proof Pending",
     statuses: [], // Special column - filtered by pendingProof
-    icon: "📎",
+    icon: "Proof",
     color: "border-orange-500/30",
   },
   {
     id: "completed",
     label: "Completed",
     statuses: [], // Special column - workers who completed recent work
-    icon: "🏆",
+    icon: "Done",
     color: "border-green-500/30",
   },
 ];

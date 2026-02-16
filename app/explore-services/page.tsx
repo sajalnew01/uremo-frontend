@@ -261,14 +261,14 @@ const CATEGORY_GUIDE: Array<{
     title: getCategoryLabel("microjobs"),
     helper:
       "Short remote gigs, data work, and screened tasks to start quickly.",
-    icon: "🧠",
+    icon: "Work",
     examples: ["Data labeling", "Form filling", "Light research"],
   },
   {
     id: "forex_crypto",
     title: getCategoryLabel("forex_crypto"),
     helper: "Trading and exchange account help for compliant setups.",
-    icon: "📈",
+    icon: "Trade",
     examples: ["Exchange setup", "KYC guidance", "Funding pathways"],
   },
   {
@@ -276,14 +276,14 @@ const CATEGORY_GUIDE: Array<{
     title: getCategoryLabel("banks_gateways_wallets"),
     helper:
       "Banking, payment gateway, and wallet assistance with verification.",
-    icon: "🏦",
+    icon: "Bank",
     examples: ["Wallet verification", "Gateway onboarding", "Payout setup"],
   },
   {
     id: "rentals",
     title: getCategoryLabel("rentals"),
     helper: "Temporary access or subscriptions with clear rental plans.",
-    icon: "🔑",
+    icon: "Rent",
     examples: ["Short-term seats", "Trial access", "Managed logins"],
   },
   {
@@ -554,10 +554,10 @@ export default function UnifiedMarketplacePage() {
             {/* Trust Strip - Enhanced */}
             <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { label: "Active Users", value: "18,450+", icon: "👥" },
-                { label: "Paid Out", value: "$312,000+", icon: "💰" },
-                { label: "Trust Rating", value: "4.8★", icon: "⭐" },
-                { label: "Secure", value: "Verified", icon: "🔒" },
+                { label: "Active Users", value: "18,450+", icon: "Users" },
+                { label: "Paid Out", value: "$312,000+", icon: "$" },
+                { label: "Trust Rating", value: "4.8★", icon: "Star" },
+                { label: "Secure", value: "Verified", icon: "Lock" },
               ].map((item) => (
                 <div
                   key={item.label}

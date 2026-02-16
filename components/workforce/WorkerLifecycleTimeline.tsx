@@ -21,49 +21,49 @@ const LIFECYCLE_STEPS = [
   {
     key: "applied",
     label: "Applied",
-    icon: "📝",
+    icon: "App",
     description: "Application submitted",
   },
   {
     key: "approved",
     label: "Approved",
-    icon: "✅",
+    icon: "OK",
     description: "Application approved by admin",
   },
   {
     key: "screening_unlocked",
     label: "Screening",
-    icon: "🔓",
+    icon: "Unlock",
     description: "Training & test unlocked",
   },
   {
     key: "test_submitted",
     label: "Test Done",
-    icon: "📋",
+    icon: "Test",
     description: "Screening test submitted",
   },
   {
     key: "ready_to_work",
     label: "Ready",
-    icon: "🎯",
+    icon: "Ready",
     description: "Passed screening",
   },
   {
     key: "assigned",
     label: "Assigned",
-    icon: "📦",
+    icon: "Proj",
     description: "Project assigned",
   },
   {
     key: "working",
     label: "Working",
-    icon: "⚡",
+    icon: "Work",
     description: "Actively working",
   },
   {
     key: "completed",
     label: "Complete",
-    icon: "🏆",
+    icon: "Done",
     description: "Project completed",
   },
 ];
@@ -261,8 +261,8 @@ export function WorkerLifecycleTimeline({
                 {/* Timestamp and admin info */}
                 {(dateStr || event?.adminEmail) && (
                   <div className="mt-2 text-xs text-slate-400 space-y-0.5">
-                    {dateStr && <p>📅 {dateStr}</p>}
-                    {event?.adminEmail && <p>👤 {event.adminEmail}</p>}
+                    {dateStr && <p>Date: {dateStr}</p>}
+                    {event?.adminEmail && <p>By: {event.adminEmail}</p>}
                     {event?.note && (
                       <p className="text-slate-500 italic">"{event.note}"</p>
                     )}
@@ -273,14 +273,14 @@ export function WorkerLifecycleTimeline({
                 {state === "failed" && (
                   <div className="mt-2 px-3 py-2 bg-red-500/10 border border-red-500/30 rounded-lg">
                     <p className="text-xs text-red-400">
-                      ⚠️ Screening failed — Can retry or be rejected
+                      ! Screening failed — Can retry or be rejected
                     </p>
                   </div>
                 )}
                 {state === "suspended" && (
                   <div className="mt-2 px-3 py-2 bg-amber-500/10 border border-amber-500/30 rounded-lg">
                     <p className="text-xs text-amber-400">
-                      ⚠️ Account suspended
+                      ! Account suspended
                       {suspendedReason && ` — ${suspendedReason}`}
                     </p>
                   </div>
@@ -295,7 +295,7 @@ export function WorkerLifecycleTimeline({
           <div className="flex gap-4">
             <div className="flex flex-col items-center">
               <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg border-2 bg-red-500/30 border-red-500 text-red-300">
-                🚫
+                X
               </div>
             </div>
             <div className="flex-1">
@@ -373,11 +373,11 @@ export function WorkerLifecycleTimeline({
                   <p className="text-sm font-medium text-white">{step.label}</p>
                   <p className="text-xs text-slate-400">{step.description}</p>
                   {dateStr && (
-                    <p className="text-xs text-slate-500 mt-1">📅 {dateStr}</p>
+                    <p className="text-xs text-slate-500 mt-1">Date: {dateStr}</p>
                   )}
                   {event?.adminEmail && (
                     <p className="text-xs text-slate-500">
-                      👤 {event.adminEmail}
+                      By: {event.adminEmail}
                     </p>
                   )}
                   {event?.note && (
@@ -387,7 +387,7 @@ export function WorkerLifecycleTimeline({
                   )}
                   {state === "failed" && (
                     <p className="text-xs text-red-400 mt-1">
-                      ⚠️ Failed - Can retry
+                      ! Failed - Can retry
                     </p>
                   )}
                 </div>
@@ -409,7 +409,7 @@ export function WorkerLifecycleTimeline({
       {/* Suspended/Failed banner below timeline */}
       {isSuspended && (
         <div className="mt-4 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-3">
-          <span className="text-2xl">🚫</span>
+          <span className="text-2xl">X</span>
           <div>
             <p className="text-sm font-medium text-red-400">
               Account Suspended

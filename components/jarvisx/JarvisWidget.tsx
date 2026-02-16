@@ -177,7 +177,7 @@ function buildGreetingFromContext(ctx: JarvisContextPublic | null) {
   const brand = String(ctx?.settings?.site?.brandName || "").trim();
   const support = ctx?.settings?.support || {};
   const whatsapp = String(support?.whatsappNumber || "").trim();
-  const line1 = "Hi 👋 I’m JarvisX Support. Tell me what you need.";
+  const line1 = "Hi, I'm JarvisX Support. Tell me what you need.";
 
   // Keep greeting short; just add one helpful hint if available.
   if (brand && whatsapp)
@@ -232,7 +232,7 @@ export default function JarvisWidget() {
     {
       id: uuid(),
       role: "assistant",
-      text: "Hi 👋 I’m JarvisX Support. Tell me what you need.",
+      text: "Hi, I'm JarvisX Support. Tell me what you need.",
     },
   ]);
 

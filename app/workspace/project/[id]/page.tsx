@@ -418,7 +418,7 @@ export default function ProjectDetailPage() {
         <div className="card">
           {/* Progress Bar */}
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-medium">🧠 RLHF Task Execution</h3>
+            <h3 className="font-medium">RLHF Task Execution</h3>
             <span className="text-sm text-slate-400">
               {rlhfSubmitted}/{rlhfTotal} completed
               {project.rewardPerTask ? ` · $${project.rewardPerTask}/task` : ""}

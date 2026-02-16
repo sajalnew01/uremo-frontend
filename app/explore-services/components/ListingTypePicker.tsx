@@ -36,7 +36,7 @@ const SUBCATEGORIES_BY_CATEGORY: Record<string, SubcategoryItem[]> = {
       label: "Forex Trading Platform Creation Assistance",
       description:
         "Get help setting up verified forex trading accounts on major platforms.",
-      icon: "📈",
+      icon: "Trade",
       badge: "Trading",
     },
     {
@@ -44,7 +44,7 @@ const SUBCATEGORIES_BY_CATEGORY: Record<string, SubcategoryItem[]> = {
       label: "Crypto Platform Creation Assistance",
       description:
         "Assistance with crypto exchange account creation and verification.",
-      icon: "🪙",
+      icon: "Coin",
       badge: "Crypto",
     },
   ],
@@ -53,7 +53,7 @@ const SUBCATEGORIES_BY_CATEGORY: Record<string, SubcategoryItem[]> = {
       id: "banks",
       label: "Banks",
       description: "Bank account creation and verification assistance.",
-      icon: "🏦",
+      icon: "Bank",
       badge: "Banking",
     },
     {
@@ -61,14 +61,14 @@ const SUBCATEGORIES_BY_CATEGORY: Record<string, SubcategoryItem[]> = {
       label: "Payment Gateways",
       description:
         "Payment gateway accounts like PayPal, Stripe, Payoneer setup help.",
-      icon: "💳",
+      icon: "Pay",
       badge: "Payments",
     },
     {
       id: "wallets",
       label: "Wallets",
       description: "E-wallet and digital wallet creation assistance.",
-      icon: "👛",
+      icon: "Wallet",
       badge: "E-Wallets",
     },
   ],
@@ -79,7 +79,7 @@ const SUBCATEGORIES_BY_CATEGORY: Record<string, SubcategoryItem[]> = {
       label: "WhatsApp Business (Meta Verified)",
       description:
         "Rent Meta-verified WhatsApp Business accounts for marketing and customer engagement.",
-      icon: "📱",
+      icon: "WA",
       badge: "Verified",
     },
     {
@@ -87,7 +87,7 @@ const SUBCATEGORIES_BY_CATEGORY: Record<string, SubcategoryItem[]> = {
       label: "LinkedIn Premium Account",
       description:
         "Access LinkedIn Premium features with good connection accounts for networking and leads.",
-      icon: "💼",
+      icon: "LI",
       badge: "Premium",
     },
     {
@@ -95,7 +95,7 @@ const SUBCATEGORIES_BY_CATEGORY: Record<string, SubcategoryItem[]> = {
       label: "Social Media Verified Accounts",
       description:
         "Rent verified social media accounts (Twitter, Instagram, Facebook) with badges.",
-      icon: "✓",
+      icon: "OK",
       badge: "Social",
     },
     {
@@ -103,7 +103,7 @@ const SUBCATEGORIES_BY_CATEGORY: Record<string, SubcategoryItem[]> = {
       label: "Email Accounts (Aged/Verified)",
       description:
         "Rent aged and verified email accounts for marketing campaigns and business use.",
-      icon: "📧",
+      icon: "Mail",
       badge: "Email",
     },
   ],
