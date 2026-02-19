@@ -62,6 +62,7 @@ type Service = {
     price: number;
     label?: string;
   }>;
+  isRental?: boolean;
   effectiveCategory?: string;
 };
 
@@ -231,8 +232,7 @@ const INTENT_CONFIG = {
     fullDescription:
       "Get temporary access to premium accounts and platforms. Choose your rental duration and start using immediately.",
     action: "Rent Now",
-    emptyHint:
-      "No rental options available right now. Check out services to Buy or Earn opportunities.",
+    emptyHint: "No rental services available at this time.",
   },
   deal: {
     label: "Deals",
@@ -431,10 +431,24 @@ export default function UnifiedMarketplacePage() {
   }, [loadMarketplace]);
 
   // Client-side filters (search + advanced filters)
+  // PATCH_107: Rental tab hard filter — only show services with valid rental data
   const displayServices = useMemo(() => {
     const q = filters.search.trim().toLowerCase();
 
     return services.filter((s) => {
+      // PATCH_107: Rental tab hard filter
+      // If viewing rent tab, ONLY show services with rent=true AND isRental=true AND rentalPlans.length > 0
+      if (activeIntent === "rent") {
+        if (
+          !s.allowedActions?.rent ||
+          !s.isRental ||
+          !Array.isArray(s.rentalPlans) ||
+          s.rentalPlans.length === 0
+        ) {
+          return false;
+        }
+      }
+
       const categoryKey = s.effectiveCategory || s.category || "";
       const hay =
         `${s.title || ""} ${categoryKey} ${s.shortDescription || ""} ${s.description || ""}`.toLowerCase();
@@ -463,7 +477,7 @@ export default function UnifiedMarketplacePage() {
 
       return true;
     });
-  }, [services, filters]);
+  }, [services, filters, activeIntent]);
 
   const derivedPlatforms = useMemo(() => {
     const set = new Set<string>(filterOptions.platforms || []);
