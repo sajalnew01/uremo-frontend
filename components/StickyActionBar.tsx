@@ -52,10 +52,10 @@ export default function StickyActionBar({
     "buy" | "apply" | "rent" | "deal" | null
   >(null);
 
-  // PATCH_93: Determine primary action — respect URL intent param
+  // PATCH_106: Strictly respect URL intent param — no automatic action switching
   useEffect(() => {
     const urlIntent = searchParams?.get("intent") || "";
-    // If URL intent matches an allowed action, prefer it
+    // If URL intent matches an allowed action, use it strictly
     if (urlIntent === "rent" && allowedActions.rent) {
       setSelectedAction("rent");
       return;
@@ -68,11 +68,17 @@ export default function StickyActionBar({
       setSelectedAction("buy");
       return;
     }
-    // Default fallback priority
-    if (allowedActions.buy) setSelectedAction("buy");
-    else if (allowedActions.apply) setSelectedAction("apply");
-    else if (allowedActions.rent) setSelectedAction("rent");
-    else if (allowedActions.deal) setSelectedAction("deal");
+    if (urlIntent === "apply" && allowedActions.apply) {
+      setSelectedAction("apply");
+      return;
+    }
+    // Only fall back if no intent param specified at all
+    if (!urlIntent) {
+      if (allowedActions.buy) setSelectedAction("buy");
+      else if (allowedActions.apply) setSelectedAction("apply");
+      else if (allowedActions.rent) setSelectedAction("rent");
+      else if (allowedActions.deal) setSelectedAction("deal");
+    }
   }, [allowedActions, searchParams]);
 
   // Show bar when scrolled down

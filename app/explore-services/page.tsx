@@ -1574,16 +1574,12 @@ function ServiceCard({
   };
 
   // Get price display
-  // PATCH_90: Only show rental price if service actually allows rent
+  // PATCH_106: Strict per-intent price display, no cross-mode leakage
   const getPriceDisplay = () => {
     if (intent === "earn" && service.payRate) {
       return `$${service.payRate}/hr`;
     }
-    if (
-      intent === "rent" &&
-      service.allowedActions?.rent &&
-      service.rentalPlans?.length
-    ) {
+    if (intent === "rent" && service.rentalPlans?.length) {
       const cheapest = service.rentalPlans.reduce(
         (min, p) => (p.price < min.price ? p : min),
         service.rentalPlans[0],
@@ -1762,9 +1758,11 @@ function ServiceCard({
             <div className="text-xs text-slate-400 mb-1">
               {intent === "earn"
                 ? "Earn"
-                : intent === "rent" && service.allowedActions?.rent
+                : intent === "rent"
                   ? "From"
-                  : "Price"}
+                  : intent === "deal"
+                    ? "Deal Price"
+                    : "Price"}
             </div>
             <span className="text-2xl font-bold text-white">
               {getPriceDisplay()}
@@ -1778,24 +1776,16 @@ function ServiceCard({
             }}
             className={`px-5 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r ${config.gradient} shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] transition-all duration-300 hover:scale-105 active:scale-95 whitespace-nowrap`}
           >
-            {/* PATCH_54: Dynamic CTA text based on intent and price */}
-            {/* PATCH_90: Only show Rent/Deal CTA if service supports it */}
-            {/* PATCH_92: Never show Buy on Rent tab; show intent-correct label */}
+            {/* PATCH_106: Deterministic CTA — strict per active tab, no fallback */}
             {intent === "buy"
-              ? `Buy – $${service.price}`
+              ? `Buy Now — $${service.price}`
               : intent === "earn"
-                ? "Apply Now"
-                : intent === "rent" &&
-                    service.allowedActions?.rent &&
-                    service.rentalPlans?.length
-                  ? `Rent – $${service.rentalPlans[0].price}`
-                  : intent === "deal" && service.allowedActions?.deal
-                    ? "Deals — Coming Soon"
-                    : intent === "rent"
-                      ? "View Rental"
-                      : intent === "deal"
-                        ? "Deals — Coming Soon"
-                        : `Buy – $${service.price}`}
+                ? "Apply to Work"
+                : intent === "rent"
+                  ? "View Rental Plans"
+                  : intent === "deal"
+                    ? "Start Deal"
+                    : `Buy Now — $${service.price}`}
           </Link>
         </div>
       </div>

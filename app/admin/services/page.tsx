@@ -1,11 +1,38 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import { withCacheBust } from "@/lib/cacheBust";
 import { emitServicesRefresh, onServicesRefresh } from "@/lib/events";
 import PageHeader from "@/components/ui/PageHeader";
+
+// PATCH_106: Category → Action matrix (mirrors backend categoryActions.js)
+const CATEGORY_ACTIONS: Record<
+  string,
+  { buy: boolean; apply: boolean; rent: boolean; deal: boolean }
+> = {
+  microjobs: { buy: true, apply: true, rent: false, deal: false },
+  forex_crypto: { buy: true, apply: false, rent: true, deal: true },
+  banks_gateways_wallets: { buy: true, apply: false, rent: true, deal: true },
+  rentals: { buy: true, apply: false, rent: true, deal: false },
+  general: { buy: true, apply: false, rent: false, deal: false },
+};
+
+function getActionsForCategory(
+  cat: string,
+  subcat?: string,
+): { buy: boolean; apply: boolean; rent: boolean; deal: boolean } {
+  // Mirror backend getEffectiveCategoryFromService
+  if (cat === "banks_gateways_wallets")
+    return { buy: true, apply: false, rent: true, deal: true };
+  if (cat === "forex_crypto") {
+    if (subcat?.includes("crypto"))
+      return { buy: true, apply: false, rent: true, deal: true };
+    return { buy: true, apply: false, rent: true, deal: false };
+  }
+  return CATEGORY_ACTIONS[cat] || CATEGORY_ACTIONS.general;
+}
 
 // PATCH_19/21: Category and Subcategory constants - synced with backend
 const CATEGORIES = [
@@ -143,6 +170,64 @@ export default function AdminServicesPage() {
   const availableSubcategories = SUBCATEGORIES_BY_CATEGORY[category] || [];
   const editAvailableSubcategories =
     SUBCATEGORIES_BY_CATEGORY[editCategory] || [];
+
+  // PATCH_106: Computed actions based on category (mirrors backend rules)
+  const computedActions = useMemo(
+    () => getActionsForCategory(category, subcategory),
+    [category, subcategory],
+  );
+  const editComputedActions = useMemo(
+    () => getActionsForCategory(editCategory, editSubcategory),
+    [editCategory, editSubcategory],
+  );
+
+  // PATCH_106: Create form validation warnings
+  const createValidationWarnings = useMemo(() => {
+    const warnings: string[] = [];
+    if (!category) return warnings;
+    const actions = computedActions;
+    if (actions.buy && (!price || Number(price) <= 0)) {
+      warnings.push("Buy-enabled: price must be > 0");
+    }
+    if (actions.rent && !isRental) {
+      warnings.push("Rent-enabled: must enable rental toggle");
+    }
+    if (actions.rent && isRental && rentalPlans.length === 0) {
+      warnings.push("Rent-enabled: at least one rental plan required");
+    }
+    return warnings;
+  }, [category, computedActions, price, isRental, rentalPlans]);
+
+  // PATCH_106: Edit-form validation warnings
+  const editValidationWarnings = useMemo(() => {
+    const warnings: string[] = [];
+    if (!editCategory) return warnings;
+    const actions = editComputedActions;
+    if (actions.buy && (!editPrice || Number(editPrice) <= 0)) {
+      warnings.push("Buy-enabled: price must be > 0");
+    }
+    if (actions.rent && !editIsRental) {
+      warnings.push("Rent-enabled: must enable rental toggle");
+    }
+    if (actions.rent && editIsRental && editRentalPlans.length === 0) {
+      warnings.push("Rent-enabled: at least one rental plan required");
+    }
+    return warnings;
+  }, [
+    editCategory,
+    editComputedActions,
+    editPrice,
+    editIsRental,
+    editRentalPlans,
+  ]);
+
+  const createFormValid =
+    createValidationWarnings.length === 0 &&
+    !!title &&
+    !!category &&
+    !!description &&
+    !!price;
+  const editFormValid = editValidationWarnings.length === 0;
 
   useEffect(() => {
     if (imageUrl) setImagePreviewBust(Date.now());
@@ -897,9 +982,54 @@ export default function AdminServicesPage() {
           ))}
         </div>
 
+        {/* PATCH_106: Mode Matrix — shows which action modes are active based on category */}
+        {category && (
+          <div className="border border-white/20 rounded-lg p-4 space-y-3">
+            <p className="text-sm font-semibold text-white">
+              Action Modes (auto-computed from category)
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <span
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border ${computedActions.buy ? "bg-blue-500/20 text-blue-300 border-blue-500/40" : "bg-white/5 text-slate-500 border-white/10"}`}
+              >
+                {computedActions.buy ? "✓" : "✕"} Buy{" "}
+                {computedActions.buy && Number(price) <= 0 && "⚠️"}
+              </span>
+              <span
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border ${computedActions.apply ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" : "bg-white/5 text-slate-500 border-white/10"}`}
+              >
+                {computedActions.apply ? "✓" : "✕"} Apply
+              </span>
+              <span
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border ${computedActions.rent ? "bg-purple-500/20 text-purple-300 border-purple-500/40" : "bg-white/5 text-slate-500 border-white/10"}`}
+              >
+                {computedActions.rent ? "✓" : "✕"} Rent{" "}
+                {computedActions.rent &&
+                  (!isRental || rentalPlans.length === 0) &&
+                  "⚠️"}
+              </span>
+              <span
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border ${computedActions.deal ? "bg-orange-500/20 text-orange-300 border-orange-500/40" : "bg-white/5 text-slate-500 border-white/10"}`}
+              >
+                {computedActions.deal ? "✓" : "✕"} Deal{" "}
+                {computedActions.deal && Number(price) <= 0 && "⚠️"}
+              </span>
+            </div>
+            {createValidationWarnings.length > 0 && (
+              <div className="space-y-1">
+                {createValidationWarnings.map((w, i) => (
+                  <p key={i} className="text-xs text-amber-400">
+                    ⚠ {w}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         <button
           onClick={createService}
-          disabled={loading}
+          disabled={loading || !createFormValid}
           className="w-full btn-primary disabled:opacity-50"
         >
           {loading ? "Creating..." : "Create Service"}
@@ -1349,23 +1479,65 @@ export default function AdminServicesPage() {
                 </label>
               </div>
 
-              <div className="p-4 border-t border-white/10 flex items-center justify-end gap-2 flex-shrink-0">
-                <button
-                  type="button"
-                  onClick={closeEdit}
-                  className="px-4 py-2 rounded bg-white/5 border border-white/10 text-white hover:bg-white/10"
-                  disabled={editSaving}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={saveEdit}
-                  disabled={editSaving}
-                  className="px-4 py-2 rounded bg-[#3B82F6] text-white text-sm disabled:opacity-50"
-                >
-                  {editSaving ? "Saving..." : "Save changes"}
-                </button>
+              <div className="p-4 border-t border-white/10 flex flex-col gap-3 flex-shrink-0">
+                {/* PATCH_106: Edit Mode Matrix */}
+                {editCategory && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-slate-400">
+                      Action Modes
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <span
+                        className={`px-2 py-1 rounded text-[10px] font-semibold border ${editComputedActions.buy ? "bg-blue-500/20 text-blue-300 border-blue-500/40" : "bg-white/5 text-slate-500 border-white/10"}`}
+                      >
+                        {editComputedActions.buy ? "✓" : "✕"} Buy
+                      </span>
+                      <span
+                        className={`px-2 py-1 rounded text-[10px] font-semibold border ${editComputedActions.apply ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" : "bg-white/5 text-slate-500 border-white/10"}`}
+                      >
+                        {editComputedActions.apply ? "✓" : "✕"} Apply
+                      </span>
+                      <span
+                        className={`px-2 py-1 rounded text-[10px] font-semibold border ${editComputedActions.rent ? "bg-purple-500/20 text-purple-300 border-purple-500/40" : "bg-white/5 text-slate-500 border-white/10"}`}
+                      >
+                        {editComputedActions.rent ? "✓" : "✕"} Rent
+                      </span>
+                      <span
+                        className={`px-2 py-1 rounded text-[10px] font-semibold border ${editComputedActions.deal ? "bg-orange-500/20 text-orange-300 border-orange-500/40" : "bg-white/5 text-slate-500 border-white/10"}`}
+                      >
+                        {editComputedActions.deal ? "✓" : "✕"} Deal
+                      </span>
+                    </div>
+                    {editValidationWarnings.length > 0 && (
+                      <div className="space-y-1">
+                        {editValidationWarnings.map((w, i) => (
+                          <p key={i} className="text-xs text-amber-400">
+                            ⚠ {w}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={closeEdit}
+                    className="px-4 py-2 rounded bg-white/5 border border-white/10 text-white hover:bg-white/10"
+                    disabled={editSaving}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={saveEdit}
+                    disabled={editSaving || !editFormValid}
+                    className="px-4 py-2 rounded bg-[#3B82F6] text-white text-sm disabled:opacity-50"
+                  >
+                    {editSaving ? "Saving..." : "Save changes"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

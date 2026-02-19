@@ -150,6 +150,28 @@ export default function ServiceDetailsPage() {
   const hasAnyAction =
     allowed.buy || allowed.apply || allowed.rent || allowed.deal;
 
+  // PATCH_106: Intent verification — check if service supports the requested intent
+  const intentVerification = useMemo(() => {
+    if (!urlIntent || !service) return { valid: true, message: "" };
+    const intentActionMap: Record<string, keyof typeof allowed> = {
+      buy: "buy",
+      rent: "rent",
+      apply: "apply",
+      deal: "deal",
+    };
+    const actionKey = intentActionMap[urlIntent];
+    if (!actionKey) return { valid: true, message: "" };
+    if (allowed[actionKey]) return { valid: true, message: "" };
+
+    const messages: Record<string, string> = {
+      buy: "Not Available in Buy Mode",
+      rent: "Rental Not Available",
+      apply: "Application Not Available",
+      deal: "Deal Not Available",
+    };
+    return { valid: false, message: messages[urlIntent] || "Not Available" };
+  }, [urlIntent, allowed, service]);
+
   // PATCH_92/93: Auto-scroll to rent section when intent=rent
   useEffect(() => {
     if (urlIntent === "rent" && allowed.rent && rentSectionRef.current) {
@@ -436,6 +458,37 @@ export default function ServiceDetailsPage() {
       </div>
 
       {/* PATCH_55: Service Action Decision Section (Above the Fold) */}
+      {/* PATCH_106: Intent verification banner */}
+      {urlIntent && !intentVerification.valid && (
+        <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-5">
+          <p className="text-amber-200 font-semibold text-lg">
+            {intentVerification.message}
+          </p>
+          <p className="text-sm text-slate-400 mt-1">
+            This service does not support the &quot;{urlIntent}&quot; action.
+            Try a different mode or browse other services.
+          </p>
+          <div className="mt-3 flex gap-3">
+            <a href="/explore-services" className="btn-secondary text-sm">
+              Back to Marketplace
+            </a>
+            {hasAnyAction && (
+              <span className="text-xs text-slate-400 self-center">
+                Available:{" "}
+                {[
+                  allowed.buy && "Buy",
+                  allowed.apply && "Apply",
+                  allowed.rent && "Rent",
+                  allowed.deal && "Deal",
+                ]
+                  .filter(Boolean)
+                  .join(", ")}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="mb-8">
         <ServiceActionSelector
           price={service.price}
