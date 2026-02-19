@@ -2,12 +2,14 @@
 
 /**
  * PATCH_97: Admin Dashboard — Overview Metrics + Action Queue
+ * PATCH_109: Added Rental Revenue Intelligence block
  *
- * 4 metric blocks at the top:
+ * 5 metric blocks at the top:
  *  1. Marketplace (services, orders today, revenue)
  *  2. Workforce (active workers, projects, screenings)
  *  3. AI Data / RLHF (datasets, tasks completed)
  *  4. Finance (users, pending withdrawals, payments)
+ *  5. Rental Intelligence (active, pending, expiring, revenue)
  *
  * Below: Full ActionQueue for pending actions.
  */
@@ -37,6 +39,20 @@ interface DashboardMetrics {
     pendingWithdrawals: number;
     pendingPayments: number;
   };
+}
+
+interface RentalMetrics {
+  activeRentals: number;
+  pendingRentals: number;
+  expiringIn7Days: number;
+  expiredLast30Days: number;
+  revenueLast30Days: number;
+  lifetimeRevenue: number;
+  mostRentedService: {
+    serviceId: string;
+    title: string;
+    rentalCount: number;
+  } | null;
 }
 
 function MetricBlock({
@@ -70,11 +86,31 @@ function MetricBlock({
 
 export default function AdminDashboard() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [rentalMetrics, setRentalMetrics] = useState<RentalMetrics | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadMetrics();
+    loadRentalMetrics();
   }, []);
+
+  const loadRentalMetrics = async () => {
+    try {
+      const res = await apiRequest(
+        "/api/admin/rentals/metrics",
+        "GET",
+        null,
+        true,
+      );
+      if (res?.metrics) {
+        setRentalMetrics(res.metrics);
+      }
+    } catch (err) {
+      console.error("Failed to load rental metrics:", err);
+    }
+  };
 
   const loadMetrics = async () => {
     try {
@@ -275,6 +311,67 @@ export default function AdminDashboard() {
           />
         </div>
       ) : null}
+
+      {/* PATCH_109: Rental Revenue Intelligence Block */}
+      {rentalMetrics && (
+        <div className="rounded-2xl border border-purple-500/30 bg-purple-500/5 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xl">🔑</span>
+            <h3 className="font-semibold text-white text-sm">
+              Rental Revenue Intelligence
+            </h3>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-emerald-300">
+                {rentalMetrics.activeRentals}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Active</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-yellow-300">
+                {rentalMetrics.pendingRentals}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Pending</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-orange-300">
+                {rentalMetrics.expiringIn7Days}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Expiring (7d)</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-red-300">
+                {rentalMetrics.expiredLast30Days}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Expired (30d)</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-white">
+                ${rentalMetrics.revenueLast30Days}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Revenue (30d)</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-purple-300">
+                ${rentalMetrics.lifetimeRevenue}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Lifetime Rev.</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-blue-300 truncate">
+                {rentalMetrics.mostRentedService?.title || "—"}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">
+                Top Service
+                {rentalMetrics.mostRentedService
+                  ? ` (${rentalMetrics.mostRentedService.rentalCount})`
+                  : ""}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Action Queue below */}
       <ActionQueuePage />

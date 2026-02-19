@@ -220,6 +220,38 @@ export default function ServiceDetailsPage() {
     return ["Global"];
   }, [service?.countries]);
 
+  // PATCH_109: Check if user already has an active rental for this service
+  const [activeRentalInfo, setActiveRentalInfo] = useState<{
+    hasActive: boolean;
+    endDate: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!service?._id || !allowed.rent) return;
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (!token) return;
+
+    apiRequest("/api/rentals/my", "GET", null, true)
+      .then((data: any) => {
+        const rentals = Array.isArray(data?.rentals) ? data.rentals : [];
+        const active = rentals.find(
+          (r: any) => r.service?._id === service._id && r.status === "active",
+        );
+        if (active) {
+          setActiveRentalInfo({
+            hasActive: true,
+            endDate: active.endDate || "",
+          });
+        } else {
+          setActiveRentalInfo(null);
+        }
+      })
+      .catch(() => {
+        // ignore
+      });
+  }, [service?._id, allowed.rent]);
+
   const buyService = async (overridePlanIndex?: number | null) => {
     // PATCH_96: Double-click protection
     if (actionSubmitting) return;
@@ -776,12 +808,30 @@ export default function ServiceDetailsPage() {
               </div>
             )}
 
-            {/* RENT — PATCH_92: Enhanced with country selector + pricing breakdown */}
+            {/* RENT — PATCH_92/109: Enhanced Enterprise rental cards */}
             {allowed.rent &&
             service?.isRental &&
             Array.isArray(service.rentalPlans) &&
             service.rentalPlans.length > 0 ? (
               <div className="mt-4" ref={rentSectionRef}>
+                {/* PATCH_109: Active rental banner */}
+                {activeRentalInfo?.hasActive && (
+                  <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+                    <p className="text-sm font-semibold text-emerald-200">
+                      You already have active access
+                      {activeRentalInfo.endDate
+                        ? ` until ${new Date(activeRentalInfo.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+                        : ""}
+                    </p>
+                    <Link
+                      href="/rentals"
+                      className="inline-block mt-2 text-xs px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 transition"
+                    >
+                      View My Rentals
+                    </Link>
+                  </div>
+                )}
+
                 <div className="mb-3">
                   <p className="text-sm font-semibold text-purple-300">
                     Rent Access
@@ -810,39 +860,55 @@ export default function ServiceDetailsPage() {
                   </select>
                 </div>
 
-                {/* Rental plan cards */}
-                <div className="space-y-2">
-                  {service.rentalPlans.map((plan: any, idx: number) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setSelectedRentalPlan(idx)}
-                      className={`w-full text-left p-3 rounded-lg border transition ${
-                        selectedRentalPlan === idx
-                          ? "border-purple-500 bg-purple-500/20"
-                          : "border-white/10 bg-white/5 hover:border-white/30"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="text-white font-medium">
-                            {plan.label}
+                {/* PATCH_109: Premium Rental Plan Cards */}
+                <div className="grid gap-2">
+                  {service.rentalPlans.map((plan: any, idx: number) => {
+                    const savingsVsBuy =
+                      allowed.buy && service.price > 0
+                        ? Math.round(
+                            ((service.price - plan.price) / service.price) *
+                              100,
+                          )
+                        : 0;
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setSelectedRentalPlan(idx)}
+                        className={`w-full text-left p-3 rounded-xl border transition-all ${
+                          selectedRentalPlan === idx
+                            ? "border-purple-500 bg-purple-500/20 shadow-[0_0_16px_rgba(168,85,247,0.15)]"
+                            : "border-white/10 bg-white/5 hover:border-purple-500/40 hover:bg-white/8"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-white font-medium text-sm">
+                              {plan.label || `${plan.duration} ${plan.unit}`}
+                            </span>
+                            {plan.isPopular && (
+                              <span className="text-[10px] bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded-full font-semibold border border-yellow-500/30">
+                                Most Popular
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-emerald-300 font-bold">
+                            ${plan.price}
                           </span>
-                          {plan.isPopular && (
-                            <span className="text-xs bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded-full">
-                              Popular
+                        </div>
+                        <div className="flex items-center justify-between mt-1">
+                          <p className="text-xs text-slate-400">
+                            {plan.duration} {plan.unit}
+                          </p>
+                          {savingsVsBuy > 0 && (
+                            <span className="text-[10px] text-emerald-400 font-medium">
+                              Save {savingsVsBuy}% vs Buy
                             </span>
                           )}
                         </div>
-                        <span className="text-emerald-300 font-bold">
-                          ${plan.price}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-400 mt-1">
-                        {plan.duration} {plan.unit}
-                      </p>
-                    </button>
-                  ))}
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {/* PATCH_92: Payment schedule breakdown */}
@@ -883,17 +949,20 @@ export default function ServiceDetailsPage() {
                   disabled={
                     service?.active === false ||
                     selectedRentalPlan === null ||
-                    !rentCountry
+                    !rentCountry ||
+                    actionSubmitting
                   }
                   className="btn-primary w-full disabled:opacity-50 mt-4"
                 >
-                  {service?.active === false
-                    ? copy.unavailableButtonText
-                    : selectedRentalPlan !== null && rentCountry
-                      ? `Rent for $${service.rentalPlans[selectedRentalPlan]?.price}`
-                      : !rentCountry
-                        ? "Select Country"
-                        : "Select a Plan"}
+                  {actionSubmitting
+                    ? "Processing…"
+                    : service?.active === false
+                      ? copy.unavailableButtonText
+                      : selectedRentalPlan !== null && rentCountry
+                        ? `Rent for $${service.rentalPlans[selectedRentalPlan]?.price}`
+                        : !rentCountry
+                          ? "Select Country"
+                          : "Select a Plan"}
                 </button>
               </div>
             ) : null}
@@ -962,7 +1031,7 @@ export default function ServiceDetailsPage() {
         allowedActions={allowed}
         rentalPlans={service.rentalPlans}
         selectedRentalPlan={selectedRentalPlan}
-        isActive={service.active !== false}
+        isActive={service.active !== false && !actionSubmitting}
         onBuy={buyService}
         onApply={applyToWork}
         onRent={buyService}

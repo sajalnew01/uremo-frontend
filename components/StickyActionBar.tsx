@@ -115,7 +115,7 @@ export default function StickyActionBar({
     rent: {
       label:
         selectedRentalPlan !== null && rentalPlans[selectedRentalPlan]
-          ? `Rent for $${rentalPlans[selectedRentalPlan].price}`
+          ? `Rent – $${rentalPlans[selectedRentalPlan].price}`
           : "Select Rental Plan",
       gradient: "from-purple-500 to-pink-600",
       onClick: onRent,
