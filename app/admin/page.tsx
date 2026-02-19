@@ -55,6 +55,19 @@ interface RentalMetrics {
   } | null;
 }
 
+interface FinanceMetrics {
+  totalWalletLiabilities: number;
+  pendingWithdrawals: number;
+  lifetimeEarningsPaid: number;
+  purchaseRevenue: number;
+  rentalRevenue: number;
+  topupTotal: number;
+  withdrawalTotal: number;
+  refundTotal: number;
+  platformRevenue: number;
+  transactionBreakdown: Record<string, { count: number; total: number }>;
+}
+
 function MetricBlock({
   title,
   icon,
@@ -89,12 +102,32 @@ export default function AdminDashboard() {
   const [rentalMetrics, setRentalMetrics] = useState<RentalMetrics | null>(
     null,
   );
+  const [financeMetrics, setFinanceMetrics] = useState<FinanceMetrics | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadMetrics();
     loadRentalMetrics();
+    loadFinanceMetrics();
   }, []);
+
+  const loadFinanceMetrics = async () => {
+    try {
+      const res = await apiRequest(
+        "/api/admin/wallet/finance",
+        "GET",
+        null,
+        true,
+      );
+      if (res?.finance) {
+        setFinanceMetrics(res.finance);
+      }
+    } catch (err) {
+      console.error("Failed to load finance metrics:", err);
+    }
+  };
 
   const loadRentalMetrics = async () => {
     try {
@@ -368,6 +401,75 @@ export default function AdminDashboard() {
                   ? ` (${rentalMetrics.mostRentedService.rentalCount})`
                   : ""}
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PATCH_110: Finance Ledger Dashboard */}
+      {financeMetrics && (
+        <div className="bg-gradient-to-br from-emerald-900/40 to-teal-900/30 rounded-2xl p-5 border border-emerald-700/30">
+          <h3 className="text-sm font-semibold text-emerald-300 mb-3">
+            💰 Finance Ledger Dashboard
+          </h3>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-9 gap-3 text-center">
+            <div>
+              <p className="text-lg font-bold text-emerald-300">
+                ${financeMetrics.totalWalletLiabilities.toFixed(0)}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">
+                Wallet Liabilities
+              </p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-yellow-300">
+                ${financeMetrics.pendingWithdrawals.toFixed(0)}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Pending W/D</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-blue-300">
+                ${financeMetrics.lifetimeEarningsPaid.toFixed(0)}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Earnings Paid</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-cyan-300">
+                ${financeMetrics.purchaseRevenue.toFixed(0)}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Purchase Rev</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-purple-300">
+                ${financeMetrics.rentalRevenue.toFixed(0)}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Rental Rev</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-green-300">
+                ${financeMetrics.topupTotal.toFixed(0)}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Topup Total</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-red-300">
+                ${financeMetrics.withdrawalTotal.toFixed(0)}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Withdrawn</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-orange-300">
+                ${financeMetrics.refundTotal.toFixed(0)}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Refunds</p>
+            </div>
+            <div>
+              <p
+                className={`text-lg font-bold ${financeMetrics.platformRevenue >= 0 ? "text-emerald-400" : "text-red-400"}`}
+              >
+                ${financeMetrics.platformRevenue.toFixed(0)}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Net Revenue</p>
             </div>
           </div>
         </div>
