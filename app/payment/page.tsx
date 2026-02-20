@@ -78,7 +78,10 @@ export default function PaymentPage() {
 
         <Card title="Binance">
           <p className="text-sm text-[#9CA3AF] mb-3">Binance Pay ID:</p>
-          <p className="font-semibold mb-4">UREMO_BINANCE_ID</p>
+          <p className="font-semibold mb-4">
+            {process.env.NEXT_PUBLIC_BINANCE_PAY_ID ||
+              "Contact support for Binance Pay ID"}
+          </p>
           <button
             onClick={() => setMethod("binance")}
             className={`w-full py-2 rounded ${
@@ -92,7 +95,8 @@ export default function PaymentPage() {
         <Card title="USDT (Crypto)">
           <p className="text-sm text-[#9CA3AF] mb-3">Network: TRC20</p>
           <p className="font-semibold mb-4 break-all">
-            YOUR_USDT_WALLET_ADDRESS
+            {process.env.NEXT_PUBLIC_USDT_WALLET ||
+              "Contact support for USDT wallet address"}
           </p>
           <button
             onClick={() => setMethod("usdt")}

@@ -9,6 +9,8 @@ type DebugState = {
   cookies: string;
 };
 
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+
 export default function ApiDebugPage() {
   const [state, setState] = useState<DebugState>({
     token: null,
@@ -18,6 +20,7 @@ export default function ApiDebugPage() {
   });
 
   useEffect(() => {
+    if (IS_PRODUCTION) return;
     const token = localStorage.getItem("token");
     const userRaw = localStorage.getItem("user");
 
@@ -41,6 +44,14 @@ export default function ApiDebugPage() {
     const record = state.userParsed as Record<string, unknown>;
     return typeof record.role === "string" ? record.role : null;
   }, [state.userParsed]);
+
+  if (IS_PRODUCTION) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black text-white">
+        <p className="text-slate-400">This page is not available.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10 space-y-4">

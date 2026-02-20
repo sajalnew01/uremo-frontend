@@ -8,6 +8,7 @@
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/useToast";
+import { apiRequest } from "@/lib/api";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
@@ -223,20 +224,11 @@ export default function ProfilePage() {
       const token = localStorage.getItem("token");
       if (!token) return;
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "https://uremo-backend.onrender.com"}/api/users/preferences`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setEmailPreferences(data.data.emailPreferences);
-          setInterestTags(data.data.interestTags);
-          setPrefsLoaded(true);
-        }
+      const data = await apiRequest("/api/users/preferences", "GET");
+      if (data.success) {
+        setEmailPreferences(data.data.emailPreferences);
+        setInterestTags(data.data.interestTags);
+        setPrefsLoaded(true);
       }
     } catch (error) {
       console.error("Failed to load preferences:", error);
@@ -281,29 +273,12 @@ export default function ProfilePage() {
         return;
       }
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "https://uremo-backend.onrender.com"}/api/users/preferences`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            emailPreferences,
-            interestTags,
-          }),
-        },
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          toast("Preferences saved successfully!", "success");
-        }
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        toast(errorData.message || "Failed to update preferences", "error");
+      const data = await apiRequest("/api/users/preferences", "PUT", {
+        emailPreferences,
+        interestTags,
+      });
+      if (data.success) {
+        toast("Preferences saved successfully!", "success");
       }
     } catch (error) {
       console.error("Error saving preferences:", error);

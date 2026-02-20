@@ -82,7 +82,7 @@ export default function AdminWalletPage() {
   useEffect(() => {
     if (!ready) return;
     if (!isAdmin) {
-      router.push("/admin/login");
+      router.push("/login");
       return;
     }
     fetchStats();
