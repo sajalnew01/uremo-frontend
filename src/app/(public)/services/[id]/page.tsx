@@ -64,8 +64,7 @@ export default function ServiceDetailPage() {
     mutationFn: () =>
       apiRequest(EP.RENTALS_CREATE, "POST", {
         serviceId: id,
-        rentalType: selectedPlan?.type || selectedPlan?.label,
-        duration: selectedPlan?.duration,
+        planIndex: selectedPlanIdx,
       }, true),
     onSuccess: (res: { rental?: { _id: string } }) => {
       emitToast("Rental created!", "success");
