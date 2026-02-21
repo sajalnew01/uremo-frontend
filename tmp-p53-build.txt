@@ -1,8 +1,0 @@
-﻿
-> uremo-frontend@0.1.0 build
-> next build --webpack
-
-Ôû▓ Next.js 16.1.1 (webpack)
-- Environments: .env.local
-
-  Creating an optimized production build ...
