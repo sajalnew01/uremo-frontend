@@ -16,7 +16,6 @@ import {
   DEFAULT_PUBLIC_SITE_SETTINGS,
   useSiteSettings,
 } from "@/hooks/useSiteSettings";
-import TrustBadges from "@/components/TrustBadges";
 import {
   getCategoryLabel,
   getShortCategoryLabel,
@@ -538,79 +537,54 @@ export default function UnifiedMarketplacePage() {
   const IconComponent = config.icon;
 
   return (
-    <div className="u-container py-8 px-4 md:px-6">
-      {/* Premium Hero Section */}
-      <section className="mb-12 relative">
-        {/* Background Gradient Glow */}
-        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 rounded-3xl blur-3xl" />
-
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-          <div className="max-w-3xl">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="px-3 py-1 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 text-blue-200 text-xs font-medium uppercase tracking-wider">
-                Premium Marketplace
+    <div className="u-container py-6 px-4 md:px-6">
+      {/* Hero Section — Compact & Professional */}
+      <section className="mb-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="px-2.5 py-1 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-300 text-[11px] font-semibold uppercase tracking-wider">
+                Marketplace
               </span>
-              <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-medium flex items-center gap-1.5">
-                <CheckCircleIcon className="w-3.5 h-3.5" />
-                Verified Platform
+              <span className="px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] font-semibold flex items-center gap-1">
+                <CheckCircleIcon className="w-3 h-3" />
+                Verified
+              </span>
+              <span className="px-2.5 py-1 rounded-md bg-purple-500/10 border border-purple-500/20 text-purple-300 text-[11px] font-semibold">
+                Trusted Platform
               </span>
             </div>
 
-            <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-4 bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
-              <span
-                role="img"
-                aria-label="marketplace"
-                className="inline-block"
-              >
-                🏪
-              </span>{" "}
-              Discover Premium Services & Ways to Earn
+            <h1 className="text-3xl md:text-4xl font-bold text-white leading-tight mb-2">
+              Discover Premium Services
             </h1>
-
-            <p className="text-slate-300 text-lg md:text-xl mb-6 leading-relaxed">
+            <p className="text-slate-400 text-sm md:text-base leading-relaxed">
               Buy verified services, earn money, rent premium access, or start
-              profit deals — all in one trusted platform.
+              profit deals.
             </p>
-
-            {/* Trust Strip - Enhanced */}
-            <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { label: "Active Users", value: "18,450+", icon: "Users" },
-                { label: "Paid Out", value: "$312,000+", icon: "$" },
-                { label: "Trust Rating", value: "4.8★", icon: "Star" },
-                { label: "Secure", value: "Verified", icon: "Lock" },
-              ].map((item) => (
-                <div
-                  key={item.label}
-                  className="group relative rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/60 to-slate-950/60 px-4 py-4 backdrop-blur-sm transition-all duration-300 hover:border-blue-500/30 hover:shadow-[0_0_24px_rgba(59,130,246,0.15)]"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="relative">
-                    <div className="text-2xl mb-1">{item.icon}</div>
-                    <div className="text-white font-bold text-xl mb-1">
-                      {item.value}
-                    </div>
-                    <div className="text-xs text-slate-400 uppercase tracking-wider">
-                      {item.label}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
 
-          <div className="hidden xl:block">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-2xl blur-2xl" />
-              <TrustBadges variant="horizontal" />
-            </div>
+          {/* Stats strip */}
+          <div className="flex items-center gap-5">
+            {[
+              { label: "Users", value: "18,450+" },
+              { label: "Paid Out", value: "$312K+" },
+              { label: "Rating", value: "4.8★" },
+            ].map((item) => (
+              <div key={item.label} className="text-center">
+                <div className="text-white font-bold text-lg">{item.value}</div>
+                <div className="text-[10px] text-slate-500 uppercase tracking-wider">
+                  {item.label}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Intent Tabs - Enhanced */}
-      <div className="mb-10">
-        <div className="flex flex-wrap gap-3 p-2 bg-gradient-to-br from-slate-900/90 to-slate-950/90 rounded-3xl border border-white/10 backdrop-blur-xl shadow-2xl">
+      {/* Intent Tabs — Clean Horizontal */}
+      <div className="mb-6">
+        <div className="flex gap-1 p-1 bg-slate-900/80 rounded-xl border border-white/8">
           {(Object.keys(INTENT_CONFIG) as Intent[]).map((intent) => {
             const cfg = INTENT_CONFIG[intent];
             const IntentIcon = cfg.icon;
@@ -621,103 +595,60 @@ export default function UnifiedMarketplacePage() {
               <button
                 key={intent}
                 onClick={() => handleIntentChange(intent)}
-                className={`
-                  relative flex items-center gap-3 px-6 py-4 rounded-2xl font-semibold transition-all duration-300 flex-1 min-w-[180px] group
-                  ${
-                    isActive
-                      ? `bg-gradient-to-r ${cfg.gradient} text-white shadow-[0_0_24px_rgba(59,130,246,0.4)] scale-[1.02]`
-                      : "text-slate-400 hover:text-white hover:bg-white/5 hover:border-white/20"
-                  }
-                `}
+                className={`flex items-center gap-2 px-5 py-3 rounded-lg font-medium transition-all flex-1 text-sm justify-center ${
+                  isActive
+                    ? `bg-gradient-to-r ${cfg.gradient} text-white`
+                    : "text-slate-400 hover:text-white hover:bg-white/5"
+                }`}
               >
-                {/* Glow effect on active */}
-                {isActive && (
-                  <div
-                    className={`absolute inset-0 ${cfg.bgGlow} rounded-2xl blur-xl opacity-60`}
-                  />
-                )}
-
-                <div className="relative flex items-center gap-3 w-full">
-                  <div
-                    className={`p-2 rounded-xl ${isActive ? "bg-white/20" : "bg-slate-800/50 group-hover:bg-slate-700/50"} transition-colors`}
+                <IntentIcon className="w-4 h-4" />
+                <span className="hidden sm:inline">{cfg.label}</span>
+                <span className="sm:hidden">{cfg.label.split(" ")[0]}</span>
+                {count > 0 && (
+                  <span
+                    className={`text-xs px-1.5 py-0.5 rounded-md ${isActive ? "bg-white/20" : "bg-slate-800"}`}
                   >
-                    <IntentIcon className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <div className="font-semibold">{cfg.label}</div>
-                    {count > 0 && (
-                      <div
-                        className={`text-xs mt-0.5 ${isActive ? "text-white/80" : "text-slate-500"}`}
-                      >
-                        {count} available
-                      </div>
-                    )}
-                  </div>
-                  {isActive && (
-                    <CheckCircleIcon className="w-5 h-5 text-white/90" />
-                  )}
-                </div>
+                    {count}
+                  </span>
+                )}
               </button>
             );
           })}
         </div>
 
-        {/* Intent Description - PATCH_54: Enhanced with full description */}
-        <div
-          className={`mt-6 p-6 rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/60 to-slate-950/60 backdrop-blur-sm relative overflow-hidden`}
-        >
-          <div className={`absolute inset-0 ${config.bgGlow} opacity-20`} />
-          <div className="relative flex items-center gap-4">
-            <div
-              className={`p-3 rounded-2xl bg-gradient-to-br ${config.gradient} shadow-lg`}
-            >
-              <IconComponent className="w-7 h-7 text-white" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-bold text-white text-lg mb-1">
-                {config.label}
-              </h3>
-              <p className="text-sm text-slate-300 leading-relaxed">
-                {config.fullDescription || config.description}
-              </p>
-            </div>
-            <div className="hidden md:block px-4 py-2 rounded-xl bg-white/5 border border-white/10">
-              <div className="text-xs text-slate-400 uppercase tracking-wide mb-1">
-                Available Now
-              </div>
-              <div className="text-white font-bold text-xl">
-                {intentCounts[activeIntent] || 0}
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Brief intent description */}
+        <p className="mt-3 text-sm text-slate-400 flex items-center gap-2">
+          <span
+            className={`inline-flex p-1 rounded-md bg-gradient-to-br ${config.gradient}`}
+          >
+            <IconComponent className="w-3.5 h-3.5 text-white" />
+          </span>
+          {config.description}
+          <span className="ml-auto text-xs text-slate-500">
+            {intentCounts[activeIntent] || 0} available
+          </span>
+        </p>
       </div>
 
-      {/* Category Guide to explain what each bucket means */}
-      <div className="mt-6">
-        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <div>
-            <p className="text-xs text-slate-400 uppercase tracking-wide">
-              Service Categories
-            </p>
-            <p className="text-sm text-slate-300">
-              Tap to filter and see what each category covers.
-            </p>
-          </div>
+      {/* Category Quick-Filter Bar */}
+      <div className="mt-6 mb-2">
+        <div className="flex items-center gap-3 mb-3">
+          <p className="text-xs text-slate-400 uppercase tracking-wider font-medium">
+            Categories
+          </p>
           {filters.category && (
             <button
               onClick={() => {
                 setFilters((f) => ({ ...f, category: "", subcategory: "" }));
                 setPage(1);
               }}
-              className="text-xs font-semibold text-blue-300 hover:text-blue-200"
+              className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
             >
-              Reset category
+              Clear
             </button>
           )}
         </div>
-
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="flex flex-wrap gap-2">
           {CATEGORY_GUIDE.map((cat) => {
             const isActive = filters.category === cat.id;
             return (
@@ -727,52 +658,28 @@ export default function UnifiedMarketplacePage() {
                 onClick={() => {
                   setFilters((f) => ({
                     ...f,
-                    category: cat.id,
+                    category: isActive ? "" : cat.id,
                     subcategory: "",
                   }));
                   setPage(1);
                 }}
-                className={`text-left rounded-2xl border px-4 py-4 transition-all duration-300 bg-slate-900/70 hover:bg-slate-900/90 hover:border-blue-500/30 ${isActive ? "border-blue-500/50 shadow-[0_0_24px_rgba(59,130,246,0.25)]" : "border-white/10"}`}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  isActive
+                    ? "bg-blue-500/15 text-blue-200 border border-blue-500/40"
+                    : "bg-slate-800/60 text-slate-300 border border-white/8 hover:border-white/20 hover:text-white"
+                }`}
               >
-                <div className="flex items-start gap-3">
-                  <span className="text-xl" aria-hidden>
-                    {cat.icon}
-                  </span>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-white">
-                        {cat.title}
-                      </span>
-                      {isActive && (
-                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-100 border border-blue-500/30">
-                          Active
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-slate-300 leading-relaxed mt-1">
-                      {cat.helper}
-                    </p>
-                    {cat.examples?.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {cat.examples.map((example) => (
-                          <span
-                            key={`${cat.id}-${example}`}
-                            className="px-2 py-1 text-[11px] rounded-lg bg-white/5 border border-white/10 text-slate-200"
-                          >
-                            {example}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <span className="text-base" aria-hidden>
+                  {cat.icon}
+                </span>
+                {cat.title}
               </button>
             );
           })}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6">
         {/* Sticky Filter Panel - Enhanced */}
         <aside className="lg:sticky lg:top-24 h-fit">
           <div className="flex items-center justify-between mb-4 lg:hidden">
@@ -791,9 +698,9 @@ export default function UnifiedMarketplacePage() {
           </div>
 
           <div
-            className={`rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/80 backdrop-blur-xl p-6 space-y-6 ${
+            className={`rounded-xl border border-white/8 bg-slate-900/80 p-5 space-y-5 ${
               showFilters ? "block" : "hidden"
-            } lg:block shadow-2xl`}
+            } lg:block`}
           >
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -824,7 +731,7 @@ export default function UnifiedMarketplacePage() {
                     subcategory: "",
                   }))
                 }
-                className="w-full px-4 py-3 rounded-xl bg-slate-950/80 border border-white/10 text-white focus:border-blue-500/50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                className="w-full px-3 py-2.5 rounded-lg bg-slate-950/60 border border-white/10 text-white text-sm focus:border-blue-500/40 focus:outline-none transition-all"
               >
                 <option value="">All Categories</option>
                 {filterOptions.categories.map((cat) => (
@@ -1051,21 +958,19 @@ export default function UnifiedMarketplacePage() {
             </select>
           </div>
 
-          {/* Recommended Row - Enhanced */}
+          {/* Recommended Row */}
           {!loading && recommendedServices.length > 0 && (
-            <div className="mb-8">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
-                    <span className="text-2xl">⭐</span>
-                    Recommended For You
-                  </h2>
-                  <p className="text-sm text-slate-400">
-                    Based on your location, activity, and popular choices
-                  </p>
-                </div>
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <span className="text-lg">⭐</span>
+                  Recommended For You
+                </h2>
+                <span className="text-xs text-slate-500">
+                  {recommendedServices.length} picks
+                </span>
               </div>
-              <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {recommendedServices.map((service) => (
                   <ServiceCard
                     key={`rec-${service._id}`}
@@ -1080,7 +985,7 @@ export default function UnifiedMarketplacePage() {
                   />
                 ))}
               </div>
-              <div className="mt-4 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+              <div className="mt-4 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent" />
             </div>
           )}
 
@@ -1200,12 +1105,12 @@ export default function UnifiedMarketplacePage() {
                   Page {page} of {totalPages}
                 </div>
               </div>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {displayServices.map((service, index) => (
                   <div
                     key={service._id}
                     className="animate-fadeIn"
-                    style={{ animationDelay: `${index * 50}ms` }}
+                    style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
                   >
                     <ServiceCard
                       service={service}
@@ -1543,7 +1448,7 @@ export default function UnifiedMarketplacePage() {
   );
 }
 
-// Service Card Component
+// Service Card Component — Clean Premium Design
 function ServiceCard({
   service,
   intent,
@@ -1560,10 +1465,6 @@ function ServiceCard({
   const hasLinkedJob = Boolean(service.linkedJob);
   const hasScreening = service.linkedJob?.hasScreening;
   const categoryKey = service.effectiveCategory || service.category || "";
-  const categoryLabel = categoryKey ? getCategoryLabel(categoryKey) : "";
-  const subcategoryLabel = service.subcategory
-    ? getSubcategoryLabel(service.subcategory)
-    : "";
 
   const isVerified = /verified|verification/i.test(
     `${service.title || ""} ${service.category || ""} ${service.subcategory || ""}`,
@@ -1571,10 +1472,6 @@ function ServiceCard({
   const successRate =
     typeof service.successRate === "number" ? service.successRate : null;
   const rating = typeof service.rating === "number" ? service.rating : null;
-  const deliveryLabel = service.deliveryType
-    ? service.deliveryType.charAt(0).toUpperCase() +
-      service.deliveryType.slice(1)
-    : "Standard";
 
   // PATCH_76: All service cards route to /services/:id regardless of intent
   // PATCH_90: Only append rent/deal intent if the service actually supports it
@@ -1584,8 +1481,7 @@ function ServiceCard({
         ? `/apply-to-work?jobId=${service.linkedJob._id}`
         : `/apply-to-work?serviceId=${service._id}`;
     }
-    // Only pass intent to detail page if service supports that action
-    // PATCH_92: Deal cards redirect to deals page (shows coming-soon banner)
+    // PATCH_92: Deal cards redirect to deals page
     if (intent === "deal") {
       return "/deals";
     }
@@ -1594,7 +1490,6 @@ function ServiceCard({
     return `/services/${service._id}${intentSuffix}`;
   };
 
-  // Get price display
   // PATCH_106: Strict per-intent price display, no cross-mode leakage
   const getPriceDisplay = () => {
     if (intent === "earn" && service.payRate) {
@@ -1610,6 +1505,18 @@ function ServiceCard({
     return `$${service.price}`;
   };
 
+  // CTA label
+  const ctaLabel =
+    intent === "buy"
+      ? "Buy Now"
+      : intent === "earn"
+        ? "Apply Now"
+        : intent === "rent"
+          ? "Rent Now"
+          : intent === "deal"
+            ? "Start Deal"
+            : "Buy Now";
+
   return (
     <div
       role="button"
@@ -1618,18 +1525,10 @@ function ServiceCard({
       onKeyDown={(e) => {
         if (e.key === "Enter") onPreview?.();
       }}
-      className="group relative flex flex-col bg-gradient-to-br from-slate-900/80 to-slate-950/80 border border-white/10 rounded-3xl overflow-hidden transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_24px_60px_-12px_rgba(15,23,42,0.8)] hover:border-blue-500/30 cursor-pointer backdrop-blur-sm"
+      className="group relative flex flex-col bg-[#0c1120] border border-white/8 rounded-2xl overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-[0_8px_30px_-6px_rgba(0,0,0,0.6)] cursor-pointer"
     >
-      {/* Premium Glow Effect */}
-      <div
-        className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${config.bgGlow} blur-2xl -z-10`}
-      />
-
-      {/* Shimmer Effect on Hover */}
-      <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
-
-      {/* Image Container - Enhanced */}
-      <div className="relative aspect-[4/3] bg-slate-950/90 overflow-hidden">
+      {/* Image */}
+      <div className="relative aspect-[16/10] bg-slate-950 overflow-hidden">
         {service.imageUrl || service.images?.[0] ? (
           <>
             <img
@@ -1637,155 +1536,107 @@ function ServiceCard({
               alt={service.title}
               loading="lazy"
               decoding="async"
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
-            {/* Gradient Overlay for Better Text Visibility */}
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0c1120] via-transparent to-transparent" />
           </>
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-950">
-            <div
-              className={`p-5 rounded-2xl ${config.bgGlow} border border-white/10`}
-            >
-              {config.icon({ className: "w-10 h-10 text-slate-400" })}
+          <div className="w-full h-full bg-gradient-to-br from-slate-800/40 to-slate-900/80 flex items-center justify-center">
+            <div className="text-center">
+              <div
+                className={`inline-flex p-4 rounded-2xl bg-gradient-to-br ${config.gradient} mb-2 opacity-80`}
+              >
+                {config.icon({ className: "w-7 h-7 text-white" })}
+              </div>
+              <p className="text-xs text-slate-500 font-medium">
+                {getShortCategoryLabel(categoryKey)}
+              </p>
             </div>
           </div>
         )}
 
-        {/* Platform & Category Badges - PATCH_54: Use friendly labels */}
-        <div className="absolute top-4 left-4 flex flex-col gap-2">
-          <span className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-black/60 backdrop-blur-md text-white border border-white/30 shadow-lg flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            {service.platform || "Platform"}
-          </span>
-          <span className="px-3 py-1.5 text-xs font-medium rounded-xl bg-white/15 backdrop-blur-md text-slate-100 border border-white/20">
-            {getShortCategoryLabel(categoryKey)}
+        {/* Top-left: Platform */}
+        <div className="absolute top-3 left-3">
+          <span className="px-2.5 py-1 text-[11px] font-medium rounded-lg bg-black/50 backdrop-blur-sm text-white/90 border border-white/10">
+            {service.platform || "Global"}
           </span>
         </div>
 
-        {/* Trust Badges - Right Side */}
-        <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
-          {isVerified && (
-            <span className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-emerald-500/20 backdrop-blur-md text-emerald-200 border border-emerald-400/40 shadow-lg flex items-center gap-1.5">
-              <CheckCircleIcon className="w-3.5 h-3.5" />
+        {/* Top-right: Verified only */}
+        {isVerified && (
+          <div className="absolute top-3 right-3">
+            <span className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-emerald-500/20 backdrop-blur-sm text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+              <CheckCircleIcon className="w-3 h-3" />
               Verified
             </span>
-          )}
-          {successRate !== null && successRate >= 90 && (
-            <span className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-blue-500/20 backdrop-blur-md text-blue-200 border border-blue-400/40 flex items-center gap-1.5">
-              ⚡ High Success
-            </span>
-          )}
-          {service.deliveryType === "instant" && (
-            <span className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-amber-500/20 backdrop-blur-md text-amber-200 border border-amber-400/40 flex items-center gap-1.5">
-              🚀 Fast
-            </span>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Content - Enhanced */}
-      <div className="relative flex-1 flex flex-col p-5">
-        <h3 className="font-bold text-white text-lg line-clamp-2 mb-2 group-hover:text-blue-100 transition-colors">
+      {/* Content */}
+      <div className="flex-1 flex flex-col p-4">
+        {/* Title */}
+        <h3 className="font-semibold text-white text-[15px] leading-snug line-clamp-2 mb-2 group-hover:text-blue-200 transition-colors">
           {service.title}
         </h3>
 
-        <div className="text-xs text-slate-400 mb-4 flex items-center gap-2">
-          <span className="flex items-center gap-1">
-            <div className="w-1 h-1 rounded-full bg-blue-400" />
-            {service.platform || "Global"}
-          </span>
-          <span>•</span>
-          <span>{deliveryLabel} delivery</span>
+        {/* Meta row: category · country · delivery */}
+        <div className="text-xs text-slate-500 mb-3 flex items-center gap-1.5 flex-wrap">
+          <span>{getShortCategoryLabel(categoryKey)}</span>
+          {service.countries?.[0] && (
+            <>
+              <span className="text-slate-600">·</span>
+              <span>{service.countries[0]}</span>
+            </>
+          )}
+          {service.deliveryType === "instant" && (
+            <>
+              <span className="text-slate-600">·</span>
+              <span className="text-amber-400">⚡ Instant</span>
+            </>
+          )}
         </div>
 
-        {/* Stats Grid - Enhanced */}
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          <div className="rounded-xl bg-slate-800/70 backdrop-blur-sm border border-white/5 px-3 py-2.5 text-center group-hover:border-blue-500/20 transition-colors">
-            <div className="text-[10px] text-slate-500 uppercase tracking-wide mb-1">
-              Success
-            </div>
-            <div className="text-white font-bold text-sm">
-              {successRate !== null ? `${successRate}%` : "—"}
-            </div>
-          </div>
-          <div className="rounded-xl bg-slate-800/70 backdrop-blur-sm border border-white/5 px-3 py-2.5 text-center group-hover:border-blue-500/20 transition-colors">
-            <div className="text-[10px] text-slate-500 uppercase tracking-wide mb-1">
-              Rating
-            </div>
-            <div className="text-white font-bold text-sm">
-              {rating !== null ? `${rating.toFixed(1)}★` : "New"}
-            </div>
-          </div>
-          <div className="rounded-xl bg-slate-800/70 backdrop-blur-sm border border-white/5 px-3 py-2.5 text-center group-hover:border-blue-500/20 transition-colors">
-            <div className="text-[10px] text-slate-500 uppercase tracking-wide mb-1">
-              Type
-            </div>
-            <div className="text-white font-bold text-xs">{deliveryLabel}</div>
-          </div>
+        {/* Inline stats */}
+        <div className="flex items-center gap-3 mb-3 text-xs">
+          {successRate !== null && (
+            <span className="text-slate-400">
+              <span className="text-white font-medium">{successRate}%</span>{" "}
+              success
+            </span>
+          )}
+          {rating !== null && (
+            <span className="text-slate-400">
+              <span className="text-amber-300 font-medium">
+                {rating.toFixed(1)}★
+              </span>
+            </span>
+          )}
+          {intent === "earn" && hasLinkedJob && (
+            <span className="text-emerald-400 font-medium flex items-center gap-1">
+              <CheckCircleIcon className="w-3 h-3" />
+              {hasScreening ? "Screening" : "Open"}
+            </span>
+          )}
         </div>
-
-        {/* Category clarity */}
-        {(categoryLabel || subcategoryLabel) && (
-          <div className="flex flex-wrap gap-2 mb-3">
-            {categoryLabel && (
-              <span className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-white/5 border border-white/10 text-slate-200">
-                {categoryLabel}
-              </span>
-            )}
-            {subcategoryLabel && (
-              <span className="px-2.5 py-1 text-[11px] font-medium rounded-lg bg-slate-800/60 border border-white/10 text-slate-200">
-                {subcategoryLabel}
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* PATCH_54: Action Badges - Show what's possible with this service */}
-        {service.allowedActions && (
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            {service.allowedActions.buy && (
-              <span className="px-2 py-1 text-[10px] font-semibold rounded-lg bg-blue-500/15 text-blue-300 border border-blue-500/30">
-                Buy
-              </span>
-            )}
-            {service.allowedActions.apply && (
-              <span className="px-2 py-1 text-[10px] font-semibold rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                Apply
-              </span>
-            )}
-            {service.allowedActions.rent && (
-              <span className="px-2 py-1 text-[10px] font-semibold rounded-lg bg-purple-500/15 text-purple-300 border border-purple-500/30">
-                Rent
-              </span>
-            )}
-            {service.allowedActions.deal && (
-              <span className="px-2 py-1 text-[10px] font-semibold rounded-lg bg-orange-500/15 text-orange-300 border border-orange-500/30">
-                Deal
-              </span>
-            )}
-          </div>
-        )}
 
         {service.shortDescription && (
-          <p className="text-sm text-slate-300 line-clamp-2 mb-4 flex-1 leading-relaxed">
+          <p className="text-xs text-slate-400 line-clamp-2 mb-4 leading-relaxed flex-1">
             {service.shortDescription}
           </p>
         )}
 
-        {/* Action Footer - PATCH_54: Intent-specific CTA with price */}
-        <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between gap-3">
+        {/* Price + CTA */}
+        <div className="mt-auto pt-3 border-t border-white/6 flex items-end justify-between gap-3">
           <div>
-            <div className="text-xs text-slate-400 mb-1">
+            <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">
               {intent === "earn"
                 ? "Earn"
                 : intent === "rent"
                   ? "From"
-                  : intent === "deal"
-                    ? "Deal Price"
-                    : "Price"}
+                  : "Price"}
             </div>
-            <span className="text-2xl font-bold text-white">
+            <span className="text-xl font-bold text-white">
               {getPriceDisplay()}
             </span>
           </div>
@@ -1795,38 +1646,12 @@ function ServiceCard({
               e.stopPropagation();
               onPrimaryAction?.();
             }}
-            className={`px-5 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r ${config.gradient} shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] transition-all duration-300 hover:scale-105 active:scale-95 whitespace-nowrap`}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-r ${config.gradient} hover:opacity-90 transition-all active:scale-95 whitespace-nowrap`}
           >
-            {/* PATCH_106: Deterministic CTA — strict per active tab, no fallback */}
-            {intent === "buy"
-              ? `Buy Now — $${service.price}`
-              : intent === "earn"
-                ? "Apply to Work"
-                : intent === "rent"
-                  ? "View Rental Plans"
-                  : intent === "deal"
-                    ? "Start Deal"
-                    : `Buy Now — $${service.price}`}
+            {ctaLabel}
           </Link>
         </div>
       </div>
-
-      {/* Earning Opportunity Badge */}
-      {intent === "earn" && hasLinkedJob && (
-        <div className="px-5 py-3 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-t border-emerald-500/20">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs text-emerald-300 font-medium">
-              <CheckCircleIcon className="w-4 h-4" />
-              <span>Direct Application Available</span>
-            </div>
-            {hasScreening && (
-              <span className="px-2 py-1 rounded-md bg-emerald-500/20 text-emerald-300 text-xs font-medium">
-                Screening
-              </span>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
