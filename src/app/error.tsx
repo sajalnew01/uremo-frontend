@@ -2,18 +2,18 @@
 
 export default function GlobalError({
   error,
-  reset,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
 }) {
   return (
-    <div className="u-page-center">
-      <h2 className="u-heading-2">Something went wrong</h2>
-      <p className="u-text-secondary">{error.message}</p>
-      <button className="u-btn u-btn-primary" onClick={reset}>
-        Try again
-      </button>
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-5">
+      <div className="text-sm font-semibold">Runtime Error</div>
+      <div className="mt-1 text-sm text-[var(--muted)]">{error.message}</div>
+      {error.digest ? (
+        <div className="mt-2 text-xs text-[var(--muted)] mono">
+          {error.digest}
+        </div>
+      ) : null}
     </div>
   );
 }

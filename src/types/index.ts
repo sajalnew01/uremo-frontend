@@ -129,34 +129,43 @@ export interface Rental {
 /* ─── WALLET / FINANCE ─── */
 export type TransactionType = "credit" | "debit";
 export type TransactionSource =
-  | "topup" | "manual_topup" | "paypal_topup"
-  | "purchase" | "wallet_payment"
-  | "withdrawal" | "admin_adjustment"
-  | "referral_bonus" | "affiliate" | "earnings";
+  | "topup" | "service_purchase" | "rental_purchase"
+  | "admin_adjustment" | "refund" | "earning"
+  | "withdrawal_request" | "withdrawal_completed" | "rental_payment";
 export type TransactionStatus = "initiated" | "pending" | "paid_unverified" | "success" | "failed";
 export type WithdrawalStatus = "pending" | "approved" | "rejected" | "paid";
 
 export interface WalletTransaction {
   _id: string;
-  user: string;
+  user: string | { _id: string; name: string; email: string };
   type: TransactionType;
   amount: number;
   source: TransactionSource;
   status: TransactionStatus;
   provider?: string;
-  balanceBefore?: number;
-  balanceAfter?: number;
-  reference?: string;
-  notes?: string;
+  providerRef?: string | null;
+  referenceId?: string | null;
+  description?: string;
+  balanceBefore?: number | null;
+  balanceAfter?: number | null;
+  failureReason?: string | null;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface WithdrawalRequest {
   _id: string;
-  userId: string;
+  userId: string | { _id: string; name: string; email: string; walletBalance?: number; withdrawable?: number; pendingWithdrawals?: number };
   amount: number;
   status: WithdrawalStatus;
+  requestedAt?: string;
+  reviewedAt?: string | null;
+  reviewedBy?: string | { _id: string; name: string; email: string } | null;
+  adminNote?: string;
+  transactionId?: string | null;
+  completionTransactionId?: string | null;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface WalletBalance {
@@ -194,32 +203,64 @@ export type WorkerStatus =
   | "failed" | "ready_to_work" | "assigned" | "working"
   | "suspended" | "fresh" | "screening_available" | "inactive";
 
-export type ProjectStatus = "draft" | "active" | "assigned" | "in_progress" | "submitted" | "completed";
+export type ProjectStatus = "draft" | "open" | "assigned" | "in_progress" | "completed" | "cancelled";
 export type ProjectType = "standard" | "rlhf_dataset";
 export type DatasetType = "ranking" | "generation" | "red_team" | "fact_check" | "coding" | "multimodal";
-export type ScreeningType = "mcq" | "written" | "mixed" | "coding" | "video" | "portfolio" | "live_test";
+export type ScreeningType = "mcq" | "written" | "ranking" | "red_team" | "fact_check" | "coding" | "multimodal";
+export type ScreeningCategory = "microjobs" | "writing" | "teaching" | "coding_math" | "outlier" | "other";
+export type SubmissionStatus = "auto_graded" | "pending_review" | "approved" | "rejected";
 
 export interface ApplyWork {
   _id: string;
-  userId: string | User;
-  positionId?: string;
+  user: string | User;
+  position: string | WorkPosition;
+  positionTitle: string;
   category: string;
   status: "pending" | "approved" | "rejected";
   workerStatus: WorkerStatus;
-  screeningsCompleted: Array<{
-    screeningId: string;
-    score: number;
-    passed: boolean;
-    tier?: "bronze" | "silver" | "gold";
-    reviewStatus?: string;
-    completedAt: string;
-  }>;
-  assignedTasks: string[];
-  tier: string;
-  rlhfScore?: number;
   resumeUrl?: string;
   message?: string;
-  trainingViewed?: boolean;
+  trainingViewedAt?: string;
+  attemptCount: number;
+  maxAttempts: number;
+  screeningsCompleted: Array<{
+    screeningId: string;
+    completedAt: string;
+    score: number;
+    passed: boolean;
+    autoScore?: number;
+    autoPass?: boolean;
+    submissionStatus: SubmissionStatus;
+    rubricBreakdown?: Array<{ criteria: string; weight: number; maxScore: number; awarded: number }>;
+    validationFlags?: Array<{ rule: string; passed: boolean; detail: string }>;
+    adminReviewedBy?: string;
+    adminReviewedAt?: string;
+    adminScore?: number;
+    answers?: Record<string, unknown>;
+  }>;
+  currentProject?: string;
+  projectsCompleted?: Array<{ projectId: string; completedAt: string; rating: number; earnings: number }>;
+  totalEarnings: number;
+  pendingEarnings: number;
+  payRate: number;
+  assignedTasks: Array<{
+    _id: string;
+    description: string;
+    assignedAt: string;
+    status: "pending" | "in-progress" | "completed";
+    assignedBy?: string;
+    completedAt?: string;
+    notes?: string;
+  }>;
+  adminNotes?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  qualityScore: number;
+  tier: "bronze" | "silver" | "gold" | "elite";
+  rlhfScore: number;
+  totalAnnotations: number;
+  approvalRate: number;
+  justificationQualityScore: number;
   createdAt: string;
 }
 
@@ -227,25 +268,45 @@ export interface WorkPosition {
   _id: string;
   title: string;
   category: string;
+  description?: string;
+  requirements?: string;
   serviceId?: string;
+  hasScreening: boolean;
   screeningId?: string;
   screeningIds?: string[];
-  trainingMaterials?: Array<{ title: string; url: string; type: string }>;
-  isActive?: boolean;
+  trainingMaterials?: Array<{ title: string; type: "link" | "pdf" | "video"; url: string; description?: string }>;
+  adminNotes?: string;
+  active: boolean;
+  sortOrder: number;
   createdAt: string;
 }
 
 export interface Project {
   _id: string;
   title: string;
-  workPositionId?: string;
+  description?: string;
+  workPositionId?: string | WorkPosition;
   category: string;
+  instructions?: string;
+  deliverables?: Array<{ title: string; description?: string; required?: boolean }>;
   payRate: number;
-  payType: string;
+  payType: "per_task" | "hourly" | "fixed";
+  estimatedTasks: number;
   assignedTo?: string | User;
+  assignedAt?: string;
+  screeningId?: string;
+  screeningIds?: string[];
   status: ProjectStatus;
   projectType: ProjectType;
+  completedAt?: string;
+  completionNotes?: string;
+  adminRating?: number;
+  earningsCredited: number;
+  creditedAt?: string;
+  deadline?: string;
   datasetId?: string;
+  rewardPerTask: number;
+  createdBy?: string;
   createdAt: string;
 }
 
@@ -292,19 +353,42 @@ export interface RlhfSubmission {
 export interface Screening {
   _id: string;
   title: string;
-  category: string;
+  description?: string;
+  category: ScreeningCategory;
   screeningType: ScreeningType;
+  minJustificationWords: number;
+  allowRanking?: boolean;
+  allowMultiResponseComparison?: boolean;
+  trainingMaterials?: Array<{ title: string; type: string; url: string; description?: string }>;
   questions: Array<{
     _id: string;
-    questionText: string;
-    questionType: string;
-    options?: Array<{ text: string; isCorrect?: boolean }>;
-    rubric?: string;
-    maxScore?: number;
+    question: string;
+    type: "single" | "multi" | "multiple_choice" | "text" | "file_upload" | "ranking" | "written" | "red_team" | "fact_check" | "coding" | "multimodal";
+    options?: string[];
+    correctAnswer?: string;
+    correctAnswers?: string[];
+    points?: number;
+    responseA?: string;
+    responseB?: string;
+    imageUrl?: string;
+    codeLanguage?: string;
+    referenceUrls?: string[];
+    minWords?: number;
   }>;
-  rubric?: string;
-  evaluationMode?: string;
-  isActive?: boolean;
+  passingScore: number;
+  timeLimit: number;
+  evaluationMode: "manual" | "auto" | "hybrid";
+  rubric?: Array<{ criteria: string; weight: number; maxScore: number }>;
+  passThreshold: number;
+  autoValidationRules?: {
+    minWords?: number;
+    maxWords?: number;
+    requiredFields?: string[];
+    bannedWords?: string[];
+    requireJustification?: boolean;
+  };
+  active: boolean;
+  createdBy?: string;
   createdAt: string;
 }
 

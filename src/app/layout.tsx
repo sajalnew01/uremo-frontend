@@ -1,23 +1,28 @@
-import type { Metadata } from "next";
-import { Providers } from "@/lib/providers";
-import "@/design-system/globals.css";
+import type { ReactNode } from "react";
+import "./globals.css";
 
-export const metadata: Metadata = {
-  title: "UREMO — Digital Services Marketplace",
-  description:
-    "Buy, rent, and deal on verified digital accounts and services. Earn through microjobs and RLHF tasks.",
-  icons: { icon: "/favicon-v2.png" },
+import { Providers } from "@/lib/providers";
+import { ControlShell } from "@/ui/control/ControlShell";
+import { Sidebar } from "@/ui/control/Sidebar";
+import { TopBar } from "@/ui/control/TopBar";
+import { MainViewport } from "@/ui/control/MainViewport";
+
+export const metadata = {
+  title: "UREMO Control Center",
+  description: "Enterprise operations control center",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          <ControlShell>
+            <Sidebar />
+            <TopBar />
+            <MainViewport>{children}</MainViewport>
+          </ControlShell>
+        </Providers>
       </body>
     </html>
   );

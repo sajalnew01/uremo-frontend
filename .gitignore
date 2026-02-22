@@ -50,3 +50,5 @@ build-error-output.txt
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+build-coherence*.txt
