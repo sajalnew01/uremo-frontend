@@ -147,7 +147,12 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-900">
       <div className="w-full max-w-sm border border-slate-700 rounded-lg p-6 bg-slate-800">
-        <h1 className="text-xl font-semibold mb-4 text-white">Login</h1>
+        <h1 className="text-xl font-semibold mb-4 text-white flex items-center gap-2">
+          <span role="img" aria-label="login">
+            🔑
+          </span>{" "}
+          Login
+        </h1>
 
         <div className="mb-3">
           <input

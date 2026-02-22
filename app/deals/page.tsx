@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import PageHeader from "@/components/ui/PageHeader";
+import { EmojiDeals } from "@/components/ui/Emoji";
 
 /**
  * PATCH_92: Deals page replaced with Coming Soon banner.
@@ -12,6 +13,7 @@ export default function DealsPage() {
     <div className="u-container max-w-6xl">
       <PageHeader
         title="Deals"
+        emoji={<EmojiDeals />}
         description="Exclusive deals on premium services"
         actionLabel="Explore Services"
         actionHref="/explore-services"

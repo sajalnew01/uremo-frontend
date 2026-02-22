@@ -5,6 +5,7 @@ import Link from "next/link";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import PageHeader from "@/components/ui/PageHeader";
+import { EmojiRentals } from "@/components/ui/Emoji";
 import { getStatusColor, getStatusLabel } from "@/lib/statusConfig";
 
 interface Rental {
@@ -160,6 +161,7 @@ export default function AdminRentalsPage() {
     <div className="u-container">
       <PageHeader
         title="Manage Rentals"
+        emoji={<EmojiRentals />}
         description={`${total} total rentals`}
       />
 

@@ -17,6 +17,7 @@
 import { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
 import ActionQueuePage from "@/components/admin/v2/ActionQueuePage";
+import { EmojiDashboard } from "@/components/ui/Emoji";
 
 interface DashboardMetrics {
   marketplace: {

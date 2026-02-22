@@ -12,6 +12,7 @@ import Link from "next/link";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import { useAuth } from "@/hooks/useAuth";
+import { EmojiWallet } from "@/components/ui/Emoji";
 
 // ==================== SVG ICONS ====================
 const IconShield = () => (
@@ -443,7 +444,9 @@ export default function WalletPage() {
           className="flex items-center justify-between mb-8"
         >
           <div>
-            <h1 className="text-3xl font-bold text-white">My Wallet</h1>
+            <h1 className="text-3xl font-bold text-white flex items-center gap-2">
+              <EmojiWallet /> My Wallet
+            </h1>
             <p className="text-slate-400 mt-1">Manage your balance securely</p>
           </div>
           <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-4 py-2">

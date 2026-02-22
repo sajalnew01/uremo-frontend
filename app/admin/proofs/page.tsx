@@ -5,6 +5,7 @@ import Link from "next/link";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import PageHeader from "@/components/ui/PageHeader";
+import { EmojiProofs } from "@/components/ui/Emoji";
 import { getStatusColor, getStatusLabel } from "@/lib/statusConfig";
 
 /**
@@ -168,6 +169,7 @@ export default function AdminProofsPage() {
       {/* PATCH_79: Header with Clear Purpose */}
       <PageHeader
         title="Project Proofs Review"
+        emoji={<EmojiProofs />}
         description="Verify work completion before crediting worker wallets"
       />
 
@@ -176,11 +178,29 @@ export default function AdminProofsPage() {
         <div className="flex items-start gap-3">
           <span className="text-2xl">💰</span>
           <div className="flex-1">
-            <h3 className="text-sm font-semibold text-white mb-1">What happens when you approve:</h3>
+            <h3 className="text-sm font-semibold text-white mb-1">
+              What happens when you approve:
+            </h3>
             <ul className="text-sm text-slate-300 space-y-1">
-              <li>• <span className="text-emerald-400 font-medium">Approve</span> → Project marked complete → <span className="text-cyan-400">Wallet credit unlocked</span></li>
-              <li>• <span className="text-red-400 font-medium">Reject</span> → Worker notified → Can resubmit proof</li>
-              <li>• After approval, go to <Link href="/admin/workspace/projects" className="text-cyan-400 hover:underline">Projects</Link> to credit the worker's wallet</li>
+              <li>
+                • <span className="text-emerald-400 font-medium">Approve</span>{" "}
+                → Project marked complete →{" "}
+                <span className="text-cyan-400">Wallet credit unlocked</span>
+              </li>
+              <li>
+                • <span className="text-red-400 font-medium">Reject</span> →
+                Worker notified → Can resubmit proof
+              </li>
+              <li>
+                • After approval, go to{" "}
+                <Link
+                  href="/admin/workspace/projects"
+                  className="text-cyan-400 hover:underline"
+                >
+                  Projects
+                </Link>{" "}
+                to credit the worker's wallet
+              </li>
             </ul>
           </div>
         </div>
@@ -193,10 +213,13 @@ export default function AdminProofsPage() {
             <span className="text-2xl">⚡</span>
             <div>
               <p className="text-sm text-white font-medium">
-                {stats.pending} proof{stats.pending > 1 ? 's' : ''} waiting for your review
+                {stats.pending} proof{stats.pending > 1 ? "s" : ""} waiting for
+                your review
               </p>
               <p className="text-xs text-slate-400 mt-1">
-                Review attachments → Click <span className="text-emerald-400">Approve</span> or <span className="text-red-400">Reject</span>
+                Review attachments → Click{" "}
+                <span className="text-emerald-400">Approve</span> or{" "}
+                <span className="text-red-400">Reject</span>
               </p>
             </div>
           </div>

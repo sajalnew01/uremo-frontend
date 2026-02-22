@@ -205,7 +205,12 @@ function SignupForm() {
 
   return (
     <div className="w-full max-w-sm border border-slate-700 rounded-lg p-6 bg-slate-800">
-      <h1 className="text-xl font-semibold mb-4 text-white">Create account</h1>
+      <h1 className="text-xl font-semibold mb-4 text-white flex items-center gap-2">
+        <span role="img" aria-label="signup">
+          🚀
+        </span>{" "}
+        Create account
+      </h1>
 
       {/* PATCH_23: Show referral indicator */}
       {referralCode && (

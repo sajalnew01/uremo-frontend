@@ -25,6 +25,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/api";
 import OnboardingModal from "@/components/onboarding/OnboardingModal";
+import { EmojiSparkles } from "@/components/ui/Emoji";
 
 // ==================== PATCH_57: ICONS ====================
 const IconChevronDown = () => (
@@ -627,8 +628,8 @@ export default function Dashboard() {
               </div>
 
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-white">
-                  Welcome back, {firstName}
+                <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-2">
+                  <EmojiSparkles /> Welcome back, {firstName}
                 </h1>
                 <p className="text-slate-400 text-sm sm:text-base mt-0.5">
                   You&apos;re doing great — let&apos;s continue building your

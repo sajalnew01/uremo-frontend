@@ -5,6 +5,7 @@ import Link from "next/link";
 import { apiRequest } from "@/lib/api";
 import EmptyState from "@/components/ui/EmptyState";
 import { useToast } from "@/hooks/useToast";
+import { EmojiWorkspace } from "@/components/ui/Emoji";
 
 /**
  * PATCH_49: Experience Flow Polish + Admin UX Cleanup + Smart Workspace Routing
@@ -1290,7 +1291,9 @@ export default function WorkspacePage() {
     return (
       <div className="u-container max-w-6xl">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold">Workspace</h1>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <EmojiWorkspace /> Workspace
+          </h1>
           <p className="mt-2 text-sm text-[#9CA3AF]">Work & Earn</p>
         </div>
         <div className="card animate-pulse">
@@ -1305,7 +1308,9 @@ export default function WorkspacePage() {
     return (
       <div className="u-container max-w-6xl">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold">Workspace</h1>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <EmojiWorkspace /> Workspace
+          </h1>
           <p className="mt-2 text-sm text-[#9CA3AF]">Work & Earn</p>
         </div>
         <div className="card text-center py-8">
@@ -1345,7 +1350,9 @@ export default function WorkspacePage() {
     return (
       <div className="u-container max-w-6xl">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold">Workspace</h1>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <EmojiWorkspace /> Workspace
+          </h1>
           <p className="mt-2 text-sm text-[#9CA3AF]">Work & Earn</p>
         </div>
         <EmptyState
@@ -1365,7 +1372,9 @@ export default function WorkspacePage() {
     <div className="u-container max-w-6xl">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">Workspace</h1>
+        <h1 className="text-3xl font-bold flex items-center gap-2">
+          <EmojiWorkspace /> Workspace
+        </h1>
         <p className="mt-2 text-sm text-[#9CA3AF]">Work & Earn</p>
       </div>
 

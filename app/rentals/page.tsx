@@ -12,6 +12,7 @@ import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import EmptyState from "@/components/ui/EmptyState";
 import PageHeader from "@/components/ui/PageHeader";
+import { EmojiRentals } from "@/components/ui/Emoji";
 
 interface Rental {
   _id: string;
@@ -170,6 +171,7 @@ export default function MyRentalsPage() {
     >
       <PageHeader
         title="My Rentals"
+        emoji={<EmojiRentals />}
         description="Manage your active subscriptions and rental services"
         actionLabel="Find Work & Services"
         actionHref="/explore-services"

@@ -7,6 +7,7 @@ import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import EmptyState from "@/components/ui/EmptyState";
 import PageHeader from "@/components/ui/PageHeader";
+import { EmojiAffiliate } from "@/components/ui/Emoji";
 import { getStatusColor, getStatusLabel } from "@/lib/statusConfig";
 
 interface CommissionSummary {
@@ -173,6 +174,7 @@ export default function AffiliatePage() {
     >
       <PageHeader
         title="Affiliate Dashboard"
+        emoji={<EmojiAffiliate />}
         description={`Earn ${stats?.commissionRate || 10}% commission on every referral purchase`}
       />
 
@@ -318,9 +320,9 @@ export default function AffiliatePage() {
 
           <div className="mt-6 p-4 rounded-lg bg-purple-500/10 border border-purple-500/30">
             <p className="text-sm text-purple-200">
-              <strong>Pro Tip:</strong> The more you share, the more you
-              earn! Your commission is credited automatically when your
-              referrals make purchases.
+              <strong>Pro Tip:</strong> The more you share, the more you earn!
+              Your commission is credited automatically when your referrals make
+              purchases.
             </p>
           </div>
         </div>

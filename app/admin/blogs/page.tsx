@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 import { withCacheBust } from "@/lib/cacheBust";
 import PageHeader from "@/components/ui/PageHeader";
+import { EmojiBlogs } from "@/components/ui/Emoji";
 
 // PATCH_21: Blog CMS types
 interface RelatedService {
@@ -346,6 +347,7 @@ export default function AdminBlogsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <PageHeader
             title="Blog Management"
+            emoji={<EmojiBlogs />}
             description="Create and manage blog posts for your content hub"
           />
           <button

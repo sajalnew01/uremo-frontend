@@ -11,6 +11,7 @@ import {
 } from "@/hooks/useSiteSettings";
 import EmptyState from "@/components/ui/EmptyState";
 import PageHeader from "@/components/ui/PageHeader";
+import { EmojiOrders } from "@/components/ui/Emoji";
 // PATCH_52: Centralized status system
 import { getStatusLabel, getStatusColor } from "@/lib/statusConfig";
 
@@ -207,6 +208,7 @@ export default function OrdersPage() {
     <div className="u-container">
       <PageHeader
         title="My Orders"
+        emoji={<EmojiOrders />}
         description="Track and manage all your service orders"
         actionLabel="Find Work & Services"
         actionHref="/explore-services"

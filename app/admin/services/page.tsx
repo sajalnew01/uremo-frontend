@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/useToast";
 import { withCacheBust } from "@/lib/cacheBust";
 import { emitServicesRefresh, onServicesRefresh } from "@/lib/events";
 import PageHeader from "@/components/ui/PageHeader";
+import { EmojiServices } from "@/components/ui/Emoji";
 
 // PATCH_106: Category → Action matrix (mirrors backend categoryActions.js)
 const CATEGORY_ACTIONS: Record<
@@ -659,6 +660,7 @@ export default function AdminServicesPage() {
     <div className="space-y-8">
       <PageHeader
         title="Services"
+        emoji={<EmojiServices />}
         description="Create and manage platform services"
       />
 

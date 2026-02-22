@@ -557,6 +557,13 @@ export default function UnifiedMarketplacePage() {
             </div>
 
             <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-4 bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
+              <span
+                role="img"
+                aria-label="marketplace"
+                className="inline-block"
+              >
+                🏪
+              </span>{" "}
               Discover Premium Services & Ways to Earn
             </h1>
 

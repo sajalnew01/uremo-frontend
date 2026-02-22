@@ -8,6 +8,7 @@ import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import EmptyState from "@/components/ui/EmptyState";
 import PageHeader from "@/components/ui/PageHeader";
+import { EmojiTickets } from "@/components/ui/Emoji";
 import { getStatusColor, getStatusLabel } from "@/lib/statusConfig";
 
 interface Ticket {
@@ -277,6 +278,7 @@ export default function SupportTicketsPage() {
     >
       <PageHeader
         title="My Support Tickets"
+        emoji={<EmojiTickets />}
         description="View and manage your support requests"
         actionLabel="+ New Ticket"
         actionOnClick={() => setShowCreate(true)}

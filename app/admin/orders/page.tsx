@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/useToast";
 import { useRouter, useSearchParams } from "next/navigation";
 import { maskEmail } from "@/lib/maskEmail";
 import PageHeader from "@/components/ui/PageHeader";
+import { EmojiOrders } from "@/components/ui/Emoji";
 import { getStatusColor, getStatusLabel } from "@/lib/statusConfig";
 import ConfirmModal from "@/components/admin/v2/ConfirmModal";
 
@@ -307,6 +308,7 @@ function AdminOrdersContent() {
 
       <PageHeader
         title="Orders"
+        emoji={<EmojiOrders />}
         description="Review payments and update order status"
       />
 

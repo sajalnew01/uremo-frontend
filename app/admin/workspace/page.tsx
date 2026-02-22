@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
 import PageHeader from "@/components/ui/PageHeader";
+import { EmojiWorkspace } from "@/components/ui/Emoji";
 
 /**
  * PATCH_44: Admin Workspace Hub
@@ -122,6 +123,7 @@ export default function AdminWorkspacePage() {
     <div className="u-container max-w-6xl">
       <PageHeader
         title="Workspace Management"
+        emoji={<EmojiWorkspace />}
         description="Manage workers, projects, screenings, and job roles"
       />
 

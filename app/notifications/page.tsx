@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/useToast";
 import EmptyState from "@/components/ui/EmptyState";
 import PageHeader from "@/components/ui/PageHeader";
+import { EmojiNotifications } from "@/components/ui/Emoji";
 
 interface Notification {
   _id: string;
@@ -158,6 +159,7 @@ export default function NotificationsPage() {
         <div className="flex items-center justify-between mb-8">
           <PageHeader
             title="Notifications"
+            emoji={<EmojiNotifications />}
             description={
               unreadCount > 0
                 ? `${unreadCount} unread notification${unreadCount > 1 ? "s" : ""}`

@@ -7,6 +7,7 @@
 
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
+import { EmojiAccount } from "@/components/ui/Emoji";
 import { useToast } from "@/hooks/useToast";
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -365,7 +366,9 @@ export default function ProfilePage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h1 className="text-3xl font-bold text-white">Profile Settings</h1>
+          <h1 className="text-3xl font-bold text-white flex items-center gap-2">
+            <EmojiAccount /> Profile Settings
+          </h1>
           <p className="text-slate-400 mt-1">
             Manage your account and preferences
           </p>

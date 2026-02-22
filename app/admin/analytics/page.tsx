@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import PageHeader from "@/components/ui/PageHeader";
+import { EmojiAnalytics } from "@/components/ui/Emoji";
 
 interface Stats {
   totalUsers: number;
@@ -108,6 +109,7 @@ export default function AdminAnalyticsPage() {
         <div className="flex items-center justify-between">
           <PageHeader
             title="Analytics Dashboard"
+            emoji={<EmojiAnalytics />}
             description="Real-time platform metrics and health"
           />
           <button

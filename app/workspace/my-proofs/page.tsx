@@ -6,6 +6,7 @@ import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import EmptyState from "@/components/ui/EmptyState";
 import PageHeader from "@/components/ui/PageHeader";
+import { EmojiProofs } from "@/components/ui/Emoji";
 import { getStatusColor, getStatusLabel } from "@/lib/statusConfig";
 
 /**
@@ -83,6 +84,7 @@ export default function MyProofsPage() {
       {/* Header */}
       <PageHeader
         title="My Proof Submissions"
+        emoji={<EmojiProofs />}
         description="Track the status of your work proofs"
       />
 

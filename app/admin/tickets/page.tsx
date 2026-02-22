@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import PageHeader from "@/components/ui/PageHeader";
+import { EmojiTickets } from "@/components/ui/Emoji";
 import { getStatusColor, getStatusLabel } from "@/lib/statusConfig";
 
 interface Ticket {
@@ -140,6 +141,7 @@ export default function AdminTicketsPage() {
     >
       <PageHeader
         title="Support Tickets"
+        emoji={<EmojiTickets />}
         description="Manage and respond to customer support inquiries"
       />
 

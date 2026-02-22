@@ -7,6 +7,18 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSidebar } from "@/hooks/useSidebar";
 import { maskEmail } from "@/lib/maskEmail";
 import { apiRequest } from "@/lib/api";
+import {
+  EmojiMarketplace,
+  EmojiWorkspace,
+  EmojiDeals,
+  EmojiOrders,
+  EmojiWallet,
+  EmojiAffiliate,
+  EmojiRentals,
+  EmojiNotifications,
+  EmojiSupport,
+  EmojiDashboard,
+} from "@/components/ui/Emoji";
 
 function SidebarUserMenu(props: { onNavigate?: () => void }) {
   const { user, logout } = useAuth();
@@ -148,19 +160,41 @@ export default function Sidebar() {
 
   // PATCH_52 + PATCH_53: Simplified user navigation with badge support
   const links = [
-    { name: "Find Work & Services", href: "/explore-services", badge: 0 },
-    { name: "Workspace", href: "/workspace", badge: 0 },
-    { name: "Deals", href: "/deals", badge: 0 },
-    { name: "Orders", href: "/orders", badge: 0 },
-    { name: "Wallet", href: "/wallet", badge: 0 },
-    { name: "Affiliate", href: "/affiliate", badge: 0 },
-    { name: "Rentals", href: "/rentals", badge: 0 },
-    { name: "Notifications", href: "/notifications", badge: unreadCount },
-    { name: "Support", href: "/support", badge: 0 },
+    {
+      name: "Find Work & Services",
+      href: "/explore-services",
+      badge: 0,
+      emoji: <EmojiMarketplace />,
+    },
+    {
+      name: "Workspace",
+      href: "/workspace",
+      badge: 0,
+      emoji: <EmojiWorkspace />,
+    },
+    { name: "Deals", href: "/deals", badge: 0, emoji: <EmojiDeals /> },
+    { name: "Orders", href: "/orders", badge: 0, emoji: <EmojiOrders /> },
+    { name: "Wallet", href: "/wallet", badge: 0, emoji: <EmojiWallet /> },
+    {
+      name: "Affiliate",
+      href: "/affiliate",
+      badge: 0,
+      emoji: <EmojiAffiliate />,
+    },
+    { name: "Rentals", href: "/rentals", badge: 0, emoji: <EmojiRentals /> },
+    {
+      name: "Notifications",
+      href: "/notifications",
+      badge: unreadCount,
+      emoji: <EmojiNotifications />,
+    },
+    { name: "Support", href: "/support", badge: 0, emoji: <EmojiSupport /> },
   ];
 
   // PATCH_52: Cleaned up admin navigation - PATCH_53: Collapsed to single Admin link
-  const adminLinks = [{ name: "Admin", href: "/admin" }];
+  const adminLinks = [
+    { name: "Admin", href: "/admin", emoji: <EmojiDashboard /> },
+  ];
 
   const linkClass = (href: string) => {
     const active = pathname === href || pathname?.startsWith(`${href}/`);
@@ -203,7 +237,7 @@ export default function Sidebar() {
               onClick={closeSidebar}
             >
               <span className="flex items-center gap-2">
-                {link.name}
+                {link.emoji} {link.name}
                 {link.badge > 0 && (
                   <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-red-500 text-white min-w-[18px] text-center">
                     {link.badge > 99 ? "99+" : link.badge}
@@ -228,7 +262,9 @@ export default function Sidebar() {
                   className={linkClass(link.href)}
                   onClick={closeSidebar}
                 >
-                  <span>{link.name}</span>
+                  <span className="flex items-center gap-2">
+                    {link.emoji} {link.name}
+                  </span>
                   <span className="opacity-0 group-hover:opacity-100 transition text-[#9CA3AF]">
                     →
                   </span>
@@ -254,7 +290,7 @@ export default function Sidebar() {
               className={linkClass(link.href)}
             >
               <span className="flex items-center gap-2">
-                {link.name}
+                {link.emoji} {link.name}
                 {link.badge > 0 && (
                   <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-red-500 text-white min-w-[18px] text-center">
                     {link.badge > 99 ? "99+" : link.badge}
@@ -278,7 +314,9 @@ export default function Sidebar() {
                   href={link.href}
                   className={linkClass(link.href)}
                 >
-                  <span>{link.name}</span>
+                  <span className="flex items-center gap-2">
+                    {link.emoji} {link.name}
+                  </span>
                   <span className="opacity-0 group-hover:opacity-100 transition text-[#9CA3AF]">
                     →
                   </span>

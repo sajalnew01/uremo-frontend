@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/useToast";
 import Card from "@/components/Card";
 import PageHeader from "@/components/ui/PageHeader";
+import { EmojiCampaigns } from "@/components/ui/Emoji";
 import { useState, useEffect } from "react";
 
 const INTEREST_OPTIONS = ["microjobs", "forex", "wallets", "crypto", "rentals"];
@@ -155,6 +156,7 @@ export default function CampaignsPage() {
     <div className="u-container space-y-6">
       <PageHeader
         title="Email Campaigns"
+        emoji={<EmojiCampaigns />}
         description="Send targeted engagement campaigns to users"
       />
 

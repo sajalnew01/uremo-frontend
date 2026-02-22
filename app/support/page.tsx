@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import PageHeader from "@/components/ui/PageHeader";
+import { EmojiSupport } from "@/components/ui/Emoji";
 
 export default function SupportPage() {
   const { data: settings } = useSiteSettings();
@@ -36,6 +37,7 @@ export default function SupportPage() {
     >
       <PageHeader
         title="Support"
+        emoji={<EmojiSupport />}
         description="Get help with your orders, account, or any issues"
         actionLabel="View My Tickets"
         actionHref="/support/tickets"

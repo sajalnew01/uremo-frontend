@@ -12,6 +12,20 @@ import {
   DEFAULT_PUBLIC_SITE_SETTINGS,
   useSiteSettings,
 } from "@/hooks/useSiteSettings";
+import {
+  EmojiMarketplace,
+  EmojiWork,
+  EmojiWallet,
+  EmojiOrders,
+  EmojiAccount,
+  EmojiDashboard,
+  EmojiServices,
+  EmojiWorkforce,
+  EmojiAIData,
+  EmojiFinance,
+  EmojiSupport,
+  EmojiSettings,
+} from "@/components/ui/Emoji";
 
 export default function Navbar() {
   const { ready, user, isAuthenticated, logout } = useAuth();
@@ -46,23 +60,31 @@ export default function Navbar() {
 
   // PATCH_102: Enterprise user navigation — Marketplace, Work, Wallet, Orders, Account
   const userLinks = [
-    { href: "/explore-services", label: "Marketplace" },
-    { href: "/workspace", label: "Work" },
-    { href: "/wallet", label: "Wallet" },
-    { href: "/orders", label: "Orders" },
-    { href: "/profile", label: "Account" },
+    {
+      href: "/explore-services",
+      label: "Marketplace",
+      emoji: <EmojiMarketplace />,
+    },
+    { href: "/workspace", label: "Work", emoji: <EmojiWork /> },
+    { href: "/wallet", label: "Wallet", emoji: <EmojiWallet /> },
+    { href: "/orders", label: "Orders", emoji: <EmojiOrders /> },
+    { href: "/profile", label: "Account", emoji: <EmojiAccount /> },
   ];
 
   // PATCH_102: Simplified admin links for mobile drawer (full nav is in CommandRail)
   const adminLinks = [
-    { href: "/admin", label: "Dashboard" },
-    { href: "/admin/services", label: "Services" },
-    { href: "/admin/orders", label: "Orders" },
-    { href: "/admin/workspace/master", label: "Workforce" },
-    { href: "/admin/datasets", label: "AI Data" },
-    { href: "/admin/wallet", label: "Finance" },
-    { href: "/admin/tickets", label: "Support" },
-    { href: "/admin/settings", label: "Settings" },
+    { href: "/admin", label: "Dashboard", emoji: <EmojiDashboard /> },
+    { href: "/admin/services", label: "Services", emoji: <EmojiServices /> },
+    { href: "/admin/orders", label: "Orders", emoji: <EmojiOrders /> },
+    {
+      href: "/admin/workspace/master",
+      label: "Workforce",
+      emoji: <EmojiWorkforce />,
+    },
+    { href: "/admin/datasets", label: "AI Data", emoji: <EmojiAIData /> },
+    { href: "/admin/wallet", label: "Finance", emoji: <EmojiFinance /> },
+    { href: "/admin/tickets", label: "Support", emoji: <EmojiSupport /> },
+    { href: "/admin/settings", label: "Settings", emoji: <EmojiSettings /> },
   ];
 
   if (!ready) {
@@ -147,13 +169,13 @@ export default function Navbar() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
                       pathname === link.href
                         ? "bg-white/10 text-white"
                         : "text-slate-300 hover:text-white hover:bg-white/5"
                     }`}
                   >
-                    {link.label}
+                    {link.emoji} {link.label}
                   </Link>
                 ))}
               </div>
@@ -323,7 +345,7 @@ export default function Navbar() {
                           : "text-slate-300 hover:text-white hover:bg-white/5"
                       }`}
                     >
-                      {link.label}
+                      {link.emoji} {link.label}
                     </Link>
                   ))}
                   <Link
@@ -355,7 +377,7 @@ export default function Navbar() {
                             : "text-slate-300 hover:text-white hover:bg-white/5"
                         }`}
                       >
-                        {link.label}
+                        {link.emoji} {link.label}
                       </Link>
                     ))}
                   </div>
