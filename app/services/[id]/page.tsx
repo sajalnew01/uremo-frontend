@@ -13,11 +13,6 @@ import {
   DEFAULT_PUBLIC_SITE_SETTINGS,
   useSiteSettings,
 } from "@/hooks/useSiteSettings";
-import TrustBadges from "@/components/TrustBadges";
-import ServiceActionSelector from "@/components/ServiceActionSelector";
-import ServiceTrustPanel from "@/components/ServiceTrustPanel";
-import ServiceFlowTimeline from "@/components/ServiceFlowTimeline";
-import StickyActionBar from "@/components/StickyActionBar";
 import { getCategoryLabel, getSubcategoryLabel } from "@/lib/categoryLabels";
 
 export default function ServiceDetailsPage() {
@@ -42,6 +37,7 @@ export default function ServiceDetailsPage() {
   const searchParams = useSearchParams();
   const urlIntent = searchParams?.get("intent") || "";
   const [rentCountry, setRentCountry] = useState<string>("");
+  const [activeMode, setActiveMode] = useState<"buy" | "rent">("buy");
   const rentSectionRef = useRef<HTMLDivElement>(null);
 
   const normalizeAllowedActions = (value: any) => {
@@ -172,7 +168,20 @@ export default function ServiceDetailsPage() {
     return { valid: false, message: messages[urlIntent] || "Not Available" };
   }, [urlIntent, allowed, service]);
 
-  // PATCH_92/93: Auto-scroll to rent section when intent=rent
+  // PATCH_114: Set active mode based on URL intent and availability
+  useEffect(() => {
+    if (urlIntent === "rent" && allowed.rent) {
+      setActiveMode("rent");
+    } else if (urlIntent === "buy" && allowed.buy) {
+      setActiveMode("buy");
+    } else if (!allowed.buy && allowed.rent) {
+      setActiveMode("rent");
+    } else if (allowed.buy) {
+      setActiveMode("buy");
+    }
+  }, [urlIntent, allowed.buy, allowed.rent]);
+
+  // Auto-scroll to rent section when intent=rent
   useEffect(() => {
     if (urlIntent === "rent" && allowed.rent && rentSectionRef.current) {
       setTimeout(() => {
@@ -184,33 +193,18 @@ export default function ServiceDetailsPage() {
     }
   }, [urlIntent, allowed.rent, service?._id]);
 
-  // PATCH_92/93: Compute payment schedule for selected rental plan
-  const rentSchedule = useMemo(() => {
+  // PATCH_114: Rental pricing info for selected plan (payment is full upfront)
+  const selectedPlanInfo = useMemo(() => {
     if (selectedRentalPlan === null) return null;
     const plan = service?.rentalPlans?.[selectedRentalPlan];
     if (!plan) return null;
-    const total = plan.price;
-    const milestones = [
-      {
-        day: 0,
-        label: "Checkout (Day 0)",
-        percent: 40,
-        amount: +(total * 0.4).toFixed(2),
-      },
-      {
-        day: Math.floor(plan.duration / 2),
-        label: `Mid-term (Day ${Math.floor(plan.duration / 2)})`,
-        percent: 20,
-        amount: +(total * 0.2).toFixed(2),
-      },
-      {
-        day: plan.duration,
-        label: `End (Day ${plan.duration})`,
-        percent: 10,
-        amount: +(total * 0.1).toFixed(2),
-      },
-    ];
-    return { total, milestones, firstPayment: milestones[0].amount };
+    return {
+      price: plan.price,
+      duration: plan.duration,
+      unit: plan.unit || "days",
+      label: plan.label || `${plan.duration} ${plan.unit || "days"}`,
+      perDay: plan.duration > 0 ? +(plan.price / plan.duration).toFixed(2) : 0,
+    };
   }, [selectedRentalPlan, service?.rentalPlans]);
 
   // PATCH_92/93: Available countries from the service
@@ -269,28 +263,10 @@ export default function ServiceDetailsPage() {
           ? overridePlanIndex
           : selectedRentalPlan;
 
-      // PATCH_22: Validate rental plan selection for rental services
-      if (service?.isRental && finalPlanIndex === null) {
-        // PATCH_90: Only prompt for rental plan if rent is actually allowed
+      // PATCH_114: Rental purchase path — if a plan index is provided, create rental
+      if (finalPlanIndex !== null) {
         if (!allowed.rent) {
-          toast(
-            "Rentals are not available for this service. Try Buy instead.",
-            "error",
-          );
-          return;
-        }
-        toast("Please select a rental plan", "error");
-        return;
-      }
-
-      // PATCH_22: For rental services, create a rental order instead
-      if (service?.isRental && finalPlanIndex !== null) {
-        // PATCH_90: Verify rent permission before calling API
-        if (!allowed.rent) {
-          toast(
-            "Rentals are not available for this service. Try Buy instead.",
-            "error",
-          );
+          toast("Rentals are not available for this service.", "error");
           return;
         }
         try {
@@ -458,260 +434,156 @@ export default function ServiceDetailsPage() {
     : "";
 
   return (
-    <div className="u-container max-w-6xl">
-      {/* Hero Image Section (always render) */}
-      <div className="mb-8 overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-blue-500/15 via-white/5 to-emerald-500/10">
-        {service.imageUrl ||
-        (Array.isArray(service.images) && service.images[0]) ? (
-          <img
-            src={withCacheBust(
-              service.imageUrl || service.images?.[0],
-              service.updatedAt || service._id,
-            )}
-            alt={service.title}
-            className="h-80 w-full object-cover"
-            loading="lazy"
-          />
-        ) : (
-          <div className="h-80 w-full flex items-center justify-center">
-            <div className="text-center px-6">
-              <div className="mx-auto w-16 h-16 rounded-2xl border border-white/10 bg-white/5 flex items-center justify-center text-2xl text-white/80">
-                ✦
-              </div>
-              <p className="mt-4 text-sm text-slate-200 font-medium">
-                {copy.premiumPlaceholderTitle}
-              </p>
-              <p className="mt-1 text-xs text-[#9CA3AF]">
-                {copy.premiumPlaceholderSubtitle}
-              </p>
-            </div>
-          </div>
-        )}
+    <div className="u-container max-w-5xl">
+      {/* PATCH_114: Compact header */}
+      <div className="mb-5">
+        <Link
+          href="/explore-services"
+          className="text-sm text-[#9CA3AF] hover:text-white transition"
+        >
+          ← {copy.backToServicesText}
+        </Link>
+        <h1 className="text-2xl md:text-3xl font-bold mt-2">{service.title}</h1>
+        <div className="mt-2 flex items-center gap-2 flex-wrap">
+          {categoryLabel && (
+            <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-xs text-[#E5E7EB]">
+              {categoryLabel}
+            </span>
+          )}
+          {subcategoryLabel && (
+            <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-xs text-[#E5E7EB]">
+              {subcategoryLabel}
+            </span>
+          )}
+          <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-xs text-[#E5E7EB]">
+            {deliveryLabel}
+          </span>
+          {service?.active === false && (
+            <span className="inline-flex items-center rounded-full border border-orange-500/30 bg-orange-500/10 px-2.5 py-0.5 text-xs text-orange-200">
+              Unavailable
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* PATCH_55: Service Action Decision Section (Above the Fold) */}
-      {/* PATCH_106: Intent verification banner */}
+      {/* Intent mismatch */}
       {urlIntent && !intentVerification.valid && (
-        <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-5">
-          <p className="text-amber-200 font-semibold text-lg">
-            {intentVerification.message}
-          </p>
-          <p className="text-sm text-slate-400 mt-1">
-            This service does not support the &quot;{urlIntent}&quot; action.
-            Try a different mode or browse other services.
-          </p>
-          <div className="mt-3 flex gap-3">
-            <a href="/explore-services" className="btn-secondary text-sm">
-              Back to Marketplace
-            </a>
-            {hasAnyAction && (
-              <span className="text-xs text-slate-400 self-center">
-                Available:{" "}
-                {[
-                  allowed.buy && "Buy",
-                  allowed.apply && "Apply",
-                  allowed.rent && "Rent",
-                  allowed.deal && "Deal",
-                ]
-                  .filter(Boolean)
-                  .join(", ")}
-              </span>
-            )}
-          </div>
+        <div className="mb-4 rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3 flex items-center justify-between gap-3">
+          <p className="text-sm text-amber-200">{intentVerification.message}</p>
+          <Link
+            href="/explore-services"
+            className="text-xs text-blue-400 hover:underline whitespace-nowrap"
+          >
+            Browse services
+          </Link>
         </div>
       )}
 
-      <div className="mb-8">
-        <ServiceActionSelector
-          price={service.price}
-          payRate={service.payRate}
-          allowedActions={allowed}
-          rentalPlans={service.rentalPlans}
-          isRental={service.isRental}
-          isActive={service.active !== false}
-          onBuy={buyService}
-          onApply={applyToWork}
-          onRent={(planIndex) => {
-            setSelectedRentalPlan(planIndex);
-            buyService(planIndex);
-          }}
-          onDeal={createDealOrder}
-          selectedRentalPlan={selectedRentalPlan}
-          onSelectRentalPlan={setSelectedRentalPlan}
-        />
-      </div>
-
-      <div className="mb-6 flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <Link
-            href="/explore-services"
-            className="text-sm text-[#9CA3AF] hover:text-white transition"
-          >
-            ← {copy.backToServicesText}
-          </Link>
-          <h1 className="text-3xl md:text-4xl font-bold mt-2">
-            {service.title}
-          </h1>
-          <div className="mt-3 flex items-center gap-2 flex-wrap">
-            {categoryLabel && (
-              <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-[#E5E7EB]">
-                {categoryLabel}
-              </span>
-            )}
-            {subcategoryLabel && (
-              <span className="inline-flex items-center rounded-full border border-white/10 bg-slate-900/70 px-3 py-1 text-xs text-[#E5E7EB]">
-                {subcategoryLabel}
-              </span>
-            )}
-            <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-[#E5E7EB]">
-              {deliveryLabel}
-            </span>
-            {service?.active === false && (
-              <span className="inline-flex items-center rounded-full border border-orange-500/30 bg-orange-500/10 px-3 py-1 text-xs text-orange-200">
-                Currently unavailable
-              </span>
+      <div className="grid lg:grid-cols-[1fr_340px] gap-6 items-start">
+        {/* Main */}
+        <div className="space-y-5">
+          {/* Service Image */}
+          <div className="overflow-hidden rounded-xl border border-white/10">
+            {service.imageUrl ||
+            (Array.isArray(service.images) && service.images[0]) ? (
+              <img
+                src={withCacheBust(
+                  service.imageUrl || service.images?.[0],
+                  service.updatedAt || service._id,
+                )}
+                alt={service.title}
+                className="h-52 w-full object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <div className="h-36 w-full flex items-center justify-center bg-gradient-to-br from-blue-500/10 via-white/5 to-emerald-500/8">
+                <div className="text-center">
+                  <div className="mx-auto w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-xl text-white/60">
+                    ✦
+                  </div>
+                  <p className="mt-2 text-xs text-slate-400">
+                    {copy.premiumPlaceholderTitle}
+                  </p>
+                </div>
+              </div>
             )}
           </div>
-        </div>
-      </div>
 
-      <div className="grid lg:grid-cols-[1fr_360px] gap-6 items-start">
-        {/* Main */}
-        <div className="space-y-6">
+          {/* Overview */}
           <div className="card">
-            <p className="text-sm text-[#9CA3AF]">{copy.overviewLabel}</p>
-            <p className="mt-2 text-slate-200 leading-relaxed">
+            <p className="text-xs text-[#9CA3AF] uppercase tracking-wide">
+              {copy.overviewLabel}
+            </p>
+            <p className="mt-2 text-sm text-slate-200 leading-relaxed">
               {service.description || "No description provided."}
             </p>
           </div>
 
           <div className="card">
-            <h2 className="text-lg font-semibold">{copy.whatYouGetTitle}</h2>
-            <ul className="mt-3 space-y-2 text-sm text-slate-200">
+            <h2 className="text-base font-semibold">{copy.whatYouGetTitle}</h2>
+            <ul className="mt-2 space-y-1.5 text-sm text-slate-200">
               {(Array.isArray(copy.whatYouGetBullets)
                 ? copy.whatYouGetBullets
                 : []
               ).map((line) => (
                 <li key={line} className="flex gap-2">
-                  <span className="text-emerald-300">•</span>
+                  <span className="text-emerald-400">✓</span>
                   <span>{line}</span>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* PATCH_40: Who This Is For - Category-based messaging */}
+          {/* How It Works */}
           <div className="card">
-            <h2 className="text-lg font-semibold">Who This Is For</h2>
+            <h2 className="text-base font-semibold">How It Works</h2>
             <div className="mt-3 space-y-3">
-              {allowed.buy && (
-                <div className="flex gap-3 text-sm text-slate-200">
-                  <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-300">
-                    Pay
-                  </span>
-                  <div>
-                    <p className="font-medium text-white">Buyers</p>
-                    <p className="text-xs text-slate-400">
-                      Purchase this service and receive direct fulfillment
-                    </p>
-                  </div>
+              <div className="flex gap-3 items-start">
+                <div className="flex-shrink-0 w-7 h-7 rounded-full bg-blue-500/20 border border-blue-500/40 flex items-center justify-center">
+                  <span className="text-xs font-bold text-blue-300">1</span>
                 </div>
-              )}
-              {allowed.apply && (
-                <div className="flex gap-3 text-sm text-slate-200">
-                  <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-300">
-                    Work
-                  </span>
-                  <div>
-                    <p className="font-medium text-white">Workers</p>
-                    <p className="text-xs text-slate-400">
-                      Apply to complete tasks and earn money to your wallet
-                    </p>
-                  </div>
+                <div>
+                  <p className="text-sm font-medium text-white">
+                    Place Your Order
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    Select your option and complete secure payment
+                  </p>
                 </div>
-              )}
-              {allowed.rent && (
-                <div className="flex gap-3 text-sm text-slate-200">
-                  <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300">
-                    Key
-                  </span>
-                  <div>
-                    <p className="font-medium text-white">Renters</p>
-                    <p className="text-xs text-slate-400">
-                      Get temporary access to accounts or services
-                    </p>
-                  </div>
+              </div>
+              <div className="flex gap-3 items-start">
+                <div className="flex-shrink-0 w-7 h-7 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
+                  <span className="text-xs font-bold text-emerald-300">2</span>
                 </div>
-              )}
-              {allowed.deal && (
-                <div className="flex gap-3 text-sm text-slate-200">
-                  <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-300">
-                    Deal
-                  </span>
-                  <div>
-                    <p className="font-medium text-white">Deal Seekers</p>
-                    <p className="text-xs text-slate-400">
-                      Pay a percentage upfront, get service at a discount
-                    </p>
-                  </div>
+                <div>
+                  <p className="text-sm font-medium text-white">
+                    Admin Verifies
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    Our team reviews and processes your order
+                  </p>
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* PATCH_40: How It Works - 3-Step Flow */}
-          <div className="card">
-            <h2 className="text-lg font-semibold">How It Works</h2>
-            <div className="mt-4 relative">
-              {/* Connection Line */}
-              <div className="absolute left-4 top-6 bottom-6 w-0.5 bg-gradient-to-b from-blue-500/50 via-emerald-500/50 to-purple-500/50" />
-
-              <div className="space-y-6">
-                <div className="flex gap-4 relative">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500/20 border-2 border-blue-500 flex items-center justify-center z-10">
-                    <span className="text-xs font-bold text-blue-300">1</span>
-                  </div>
-                  <div>
-                    <p className="font-medium text-white">Place Your Order</p>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      Select your option and complete secure payment
-                    </p>
-                  </div>
+              </div>
+              <div className="flex gap-3 items-start">
+                <div className="flex-shrink-0 w-7 h-7 rounded-full bg-purple-500/20 border border-purple-500/40 flex items-center justify-center">
+                  <span className="text-xs font-bold text-purple-300">3</span>
                 </div>
-
-                <div className="flex gap-4 relative">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center z-10">
-                    <span className="text-xs font-bold text-emerald-300">
-                      2
-                    </span>
-                  </div>
-                  <div>
-                    <p className="font-medium text-white">Admin Verifies</p>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      Our team reviews and processes your order
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-4 relative">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500/20 border-2 border-purple-500 flex items-center justify-center z-10">
-                    <span className="text-xs font-bold text-purple-300">3</span>
-                  </div>
-                  <div>
-                    <p className="font-medium text-white">
-                      Receive Your Service
-                    </p>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      Get access or credentials delivered to your dashboard
-                    </p>
-                  </div>
+                <div>
+                  <p className="text-sm font-medium text-white">
+                    Receive Your Service
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    Get access or credentials delivered to your dashboard
+                  </p>
                 </div>
               </div>
             </div>
           </div>
 
           <div className="card">
-            <h2 className="text-lg font-semibold">{copy.requirementsTitle}</h2>
+            <h2 className="text-base font-semibold">
+              {copy.requirementsTitle}
+            </h2>
             {requirementsLines.length > 0 ? (
               <ul className="mt-3 space-y-2 text-sm text-slate-200">
                 {requirementsLines.map((line: string, idx: number) => (
@@ -729,255 +601,237 @@ export default function ServiceDetailsPage() {
           </div>
 
           <div className="card">
-            <h2 className="text-lg font-semibold">{copy.deliveryTimeTitle}</h2>
-            <p className="mt-3 text-sm text-slate-200">
+            <h2 className="text-base font-semibold">
+              {copy.deliveryTimeTitle}
+            </h2>
+            <p className="mt-2 text-sm text-slate-200">
               {template(copy.deliveryTimeBody, { deliveryLabel })}
             </p>
-            <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
-              <p className="text-sm text-[#9CA3AF]">{copy.safetyNote}</p>
+            <div className="mt-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2.5">
+              <p className="text-xs text-[#9CA3AF]">{copy.safetyNote}</p>
             </div>
           </div>
 
-          {/* PATCH_55: What Happens Next? Flow Timeline */}
-          <ServiceFlowTimeline allowedActions={allowed} />
-
-          {/* PATCH_55: Trust & Safety Panel */}
-          <ServiceTrustPanel />
-
-          {/* PATCH_33: Trust Badges Section (kept for additional trust signals) */}
+          {/* Trust signals — compact inline */}
           <div className="card">
-            <h2 className="text-lg font-semibold mb-4">Why Choose UREMO?</h2>
-            <TrustBadges variant="vertical" />
+            <h2 className="text-base font-semibold mb-3">Why UREMO Is Safe</h2>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: "Admin Verified", desc: "Every order reviewed" },
+                { label: "Proof Delivery", desc: "Verifiable results" },
+                { label: "Secure Wallet", desc: "Funds protected" },
+                { label: "Human Support", desc: "Real team available" },
+              ].map((s) => (
+                <div
+                  key={s.label}
+                  className="rounded-lg border border-white/5 bg-white/5 px-3 py-2"
+                >
+                  <p className="text-xs font-medium text-white">{s.label}</p>
+                  <p className="text-[11px] text-slate-400">{s.desc}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Sticky CTA */}
+        {/* PATCH_114: Unified Purchase Panel */}
         <aside className="lg:sticky lg:top-24">
           <div className="card">
-            <div className="flex items-start justify-between gap-4">
+            {/* Price header */}
+            <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm text-[#9CA3AF]">{copy.priceLabel}</p>
-                <p className="mt-1 text-3xl font-bold text-emerald-300">
+                <p className="text-xs text-[#9CA3AF]">{copy.priceLabel}</p>
+                <p className="mt-0.5 text-2xl font-bold text-emerald-300">
                   ${service.price}
                 </p>
-                <p className="text-xs text-[#9CA3AF] mt-1">
-                  {copy.priceSubtext}
-                </p>
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-                <p className="text-xs text-[#9CA3AF]">{copy.typeLabel}</p>
-                <p className="text-sm text-slate-200 font-medium">
-                  {deliveryLabel}
-                </p>
-              </div>
+              <span className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-slate-300">
+                {deliveryLabel}
+              </span>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              {allowed.buy && (
-                <span className="text-[11px] rounded-full border border-blue-500/25 bg-blue-500/10 px-2.5 py-1 text-blue-200">
-                  Buy
-                </span>
-              )}
-              {allowed.apply && (
-                <span className="text-[11px] rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-emerald-200">
-                  Apply
-                </span>
-              )}
-              {allowed.rent && (
-                <span className="text-[11px] rounded-full border border-purple-500/25 bg-purple-500/10 px-2.5 py-1 text-purple-200">
-                  Rent
-                </span>
-              )}
-              {allowed.deal && (
-                <span className="text-[11px] rounded-full border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 text-amber-200">
-                  Deal
-                </span>
-              )}
-            </div>
+            <div className="mt-3 h-px bg-white/10" />
 
-            <div className="mt-4 h-px bg-white/10" />
+            {/* Buy / Rent mode toggle — only if both are available */}
+            {allowed.buy &&
+              allowed.rent &&
+              service?.isRental &&
+              Array.isArray(service.rentalPlans) &&
+              service.rentalPlans.length > 0 && (
+                <div className="mt-3 flex rounded-lg border border-white/10 p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveMode("buy");
+                      setSelectedRentalPlan(null);
+                    }}
+                    className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
+                      activeMode === "buy"
+                        ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    Buy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveMode("rent")}
+                    className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
+                      activeMode === "rent"
+                        ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    Rent
+                  </button>
+                </div>
+              )}
 
-            {!hasAnyAction && (
-              <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
-                <p className="text-sm text-slate-200 font-medium">
-                  No actions available
-                </p>
-                <p className="mt-1 text-xs text-[#9CA3AF]">
-                  This service is not eligible for buy, apply, rent, or deal.
-                </p>
-              </div>
-            )}
-
-            {/* RENT — PATCH_92/109: Enhanced Enterprise rental cards */}
-            {allowed.rent &&
+            {/* RENT MODE */}
+            {((activeMode === "rent" && allowed.rent) ||
+              (!allowed.buy && allowed.rent)) &&
             service?.isRental &&
             Array.isArray(service.rentalPlans) &&
             service.rentalPlans.length > 0 ? (
-              <div className="mt-4" ref={rentSectionRef}>
-                {/* PATCH_109: Active rental banner */}
+              <div className="mt-3" ref={rentSectionRef}>
+                {/* Active rental banner */}
                 {activeRentalInfo?.hasActive && (
-                  <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
-                    <p className="text-sm font-semibold text-emerald-200">
-                      You already have active access
+                  <div className="mb-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2.5">
+                    <p className="text-xs font-medium text-emerald-300">
+                      Active access
                       {activeRentalInfo.endDate
                         ? ` until ${new Date(activeRentalInfo.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
                         : ""}
                     </p>
                     <Link
                       href="/rentals"
-                      className="inline-block mt-2 text-xs px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 transition"
+                      className="text-xs text-emerald-400 hover:underline mt-1 inline-block"
                     >
-                      View My Rentals
+                      View My Rentals →
                     </Link>
                   </div>
                 )}
 
-                <div className="mb-3">
-                  <p className="text-sm font-semibold text-purple-300">
-                    Rent Access
-                  </p>
-                  <p className="mt-1 text-xs text-slate-400">
-                    Select country, plan, then rent.
-                  </p>
-                </div>
-
                 {/* Country selector */}
-                <div className="mb-3">
-                  <label className="block text-xs text-[#9CA3AF] mb-1">
-                    Country
-                  </label>
-                  <select
-                    value={rentCountry}
-                    onChange={(e) => setRentCountry(e.target.value)}
-                    className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-purple-500/50"
-                  >
-                    <option value="">Select country…</option>
-                    {serviceCountries.map((c: string) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {serviceCountries.length > 1 && (
+                  <div className="mb-3">
+                    <label className="block text-xs text-[#9CA3AF] mb-1">
+                      Country
+                    </label>
+                    <select
+                      value={rentCountry}
+                      onChange={(e) => setRentCountry(e.target.value)}
+                      className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-purple-500/50"
+                    >
+                      <option value="">Select country…</option>
+                      {serviceCountries.map((c: string) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
-                {/* PATCH_109: Premium Rental Plan Cards */}
-                <div className="grid gap-2">
-                  {service.rentalPlans.map((plan: any, idx: number) => {
-                    const savingsVsBuy =
-                      allowed.buy && service.price > 0
-                        ? Math.round(
-                            ((service.price - plan.price) / service.price) *
-                              100,
-                          )
-                        : 0;
-                    return (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setSelectedRentalPlan(idx)}
-                        className={`w-full text-left p-3 rounded-xl border transition-all ${
-                          selectedRentalPlan === idx
-                            ? "border-purple-500 bg-purple-500/20 shadow-[0_0_16px_rgba(168,85,247,0.15)]"
-                            : "border-white/10 bg-white/5 hover:border-purple-500/40 hover:bg-white/8"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-white font-medium text-sm">
-                              {plan.label || `${plan.duration} ${plan.unit}`}
-                            </span>
-                            {plan.isPopular && (
-                              <span className="text-[10px] bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded-full font-semibold border border-yellow-500/30">
-                                Most Popular
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-emerald-300 font-bold">
-                            ${plan.price}
+                {/* Rental Plan Cards */}
+                <div className="space-y-2">
+                  {service.rentalPlans.map((plan: any, idx: number) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setSelectedRentalPlan(idx)}
+                      className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all ${
+                        selectedRentalPlan === idx
+                          ? "border-purple-500 bg-purple-500/15"
+                          : "border-white/10 bg-white/5 hover:border-purple-500/30"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-white font-medium">
+                            {plan.label ||
+                              `${plan.duration} ${plan.unit || "days"}`}
                           </span>
-                        </div>
-                        <div className="flex items-center justify-between mt-1">
-                          <p className="text-xs text-slate-400">
-                            {plan.duration} {plan.unit}
-                          </p>
-                          {savingsVsBuy > 0 && (
-                            <span className="text-[10px] text-emerald-400 font-medium">
-                              Save {savingsVsBuy}% vs Buy
+                          {plan.isPopular && (
+                            <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded-full border border-purple-500/30">
+                              Popular
                             </span>
                           )}
                         </div>
-                      </button>
-                    );
-                  })}
+                        <span className="text-emerald-300 font-bold text-sm">
+                          ${plan.price}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {plan.duration} {plan.unit || "days"}
+                        {plan.duration > 0 &&
+                          ` · $${(plan.price / plan.duration).toFixed(2)}/day`}
+                      </p>
+                    </button>
+                  ))}
                 </div>
 
-                {/* PATCH_92: Payment schedule breakdown */}
-                {rentSchedule && (
-                  <div className="mt-3 rounded-xl border border-purple-500/20 bg-purple-500/5 p-3">
-                    <p className="text-xs font-semibold text-purple-200 mb-2">
-                      Payment Schedule
-                    </p>
-                    <div className="space-y-1.5">
-                      {rentSchedule.milestones.map((m: any, i: number) => (
-                        <div
-                          key={i}
-                          className="flex items-center justify-between text-xs"
-                        >
-                          <span className="text-slate-300">{m.label}</span>
-                          <span
-                            className={`font-semibold ${i === 0 ? "text-emerald-300" : "text-slate-400"}`}
-                          >
-                            {m.percent}% — ${m.amount}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-2 pt-2 border-t border-white/10 flex justify-between text-xs">
-                      <span className="text-slate-400">
-                        Due now at checkout
+                {/* Selected plan summary */}
+                {selectedPlanInfo && (
+                  <div className="mt-2.5 rounded-lg border border-purple-500/15 bg-purple-500/5 px-3 py-2.5">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-300">Plan</span>
+                      <span className="text-white font-medium">
+                        {selectedPlanInfo.label}
                       </span>
+                    </div>
+                    <div className="flex justify-between text-xs mt-1">
+                      <span className="text-slate-300">Total</span>
                       <span className="text-emerald-300 font-bold">
-                        ${rentSchedule.firstPayment}
+                        ${selectedPlanInfo.price}
                       </span>
                     </div>
+                    <p className="text-[11px] text-slate-400 mt-1.5">
+                      Full payment at checkout. Access starts after admin
+                      verification.
+                    </p>
                   </div>
                 )}
 
                 <button
                   type="button"
-                  onClick={() => buyService()}
+                  onClick={() => buyService(selectedRentalPlan)}
                   disabled={
                     service?.active === false ||
                     selectedRentalPlan === null ||
-                    !rentCountry ||
+                    (serviceCountries.length > 1 && !rentCountry) ||
                     actionSubmitting
                   }
-                  className="btn-primary w-full disabled:opacity-50 mt-4"
+                  className="w-full mt-3 py-2.5 rounded-lg font-semibold text-sm text-white bg-gradient-to-r from-purple-500 to-pink-600 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                 >
                   {actionSubmitting
                     ? "Processing…"
                     : service?.active === false
-                      ? copy.unavailableButtonText
-                      : selectedRentalPlan !== null && rentCountry
+                      ? "Unavailable"
+                      : selectedRentalPlan !== null
                         ? `Rent for $${service.rentalPlans[selectedRentalPlan]?.price}`
-                        : !rentCountry
-                          ? "Select Country"
-                          : "Select a Plan"}
+                        : "Select a Plan"}
                 </button>
               </div>
             ) : null}
 
-            {/* BUY */}
-            {allowed.buy && (
+            {/* BUY MODE */}
+            {((activeMode === "buy" && allowed.buy) ||
+              (!allowed.rent && allowed.buy)) && (
               <button
                 type="button"
-                onClick={() => buyService()}
-                disabled={service?.active === false}
-                className="btn-primary w-full disabled:opacity-50 mt-4"
+                onClick={() => {
+                  setSelectedRentalPlan(null);
+                  buyService(null);
+                }}
+                disabled={service?.active === false || actionSubmitting}
+                className="w-full mt-3 py-2.5 rounded-lg font-semibold text-sm text-white bg-gradient-to-r from-blue-500 to-indigo-600 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
               >
-                {service?.active === false
-                  ? copy.unavailableButtonText
-                  : "Buy Now"}
+                {actionSubmitting
+                  ? "Processing…"
+                  : service?.active === false
+                    ? "Unavailable"
+                    : `Buy Now · $${service.price}`}
               </button>
             )}
 
@@ -987,62 +841,28 @@ export default function ServiceDetailsPage() {
                 type="button"
                 onClick={applyToWork}
                 disabled={service?.active === false}
-                className="btn-secondary w-full disabled:opacity-50 mt-3"
+                className="w-full mt-2 py-2.5 rounded-lg font-semibold text-sm text-white border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
               >
                 Apply To Work
               </button>
             )}
 
-            {/* DEAL — PATCH_92: Coming Soon redirect (deals not ready) */}
-            {allowed.deal && (
-              <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg">Soon</span>
-                  <p className="text-sm text-amber-200 font-semibold">
-                    Deals Coming Soon
-                  </p>
-                </div>
-                <p className="text-xs text-slate-400 mb-3">
-                  The deals feature is under development. You&apos;ll be able to
-                  negotiate custom deal terms soon.
+            {/* No actions at all */}
+            {!hasAnyAction && (
+              <div className="mt-3 rounded-lg border border-white/10 bg-white/5 px-3 py-3">
+                <p className="text-sm text-slate-300">No actions available</p>
+                <p className="text-xs text-[#9CA3AF] mt-0.5">
+                  This service is not currently available.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => router.push("/deals")}
-                  className="w-full px-4 py-2.5 rounded-xl text-sm font-medium text-amber-200 bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition"
-                >
-                  Learn More
-                </button>
               </div>
             )}
 
-            <p className="mt-3 text-xs text-[#9CA3AF]">
+            <p className="mt-2.5 text-[11px] text-[#9CA3AF]">
               {copy.reserveHelpText}
             </p>
           </div>
         </aside>
       </div>
-
-      {/* PATCH_55: Sticky Action Bar (Desktop + Mobile) */}
-      <StickyActionBar
-        serviceTitle={service.title}
-        price={service.price}
-        payRate={service.payRate}
-        allowedActions={allowed}
-        rentalPlans={service.rentalPlans}
-        selectedRentalPlan={selectedRentalPlan}
-        isActive={service.active !== false && !actionSubmitting}
-        onBuy={buyService}
-        onApply={applyToWork}
-        onRent={buyService}
-        onDeal={createDealOrder}
-        onHelp={() => {
-          // Open JarvisX or support
-          if (typeof window !== "undefined") {
-            window.location.href = "/support";
-          }
-        }}
-      />
     </div>
   );
 }
