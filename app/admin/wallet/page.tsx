@@ -79,6 +79,24 @@ export default function AdminWalletPage() {
   const [pendingLoading, setPendingLoading] = useState(false);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
 
+  // PATCH_115: Withdrawal requests
+  interface WithdrawalRequest {
+    _id: string;
+    userId: { _id: string; name: string; email: string };
+    amount: number;
+    status: "pending" | "approved" | "rejected" | "paid";
+    adminNote?: string;
+    createdAt: string;
+    updatedAt: string;
+    reviewedBy?: { name: string; email: string };
+  }
+  const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
+  const [withdrawalLoading, setWithdrawalLoading] = useState(false);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [withdrawalFilter, setWithdrawalFilter] = useState<
+    "all" | "pending" | "approved" | "rejected" | "paid"
+  >("pending");
+
   useEffect(() => {
     if (!ready) return;
     if (!isAdmin) {
@@ -87,6 +105,7 @@ export default function AdminWalletPage() {
     }
     fetchStats();
     fetchPendingTopups(); // PATCH_80: Fetch pending topups on load
+    fetchWithdrawals(); // PATCH_115: Fetch withdrawals on load
   }, [ready, isAdmin, router]);
 
   const fetchStats = async () => {
@@ -110,6 +129,76 @@ export default function AdminWalletPage() {
       console.error("Failed to fetch pending topups:", err);
     } finally {
       setPendingLoading(false);
+    }
+  };
+
+  // PATCH_115: Fetch withdrawal requests
+  const fetchWithdrawals = async () => {
+    setWithdrawalLoading(true);
+    try {
+      const filter =
+        withdrawalFilter !== "all" ? `?status=${withdrawalFilter}` : "";
+      const res = await apiRequest(
+        `/api/admin/wallet/withdrawals${filter}`,
+        "GET",
+      );
+      setWithdrawals(res.withdrawals || []);
+    } catch (err: any) {
+      console.error("Failed to fetch withdrawals:", err);
+      toast("Failed to load withdrawals", "error");
+    } finally {
+      setWithdrawalLoading(false);
+    }
+  };
+
+  // PATCH_115: Handle withdrawal approval
+  const handleApproveWithdrawal = async (withdrawalId: string) => {
+    setProcessingId(withdrawalId);
+    try {
+      await apiRequest(`/api/admin/wallet/withdrawals/${withdrawalId}/approve`, "PUT", {
+        adminNote: "Approved by admin",
+      });
+      toast("Withdrawal approved", "success");
+      fetchWithdrawals();
+    } catch (err: any) {
+      toast(err.message || "Failed to approve withdrawal", "error");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  // PATCH_115: Handle withdrawal payment
+  const handlePayWithdrawal = async (withdrawalId: string) => {
+    setProcessingId(withdrawalId);
+    try {
+      await apiRequest(`/api/admin/wallet/withdrawals/${withdrawalId}/pay`, "PUT", {});
+      toast("Withdrawal marked as paid", "success");
+      fetchWithdrawals();
+    } catch (err: any) {
+      toast(err.message || "Failed to mark withdrawal as paid", "error");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  // PATCH_115: Handle withdrawal rejection
+  const handleRejectWithdrawal = async (withdrawalId: string) => {
+    const reason = prompt("Enter rejection reason:");
+    if (!reason) return;
+
+    setProcessingId(withdrawalId);
+    try {
+      await apiRequest(
+        `/api/admin/wallet/withdrawals/${withdrawalId}/reject`,
+        "PUT",
+        { adminNote: reason },
+      );
+      toast("Withdrawal rejected", "success");
+      fetchWithdrawals();
+    } catch (err: any) {
+      toast(err.message || "Failed to reject withdrawal", "error");
+    } finally {
+      setProcessingId(null);
     }
   };
 
@@ -414,6 +503,156 @@ export default function AdminWalletPage() {
             </div>
           </div>
         )}
+
+        {/* PATCH_115: Withdrawal Requests Section */}
+        <div className="bg-slate-900 rounded-xl border border-slate-800 mb-8">
+          <div className="p-4 border-b border-slate-800 bg-slate-850 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-blue-400 text-xl">💸</span>
+              <h2 className="text-lg font-semibold text-blue-400">
+                Withdrawal Requests
+              </h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                {withdrawals.filter((w) => w.status === "pending").length}{" "}
+                Pending
+              </span>
+            </div>
+          </div>
+
+          {/* Filter tabs */}
+          <div className="p-4 border-b border-slate-700 flex gap-2 overflow-x-auto">
+            {(["all", "pending", "approved", "rejected", "paid"] as const).map(
+              (status) => (
+                <button
+                  key={status}
+                  onClick={() => {
+                    setWithdrawalFilter(status);
+                    setWithdrawalLoading(true);
+                  }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
+                    withdrawalFilter === status
+                      ? "bg-blue-600 text-white"
+                      : "bg-slate-800 hover:bg-slate-700 text-slate-300"
+                  }`}
+                >
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </button>
+              ),
+            )}
+          </div>
+
+          <div className="p-4 space-y-3 max-h-96 overflow-y-auto">
+            {withdrawalLoading ? (
+              <p className="text-slate-400 text-center py-4">Loading...</p>
+            ) : withdrawals.length === 0 ? (
+              <p className="text-slate-400 text-center py-4">
+                No withdrawals found
+              </p>
+            ) : (
+              withdrawals.map((withdrawal) => (
+                <div
+                  key={withdrawal._id}
+                  className="bg-slate-800 rounded-lg p-4 border border-slate-700"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <p className="font-medium">
+                        {withdrawal.userId.name}
+                      </p>
+                      <p className="text-sm text-slate-400">
+                        {withdrawal.userId.email}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-blue-400">
+                        ${withdrawal.amount.toFixed(2)}
+                      </p>
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full inline-block mt-1 ${
+                          withdrawal.status === "pending"
+                            ? "bg-yellow-500/20 text-yellow-400"
+                            : withdrawal.status === "approved"
+                              ? "bg-blue-500/20 text-blue-400"
+                              : withdrawal.status === "paid"
+                                ? "bg-emerald-500/20 text-emerald-400"
+                                : "bg-red-500/20 text-red-400"
+                        }`}
+                      >
+                        {withdrawal.status.charAt(0).toUpperCase() +
+                          withdrawal.status.slice(1)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-slate-400 mb-3 space-y-1">
+                    <p>
+                      Requested:{" "}
+                      {new Date(withdrawal.createdAt).toLocaleString()}
+                    </p>
+                    {withdrawal.reviewedBy && (
+                      <p>
+                        Reviewed by: {withdrawal.reviewedBy.name} (
+                        {withdrawal.reviewedBy.email})
+                      </p>
+                    )}
+                    {withdrawal.adminNote && (
+                      <p className="text-slate-300">
+                        Note: {withdrawal.adminNote}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Action buttons based on status */}
+                  <div className="flex gap-2 justify-end">
+                    {withdrawal.status === "pending" && (
+                      <>
+                        <button
+                          onClick={() =>
+                            handleRejectWithdrawal(withdrawal._id)
+                          }
+                          disabled={processingId === withdrawal._id}
+                          className="px-3 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 text-red-400 rounded-lg text-sm font-medium disabled:opacity-50"
+                        >
+                          {processingId === withdrawal._id ? "..." : "Reject"}
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleApproveWithdrawal(withdrawal._id)
+                          }
+                          disabled={processingId === withdrawal._id}
+                          className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+                        >
+                          {processingId === withdrawal._id
+                            ? "..."
+                            : "✓ Approve"}
+                        </button>
+                      </>
+                    )}
+                    {withdrawal.status === "approved" && (
+                      <button
+                        onClick={() => handlePayWithdrawal(withdrawal._id)}
+                        disabled={processingId === withdrawal._id}
+                        className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+                      >
+                        {processingId === withdrawal._id ? "..." : "💰 Mark Paid"}
+                      </button>
+                    )}
+                    {(withdrawal.status === "rejected" ||
+                      withdrawal.status === "paid") && (
+                      <span className="text-xs text-slate-400 italic">
+                        {withdrawal.status === "rejected"
+                          ? "Rejection reason provided above"
+                          : "Payment completed"}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Search Panel */}
