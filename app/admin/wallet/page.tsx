@@ -41,6 +41,19 @@ interface Stats {
   debits: { total: number; count: number };
 }
 
+interface WithdrawalRequest {
+  _id: string;
+  userId: { _id: string; name: string; email: string };
+  amount: number;
+  method: string;
+  note?: string;
+  status: "pending" | "approved" | "rejected" | "paid";
+  adminNote?: string;
+  createdAt: string;
+  updatedAt: string;
+  reviewedBy?: { name: string; email: string };
+}
+
 export default function AdminWalletPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -80,22 +93,12 @@ export default function AdminWalletPage() {
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
 
   // PATCH_115: Withdrawal requests
-  interface WithdrawalRequest {
-    _id: string;
-    userId: { _id: string; name: string; email: string };
-    amount: number;
-    status: "pending" | "approved" | "rejected" | "paid";
-    adminNote?: string;
-    createdAt: string;
-    updatedAt: string;
-    reviewedBy?: { name: string; email: string };
-  }
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
   const [withdrawalLoading, setWithdrawalLoading] = useState(false);
-  const [processingId, setProcessingId] = useState<string | null>(null);
   const [withdrawalFilter, setWithdrawalFilter] = useState<
     "all" | "pending" | "approved" | "rejected" | "paid"
   >("pending");
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!ready) return;
@@ -105,8 +108,15 @@ export default function AdminWalletPage() {
     }
     fetchStats();
     fetchPendingTopups(); // PATCH_80: Fetch pending topups on load
-    fetchWithdrawals(); // PATCH_115: Fetch withdrawals on load
+    fetchWithdrawals(); // PATCH_115: Fetch withdrawal requests on load
   }, [ready, isAdmin, router]);
+
+  // PATCH_115: Re-fetch withdrawals when filter changes
+  useEffect(() => {
+    if (ready && isAdmin && withdrawalFilter) {
+      fetchWithdrawals();
+    }
+  }, [withdrawalFilter]);
 
   const fetchStats = async () => {
     try {
@@ -148,6 +158,42 @@ export default function AdminWalletPage() {
       toast("Failed to load withdrawals", "error");
     } finally {
       setWithdrawalLoading(false);
+    }
+  };
+
+  // PATCH_80: Verify (approve/reject) a pending topup
+  // PATCH_81: Enhanced with double-click protection and already-processed handling
+  const handleVerifyTopup = async (
+    transactionId: string,
+    action: "approve" | "reject",
+    reason?: string,
+  ) => {
+    // PATCH_81: Prevent double-click by checking if already verifying
+    if (verifyingId) {
+      toast("Please wait - another action is in progress", "info");
+      return;
+    }
+
+    setVerifyingId(transactionId);
+    try {
+      const res = await apiRequest("/api/admin/wallet/verify-topup", "POST", {
+        transactionId,
+        action,
+        reason,
+      });
+      toast(res.message || `Topup ${action}d successfully`, "success");
+      fetchPendingTopups(); // Refresh the list
+      fetchStats(); // Refresh stats
+    } catch (err: any) {
+      // PATCH_81: Handle already-processed case gracefully
+      if (err.alreadyProcessed) {
+        toast("This topup was already processed by another admin", "info");
+        fetchPendingTopups(); // Remove from list
+      } else {
+        toast(err.message || `Failed to ${action} topup`, "error");
+      }
+    } finally {
+      setVerifyingId(null);
     }
   };
 
@@ -207,42 +253,6 @@ export default function AdminWalletPage() {
       toast(err.message || "Failed to reject withdrawal", "error");
     } finally {
       setProcessingId(null);
-    }
-  };
-
-  // PATCH_80: Verify (approve/reject) a pending topup
-  // PATCH_81: Enhanced with double-click protection and already-processed handling
-  const handleVerifyTopup = async (
-    transactionId: string,
-    action: "approve" | "reject",
-    reason?: string,
-  ) => {
-    // PATCH_81: Prevent double-click by checking if already verifying
-    if (verifyingId) {
-      toast("Please wait - another action is in progress", "info");
-      return;
-    }
-
-    setVerifyingId(transactionId);
-    try {
-      const res = await apiRequest("/api/admin/wallet/verify-topup", "POST", {
-        transactionId,
-        action,
-        reason,
-      });
-      toast(res.message || `Topup ${action}d successfully`, "success");
-      fetchPendingTopups(); // Refresh the list
-      fetchStats(); // Refresh stats
-    } catch (err: any) {
-      // PATCH_81: Handle already-processed case gracefully
-      if (err.alreadyProcessed) {
-        toast("This topup was already processed by another admin", "info");
-        fetchPendingTopups(); // Remove from list
-      } else {
-        toast(err.message || `Failed to ${action} topup`, "error");
-      }
-    } finally {
-      setVerifyingId(null);
     }
   };
 
@@ -539,10 +549,10 @@ export default function AdminWalletPage() {
                     setWithdrawalFilter(status);
                     setWithdrawalLoading(true);
                   }}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition ${
                     withdrawalFilter === status
                       ? "bg-blue-600 text-white"
-                      : "bg-slate-800 hover:bg-slate-700 text-slate-300"
+                      : "bg-slate-800 text-slate-400 hover:bg-slate-700"
                   }`}
                 >
                   {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -551,111 +561,131 @@ export default function AdminWalletPage() {
             )}
           </div>
 
-          <div className="p-4 space-y-3 max-h-96 overflow-y-auto">
+          {/* Withdrawals List */}
+          <div className="p-4">
             {withdrawalLoading ? (
-              <p className="text-slate-400 text-center py-4">Loading...</p>
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="bg-slate-800 rounded-lg p-4 animate-pulse"
+                  >
+                    <div className="h-4 w-32 bg-slate-700 rounded mb-2" />
+                    <div className="h-3 w-48 bg-slate-700 rounded" />
+                  </div>
+                ))}
+              </div>
             ) : withdrawals.length === 0 ? (
-              <p className="text-slate-400 text-center py-4">
-                No withdrawals found
-              </p>
+              <div className="text-center py-8">
+                <p className="text-slate-400 text-sm">
+                  No {withdrawalFilter === "all" ? "" : withdrawalFilter}{" "}
+                  withdrawal requests
+                </p>
+              </div>
             ) : (
-              withdrawals.map((withdrawal) => (
-                <div
-                  key={withdrawal._id}
-                  className="bg-slate-800 rounded-lg p-4 border border-slate-700"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <p className="font-medium">{withdrawal.userId.name}</p>
-                      <p className="text-sm text-slate-400">
-                        {withdrawal.userId.email}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-blue-400">
-                        ${withdrawal.amount.toFixed(2)}
-                      </p>
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded-full inline-block mt-1 ${
-                          withdrawal.status === "pending"
-                            ? "bg-yellow-500/20 text-yellow-400"
-                            : withdrawal.status === "approved"
-                              ? "bg-blue-500/20 text-blue-400"
-                              : withdrawal.status === "paid"
-                                ? "bg-emerald-500/20 text-emerald-400"
-                                : "bg-red-500/20 text-red-400"
-                        }`}
-                      >
-                        {withdrawal.status.charAt(0).toUpperCase() +
-                          withdrawal.status.slice(1)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="text-xs text-slate-400 mb-3 space-y-1">
-                    <p>
-                      Requested:{" "}
-                      {new Date(withdrawal.createdAt).toLocaleString()}
-                    </p>
-                    {withdrawal.reviewedBy && (
-                      <p>
-                        Reviewed by: {withdrawal.reviewedBy.name} (
-                        {withdrawal.reviewedBy.email})
-                      </p>
-                    )}
-                    {withdrawal.adminNote && (
-                      <p className="text-slate-300">
-                        Note: {withdrawal.adminNote}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Action buttons based on status */}
-                  <div className="flex gap-2 justify-end">
-                    {withdrawal.status === "pending" && (
-                      <>
-                        <button
-                          onClick={() => handleRejectWithdrawal(withdrawal._id)}
-                          disabled={processingId === withdrawal._id}
-                          className="px-3 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 text-red-400 rounded-lg text-sm font-medium disabled:opacity-50"
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {withdrawals.map((withdrawal) => (
+                  <div
+                    key={withdrawal._id}
+                    className="bg-slate-800 rounded-lg p-4 border border-slate-700"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <p className="font-medium text-white">
+                          {withdrawal.userId.name}
+                        </p>
+                        <p className="text-sm text-slate-400">
+                          {withdrawal.userId.email}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-emerald-400">
+                          ${withdrawal.amount.toFixed(2)}
+                        </p>
+                        <span
+                          className={`inline-block text-xs px-2 py-1 rounded-full mt-1 ${
+                            withdrawal.status === "pending"
+                              ? "bg-yellow-500/20 text-yellow-400"
+                              : withdrawal.status === "approved"
+                                ? "bg-blue-500/20 text-blue-400"
+                                : withdrawal.status === "paid"
+                                  ? "bg-green-500/20 text-green-400"
+                                  : "bg-red-500/20 text-red-400"
+                          }`}
                         >
-                          {processingId === withdrawal._id ? "..." : "Reject"}
-                        </button>
+                          {withdrawal.status.charAt(0).toUpperCase() +
+                            withdrawal.status.slice(1)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-slate-400 mb-3 space-y-1">
+                      <p>
+                        Method:{" "}
+                        <span className="text-slate-300">
+                          {withdrawal.method}
+                        </span>
+                      </p>
+                      <p>
+                        Requested:{" "}
+                        {new Date(withdrawal.createdAt).toLocaleString()}
+                      </p>
+                      {withdrawal.reviewedBy && (
+                        <p>
+                          Reviewed by: {withdrawal.reviewedBy.name} (
+                          {withdrawal.reviewedBy.email})
+                        </p>
+                      )}
+                      {withdrawal.adminNote && (
+                        <p className="text-slate-300">
+                          Note: {withdrawal.adminNote}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Action buttons based on status */}
+                    <div className="flex gap-2 justify-end">
+                      {withdrawal.status === "pending" && (
+                        <>
+                          <button
+                            onClick={() =>
+                              handleRejectWithdrawal(withdrawal._id)
+                            }
+                            disabled={processingId === withdrawal._id}
+                            className="px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 text-red-400 rounded text-xs font-medium disabled:opacity-50"
+                          >
+                            {processingId === withdrawal._id
+                              ? "..."
+                              : "✕ Reject"}
+                          </button>
+                          <button
+                            onClick={() =>
+                              handleApproveWithdrawal(withdrawal._id)
+                            }
+                            disabled={processingId === withdrawal._id}
+                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-medium disabled:opacity-50"
+                          >
+                            {processingId === withdrawal._id
+                              ? "..."
+                              : "✓ Approve"}
+                          </button>
+                        </>
+                      )}
+                      {withdrawal.status === "approved" && (
                         <button
-                          onClick={() =>
-                            handleApproveWithdrawal(withdrawal._id)
-                          }
+                          onClick={() => handlePayWithdrawal(withdrawal._id)}
                           disabled={processingId === withdrawal._id}
-                          className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-medium disabled:opacity-50"
                         >
                           {processingId === withdrawal._id
                             ? "..."
-                            : "✓ Approve"}
+                            : "💰 Mark as Paid"}
                         </button>
-                      </>
-                    )}
-                    {withdrawal.status === "approved" && (
-                      <button
-                        onClick={() => handlePayWithdrawal(withdrawal._id)}
-                        disabled={processingId === withdrawal._id}
-                        className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium disabled:opacity-50"
-                      >
-                        {processingId === withdrawal._id
-                          ? "..."
-                          : "💰 Mark Paid"}
-                      </button>
-                    )}
-                    {(withdrawal.status === "rejected" ||
-                      withdrawal.status === "paid") && (
-                      <span className="text-xs text-slate-400 italic">
-                        {withdrawal.status === "rejected"
-                          ? "Rejection reason provided above"
-                          : "Payment completed"}
-                      </span>
-                    )}
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </div>
         </div>
