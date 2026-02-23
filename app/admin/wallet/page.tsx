@@ -155,9 +155,13 @@ export default function AdminWalletPage() {
   const handleApproveWithdrawal = async (withdrawalId: string) => {
     setProcessingId(withdrawalId);
     try {
-      await apiRequest(`/api/admin/wallet/withdrawals/${withdrawalId}/approve`, "PUT", {
-        adminNote: "Approved by admin",
-      });
+      await apiRequest(
+        `/api/admin/wallet/withdrawals/${withdrawalId}/approve`,
+        "PUT",
+        {
+          adminNote: "Approved by admin",
+        },
+      );
       toast("Withdrawal approved", "success");
       fetchWithdrawals();
     } catch (err: any) {
@@ -171,7 +175,11 @@ export default function AdminWalletPage() {
   const handlePayWithdrawal = async (withdrawalId: string) => {
     setProcessingId(withdrawalId);
     try {
-      await apiRequest(`/api/admin/wallet/withdrawals/${withdrawalId}/pay`, "PUT", {});
+      await apiRequest(
+        `/api/admin/wallet/withdrawals/${withdrawalId}/pay`,
+        "PUT",
+        {},
+      );
       toast("Withdrawal marked as paid", "success");
       fetchWithdrawals();
     } catch (err: any) {
@@ -558,9 +566,7 @@ export default function AdminWalletPage() {
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div>
-                      <p className="font-medium">
-                        {withdrawal.userId.name}
-                      </p>
+                      <p className="font-medium">{withdrawal.userId.name}</p>
                       <p className="text-sm text-slate-400">
                         {withdrawal.userId.email}
                       </p>
@@ -609,9 +615,7 @@ export default function AdminWalletPage() {
                     {withdrawal.status === "pending" && (
                       <>
                         <button
-                          onClick={() =>
-                            handleRejectWithdrawal(withdrawal._id)
-                          }
+                          onClick={() => handleRejectWithdrawal(withdrawal._id)}
                           disabled={processingId === withdrawal._id}
                           className="px-3 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 text-red-400 rounded-lg text-sm font-medium disabled:opacity-50"
                         >
@@ -636,7 +640,9 @@ export default function AdminWalletPage() {
                         disabled={processingId === withdrawal._id}
                         className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium disabled:opacity-50"
                       >
-                        {processingId === withdrawal._id ? "..." : "💰 Mark Paid"}
+                        {processingId === withdrawal._id
+                          ? "..."
+                          : "💰 Mark Paid"}
                       </button>
                     )}
                     {(withdrawal.status === "rejected" ||

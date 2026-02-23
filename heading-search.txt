@@ -1,0 +1,312 @@
+﻿=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\page.tsx ===
+  L118: <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent">
+  L174: <h3 className="font-semibold text-white">Buy Services</h3>
+  L186: <h3 className="font-semibold text-white">Earn Money</h3>
+  L198: <h3 className="font-semibold text-white">Learn Skills</h3>
+  L210: <h3 className="font-semibold text-white">Human Support</h3>
+  L230: <h2 className="text-3xl md:text-4xl font-bold">
+  L245: <h3 className="text-xl font-bold text-white mb-4">
+  L276: <h3 className="text-xl font-bold text-white mb-4">Apply To Work</h3>
+  L305: <h3 className="text-xl font-bold text-white mb-4">Workspace</h3>
+  L339: <h2 className="text-3xl md:text-4xl font-bold">How UREMO Works</h2>
+  L382: <h3 className="font-semibold text-white mb-2">{item.title}</h3>
+  L398: <h2 className="text-3xl md:text-4xl font-bold">
+  L447: <h3 className="font-semibold text-white mb-2">{item.title}</h3>
+  L463: <h2 className="text-3xl md:text-4xl font-bold">Platform Features</h2>
+  L500: <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
+  L543: <h2 className="text-3xl md:text-4xl font-bold">Who UREMO Is For</h2>
+  L574: <h3 className="text-xl font-bold text-white mb-3">
+  L592: <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\page.tsx ===
+  L87: <h3 className="font-semibold text-white text-sm">{title}</h3>
+  L354: <h3 className="font-semibold text-white text-sm">
+  L413: <h3 className="text-sm font-semibold text-emerald-300 mb-3">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\affiliate\page.tsx ===
+  L136: <h1 className="text-3xl font-bold">Affiliate Withdrawals</h1>
+  L296: <h3 className="text-lg font-semibold mb-4">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\affiliates\page.tsx ===
+  L191: <h1 className="text-3xl font-bold">Affiliate Program</h1>
+  L307: <h3 className="text-lg font-semibold text-white mb-2">
+  L423: <h3 className="text-xl font-bold text-white mb-2">
+  L445: <h3 className="text-xl font-bold text-white mb-2">
+  L480: <h2 className="text-2xl font-bold text-white">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\analytics\page.tsx ===
+  L137: <h2 className="font-semibold">System Health</h2>
+  L248: <h2 className="text-lg font-semibold">📈 Trends</h2>
+  L298: <h2 className="font-semibold mb-4">⚡ Quick Actions</h2>
+  L393: <h3 className="text-sm font-medium mb-4">{title}</h3>
+  L405: <h3 className="text-sm font-medium">{title}</h3>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\applications\page.tsx ===
+  L139: <h1 className="text-2xl font-bold">Job Applications</h1>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\apply-work\page.tsx ===
+  L62: <h1 className="text-2xl font-bold">Admin — Applications</h1>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\blogs\page.tsx ===
+  L391: <h2 className="text-xl font-bold text-white">
+  L787: <h3 className="font-medium text-white truncate max-w-[200px] sm:max-w-[300px]">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\cancelled-orders\page.tsx ===
+  L73: <h1 className="text-2xl font-bold">Admin — Cancelled Orders</h1>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\datasets\page.tsx ===
+  L171: <h1 className="text-2xl font-bold text-white">RLHF Datasets</h1>
+  L205: <h2 className="text-lg font-semibold text-white mb-4">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\email\page.tsx ===
+  L38: '<div style="font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial">\n  <h2>UREMO Update</h2>\n  <p>Write your promo content here.</p>\n</div>'
+  L134: <h1 className="text-2xl font-bold">Admin — Email Campaigns</h1>
+  L255: <h2 className="text-lg font-semibold">Campaign History</h2>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\jarvisx-write\page.tsx ===
+  L319: <h1 className="text-2xl font-bold">JarvisX Write</h1>
+  L328: <h1 className="text-2xl font-bold">JarvisX Write</h1>
+  L337: <h1 className="text-2xl font-bold">JarvisX Write</h1>
+  L360: <h1 className="text-2xl font-bold">JarvisX Write (Proposal-Based)</h1>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\messages\page.tsx ===
+  L65: <h1 className="text-2xl font-bold">Admin — Inbox</h1>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\orders\page.tsx ===
+  L512: <h4 className="font-semibold mb-2">Timeline</h4>
+  L541: <h4 className="font-semibold mb-2">Add Note</h4>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\payment-methods\page.tsx ===
+  L123: <h1 className="text-2xl font-bold">Admin — Payment Methods</h1>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\payments\page.tsx ===
+  L103: <h1 className="text-2xl font-bold">Payment Management</h1>
+  L140: <h3 className="text-xl font-bold text-white mb-2">
+  L313: <h3 className="text-xl font-bold text-white mb-2">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\proofs\page.tsx ===
+  L181: <h3 className="text-sm font-semibold text-white mb-1">
+  L281: <h3 className="text-lg font-semibold text-white mb-2">
+  L332: <h3 className="font-semibold text-white">
+  L458: <h2 className="text-xl font-bold mb-2">❌ Reject Project Work</h2>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\rentals\page.tsx ===
+  L199: <h3 className="text-lg font-semibold text-white mb-2">
+  L221: <h3 className="font-semibold text-white">
+  L326: <h3 className="text-lg font-semibold mb-4">Edit Rental Access</h3>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\rlhf-reviews\page.tsx ===
+  L215: <h1 className="text-2xl font-bold text-white">
+  L391: <h3 className="text-lg font-semibold text-white mb-4">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\service-requests\page.tsx ===
+  L207: <h1 className="text-2xl font-bold">Admin — Service Requests</h1>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\services\page.tsx ===
+  L669: <h2 className="font-semibold text-lg">Create New Service</h2>
+  L1149: <h3 className="text-lg font-semibold text-white">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\settings\page.tsx ===
+  L579: <h1 className="text-3xl font-bold">CMS Settings</h1>
+  L624: <h2 className="font-semibold">Brand</h2>
+  L647: <h2 className="font-semibold">Support</h2>
+  L675: <h2 className="font-semibold">Hero</h2>
+  L695: <h2 className="font-semibold">CTA Buttons</h2>
+  L726: <h2 className="font-semibold">Popular section</h2>
+  L746: <h2 className="font-semibold">Final CTA</h2>
+  L798: <h2 className="font-semibold">Payment copy</h2>
+  L834: <h2 className="font-semibold">Payment UI strings</h2>
+  L943: <h2 className="font-semibold">Trust block text</h2>
+  L1000: <h2 className="font-semibold">Support guidelines</h2>
+  L1013: <h2 className="font-semibold">Order chat strings</h2>
+  L1125: <h2 className="font-semibold">Apply-to-work UI</h2>
+  L1148: <h2 className="font-semibold">Disclaimer</h2>
+  L1159: <h2 className="font-semibold">Data safety note</h2>
+  L1174: <h2 className="font-semibold">Advanced JSON / Import</h2>
+  L1337: <h2 className="font-semibold">{props.title}</h2>
+  L1415: <h2 className="font-semibold">{props.title}</h2>
+  L1498: <h2 className="font-semibold">{props.title}</h2>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\wallet\page.tsx ===
+  L293: <h1 className="text-2xl font-bold">💳 Wallet Management</h1>
+  L338: <h2 className="text-lg font-semibold text-amber-400">
+  L422: <h2 className="text-lg font-semibold">🔍 Search User</h2>
+  L506: <h2 className="text-lg font-semibold">User Wallet</h2>
+  L540: <h3 className="font-medium mb-2">Recent Transactions</h3>
+  L584: <h4 className="text-sm font-semibold mb-2 text-slate-300">
+  L609: <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\work-positions\page.tsx ===
+  L243: <h1 className="text-3xl font-bold">Job Roles</h1>
+  L266: <h3 className="text-sm font-semibold text-white mb-1">
+  L351: <h3 className="text-lg font-semibold text-white">No Job Roles Yet</h3>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\workforce\page.tsx ===
+  L682: <h1 className="text-2xl font-bold text-white">
+  L719: <h3 className="text-sm font-semibold text-white mb-1">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\workspace\page.tsx ===
+  L203: <h3 className="font-semibold text-lg text-white mb-2">
+  L214: <h3 className="font-semibold text-white mb-4">Quick Actions</h3>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\workspace\master\page.tsx ===
+  L339: <h1 className="text-2xl font-bold">Master Workspace</h1>
+  L476: <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+  L530: <h3 className="font-medium text-white">{cat.label}</h3>
+  L631: <h4 className="text-sm font-medium text-cyan-400 mb-2">
+  L696: <h4 className="text-sm font-medium text-purple-400 mb-2">
+  L751: <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+  L766: <h3 className="font-medium text-white">Create Screening</h3>
+  L781: <h3 className="font-medium text-white">Create Project</h3>
+  L796: <h3 className="font-medium text-white">Worker Pipeline</h3>
+  L808: <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+  L844: <h3 className="text-sm font-medium text-slate-400 mb-2">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\workspace\projects\page.tsx ===
+  L597: <h1 className="text-2xl font-bold">Projects</h1>
+  L621: <h3 className="text-sm font-semibold text-white mb-1">
+  L651: <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+  L704: <h3 className="text-sm font-semibold text-white mb-1">
+  L838: <h3 className="font-semibold text-white">
+  L973: <h3 className="text-lg font-semibold text-white mb-2">
+  L1017: <h2 className="text-xl font-bold mb-4">Create Project</h2>
+  L1300: <h2 className="text-xl font-bold mb-2">Assign Project</h2>
+  L1457: <h2 className="text-xl font-bold mb-2">💰 Credit Earnings</h2>
+  L1534: <h2 className="text-xl font-semibold text-white">
+  L1555: <h3 className="text-lg font-semibold text-white">
+  L1714: <h2 className="text-xl font-semibold text-white">Edit Project</h2>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\workspace\screening-reviews\page.tsx ===
+  L204: <h1 className="text-2xl font-bold">Screening Reviews</h1>
+  L264: <h3 className="text-lg font-semibold text-white mb-2">
+  L354: <h4 className="text-xs font-medium text-slate-400 mb-2">
+  L384: <h4 className="text-xs font-medium text-slate-400 mb-2">
+  L439: <h4 className="text-xs font-medium text-slate-400 mb-2">
+  L493: <h4 className="text-xs font-medium text-slate-400 mb-2">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\workspace\screenings\page.tsx ===
+  L487: <h1 className="text-2xl font-bold">Screenings</h1>
+  L522: <h3 className="text-sm font-semibold text-white mb-1">
+  L610: <h3 className="font-semibold text-white">
+  L718: <h3 className="text-lg font-semibold text-white mb-2">
+  L764: <h2 className="text-xl font-bold mb-4">Create Screening</h2>
+  L850: <h3 className="font-medium text-sm text-slate-300 mb-3">
+  L940: <h3 className="font-medium">Questions</h3>
+  L958: <h3 className="font-medium text-sm text-slate-300 mb-3">
+  L1016: <h4 className="text-xs font-medium text-slate-400 mb-2">
+  L1112: <h4 className="text-xs font-medium text-slate-400">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\admin\workspace\workers\page.tsx ===
+  L117: <h1 className="text-2xl font-bold">Workers</h1>
+  L194: <h3 className="font-bold text-white text-lg truncate hover:text-blue-400 transition">
+  L317: <h3 className="text-lg font-semibold text-white mb-2">
+  L366: <h2 className="text-xl font-bold text-white">Worker Profile</h2>
+  L379: <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+  L425: <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+  L473: <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+  L523: <h2 className="text-xl font-bold text-white">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\affiliate\page.tsx ===
+  L155: <h1 className="text-3xl font-bold mb-6">Affiliate Dashboard</h1>
+  L285: <h3 className="font-semibold mb-4 text-lg">How It Works</h3>
+  L465: <h3 className="text-lg font-semibold mb-4">Request Withdrawal</h3>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\api-debug\page.tsx ===
+  L47: <h1 className="text-2xl font-bold">Auth Debug</h1>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\apply-to-work\page.tsx ===
+  L297: <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
+  L307: <h2 className="text-lg font-semibold text-white">
+  L398: <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+  L477: <h3 className="text-xl font-semibold text-white mb-2">
+  L580: <h3 className="text-lg font-semibold text-white mb-2">
+  L605: <h2 className="text-2xl font-bold text-white">
+  L619: <h3 className="text-sm font-medium text-slate-400 uppercase tracking-wide mb-2">
+  L630: <h3 className="text-sm font-medium text-slate-400 uppercase tracking-wide mb-3">
+  L664: <h3 className="text-lg font-semibold text-white">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\apply-to-work\success\page.tsx ===
+  L31: <h1 className="text-3xl font-bold text-white mb-2">
+  L63: <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+  L108: <h4 className="text-sm font-semibold text-amber-300 mb-2">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\blogs\page.tsx ===
+  L69: <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 flex items-center justify-center gap-3">
+  L132: <h3 className="text-xl font-semibold text-white mb-2">
+  L176: <h2 className="text-lg font-semibold text-white mb-2 line-clamp-2 group-hover:text-blue-400 transition-colors">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\dashboard\page.tsx ===
+  L631: <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-2">
+  L742: <h2 className="text-lg font-semibold text-white">
+  L792: <h3 className="font-semibold text-white text-lg mb-1">
+  L891: <h2 className="text-lg font-semibold text-white mb-4">
+  L910: <h3 className="font-semibold text-white mb-1">
+  L1016: <h2 className="text-lg font-semibold text-white">Your Activity</h2>
+  L1072: <h3 className="font-medium text-white">Recent Orders</h3>
+  L1120: <h3 className="font-medium text-white mb-2">No orders yet</h3>
+  L1142: <h2 className="text-lg font-semibold text-white mb-4">
+  L1180: <h3 className="font-medium text-white text-sm">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\deals\page.tsx ===
+  L28: <h2 className="text-2xl font-bold text-white mb-2">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\deals\coming-soon\page.tsx ===
+  L12: <h1 className="text-3xl font-bold text-white mb-3">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\explore-services\page.tsx ===
+  L559: <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-4 bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
+  L677: <h3 className="font-bold text-white text-lg mb-1">
+  L1059: <h2 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
+  L1126: <h3 className="text-2xl font-bold text-white mb-3">
+  L1370: <h3 className="text-2xl font-bold text-white mb-1">
+  L1423: <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+  L1436: <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+  L1467: <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+  L1479: <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+  L1689: <h3 className="font-bold text-white text-lg line-clamp-2 mb-2 group-hover:text-blue-100 transition-colors">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\forgot-password\page.tsx ===
+  L76: <h1 className="text-xl font-semibold mb-2 text-white">
+  L101: <h1 className="text-xl font-semibold mb-2 text-white">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\how-it-works\page.tsx ===
+  L29: <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
+  L49: <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
+  L64: <h1 className="text-4xl md:text-5xl font-bold mb-4">
+  L197: <h3 className="text-white font-semibold mb-1">{f.title}</h3>
+  L206: <h2 className="text-3xl font-bold text-white mb-4">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\login\page.tsx ===
+  L150: <h1 className="text-xl font-semibold mb-4 text-white flex items-center gap-2">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\notifications\page.tsx ===
+  L214: <h3
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\orders\page.tsx ===
+  L112: <h3 className="font-semibold text-lg text-white truncate">
+  L238: <h2 className="text-lg font-semibold">
+  L261: <h2 className="text-lg font-semibold">{copy.inProgressTitle}</h2>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\orders\success\page.tsx ===
+  L64: <h1 className="text-3xl font-bold text-white mb-2">Order Created!</h1>
+  L97: <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\payment\page.tsx ===
+  L49: <h1 className="text-2xl font-bold">Complete Payment</h1>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\payment-success\page.tsx ===
+  L12: <h1>Payment Successful</h1>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\profile\page.tsx ===
+  L343: <h2 className="text-xl font-bold mb-2">Not Logged In</h2>
+  L369: <h1 className="text-3xl font-bold text-white flex items-center gap-2">
+  L413: <h2 className="text-2xl font-bold">{name}</h2>
+  L463: <h3 className="text-lg font-semibold">Account Information</h3>
+  L522: <h3 className="text-lg font-semibold">Email Preferences</h3>
+  L591: <h3 className="text-lg font-semibold">Your Interests</h3>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\rentals\page.tsx ===
+  L152: <h1 className="text-3xl font-bold mb-6">My Rentals</h1>
+  L226: <h3 className="font-semibold text-white">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\reset-password\page.tsx ===
+  L178: <h1 className="text-xl font-semibold mb-2 text-white">Invalid Link</h1>
+  L196: <h1 className="text-xl font-semibold mb-2 text-white">
+  L215: <h1 className="text-xl font-semibold mb-2 text-white">Reset Password</h1>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\signup\page.tsx ===
+  L208: <h1 className="text-xl font-semibold mb-4 text-white flex items-center gap-2">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\support\page.tsx ===
+  L57: <h3 className="font-semibold text-white mb-1">Support Tickets</h3>
+  L86: <h3 className="font-semibold text-white mb-1">Email Support</h3>
+  L106: <h3 className="font-semibold text-white mb-1">
+  L137: <h3 className="font-semibold text-white mb-1">Order Chat</h3>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\support\tickets\page.tsx ===
+  L333: <h3 className="font-semibold truncate">{ticket.subject}</h3>
+  L400: <h2 className="text-xl font-bold mb-4">Create Support Ticket</h2>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\upload\page.tsx ===
+  L59: <h1 className="text-xl font-semibold">Upload Payment Proof</h1>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\wallet\page.tsx ===
+  L447: <h1 className="text-3xl font-bold text-white flex items-center gap-2">
+  L598: <h2 className="text-xl font-bold">Add Balance</h2>
+  L733: <h2 className="text-lg font-semibold">Transaction History</h2>
+  L745: <h3 className="text-lg font-semibold mb-2">
+  L863: <h3 className="font-semibold mb-2">How to use your wallet</h3>
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\workspace\page.tsx ===
+  L424: <h3 className="font-semibold text-lg">{app.positionTitle}</h3>
+  L525: <h4 className="font-medium text-amber-300 mb-2 flex items-center gap-2">
+  L568: <h4 className="font-medium text-emerald-300 mb-2 flex items-center gap-2">
+  L592: <h4 className="font-medium text-red-300 mb-2">
+  L721: <h4 className="font-medium mb-3 text-sm">Active Projects</h4>
+  L784: <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+  L802: <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+  L820: <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+  L933: <h4 className="text-sm font-semibold text-purple-300 mb-3">
+  L994: <h3 className="text-lg font-semibold text-white">
+  L1093: <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+  L1104: <h4 className="font-medium">{project.title}</h4>
+  L1138: <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+  L1149: <h4 className="font-medium">{app.positionTitle}</h4>
+  L1165: <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+  L1294: <h1 className="text-3xl font-bold flex items-center gap-2">
+  L1311: <h1 className="text-3xl font-bold flex items-center gap-2">
+  L1318: <h2 className="text-xl font-semibold text-red-300 mb-2">
+  L1353: <h1 className="text-3xl font-bold flex items-center gap-2">
+  L1375: <h1 className="text-3xl font-bold flex items-center gap-2">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\workspace\my-proofs\page.tsx ===
+  L145: <h3 className="font-semibold text-white">
+=== C:\Users\pprsn\OneDrive\Desktop\Uremo World\uremo-frontend\app\workspace\projects\page.tsx ===
+  L122: <h1 className="text-2xl font-bold">My Projects</h1>
+  L132: <h2 className="font-semibold mb-4 flex items-center gap-2">
+  L158: <h3 className="font-medium">{project.title}</h3>
+  L225: <h2 className="font-semibold mb-4 flex items-center gap-2">
+  L236: <h3 className="font-medium">{project.title}</h3>
